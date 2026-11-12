@@ -1,4 +1,4 @@
-/* Service line: LTL (terminal-based city P&D, FedEx Freight-style): PRO/BOL, handling units, weight, class, accessorials, dock appointments, mixed pickups and deliveries, delivery receipt with OS&D. */
+/* Service line: LTL (terminal-based city P&D): PRO/BOL, handling units, weight, class, accessorials, dock appointments, mixed pickups and deliveries, delivery receipt with OS&D. */
 (function(){
 const C=CX,T=C.T;
 const ACC=['Liftgate','Residential','Inside delivery','Appointment','Limited access'];

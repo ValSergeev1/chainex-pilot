@@ -1,0 +1,19 @@
+(function(){const C=CX,X=CXStaff,esc=X.esc;C.init();
+const main=X.shell({app:'Workspaces'});
+function render(){C.load();const S=C.S,s=CXS.staff();const m=C.portal.metrics();const q=C.v2.obQueue();const over=q.filter(p=>C.v2.slaState(p)==='overdue').length;
+ const T=[['dashboard.html','◫','Dashboard','Partner accounts, onboarding, agreements, team access and reporting.','dashboard',`${S.partners.length} partners · ${m.inSetup} in setup`],
+  ['index.html','◎','Dispatch','Service requests, routes, drivers and live map. Board is scoped to your team\'s service line.','dispatch',`Your lines: ${CXS.lines().map(l=>CXS.LINES[l]).join(', ')||'none'}`],
+  ['bids.html','✦','Bids','Opportunities, solicitations, proposal documents and submission tracking. Separate from dispatch.','bids','AI bid assistant · human approval'],
+  ['sales.html','↗','Sales','Customer accounts, outreach and network growth.','sales',`${S.salesCounts.accounts.toLocaleString()} accounts (counts)`],
+  ['payments.html','$','Payments','Rate cards, invoices, settlements, pay runs and payout batches (simulated money).','payments.view',`${S.payRuns.filter(r=>r.status!=='Paid').length} open pay runs`],
+  ['admin.html','⚙','Admin','Security, roles, sessions, full audit log, backups and dispatch teams.',null,'2-step sign-in required'],
+  ['onboarding.html','✓','Onboarding queue','Every application has an owner, a due date and an SLA timer.','onboarding',`${q.length} open · ${over} overdue`],
+  ['compliance.html','⚖','Compliance center','Company record, biennial update checklist, insurance and document expiry.','compliance',`${m.expiring.length} documents expiring or expired`],
+  ['scorecards.html','★','Scorecards','On-time, first attempt, exceptions and cost per stop by service line, weekly review.',null,'Weekly review'],
+  ['architecture.html','◇','Architecture plan','How V02 runs in production on ChainEx\'s own infrastructure and AI layer.',null,'Plan']];
+ main.innerHTML=`<div class="sx-head"><div><div class="sx-mini" style="text-transform:uppercase;letter-spacing:.08em;font-weight:700">ChainEx staff</div><h1>Choose a workspace</h1><div class="sub">Signed in as <b>${esc(s.name)}</b> · ${esc(s.role)}${s.implicit?' (pilot default — <a href="auth/signin.html">sign in</a> to try another role)':''}. Tiles you can't open are greyed out.</div></div></div>
+ <div class="sx-tiles">${T.map(t=>{const ok=!t[4]||CXS.can(t[4]);return `<a class="sx-tile${ok?'':' locked'}" href="${t[0]}" data-ws="${t[0]}"><span class="ti">${t[1]}</span><span style="display:block"><b>${esc(t[2])}</b><span>${esc(t[3])}</span><span class="sx-mini" style="margin-top:8px;color:var(--accent);font-weight:650">${esc(t[5])}</span>${ok?'':'<span class="lk">No access for '+esc(s.role)+'</span>'}</span><span class="go">↗</span></a>`}).join('')}</div>
+ <div class="sx-grid g2" style="margin-top:18px"><div class="sx-card"><h3>Your access</h3><p class="desc">${esc(CXS.ROLES[s.role].desc)}</p>${CXS.PERMS.map(p=>`<span class="sx-chip ${CXS.can(p[0])?'ok':''}" style="margin:0 6px 6px 0">${CXS.can(p[0])?'✓':'—'} ${esc(p[1])}</span>`).join('')}</div>
+ <div class="sx-card"><h3>Other apps in this pilot</h3><p class="desc">Partner-facing apps open with their own sign-in.</p><div class="sx-row"><a class="sx-btn" href="driver.html">Driver app</a><a class="sx-btn" href="dsp.html">DSP &amp; carrier portal</a><a class="sx-btn" href="shipper.html">Shipper portal</a><a class="sx-btn" href="warehouse.html">Warehouse shift app</a><a class="sx-btn" href="site/index.html">Public website</a><a class="sx-btn" href="start.html">Pilot sitemap</a></div></div></div>`}
+C.subscribe(render);render();
+})();

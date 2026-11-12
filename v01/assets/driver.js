@@ -1,0 +1,427 @@
+/* ChainEx Driver app · Pilot (phone frame). One app for all service lines.
+   Sign in with a Driver ID and you land on the work assigned to you (by ChainEx dispatch, or by your DSP/carrier).
+   Steps, load groups, exceptions and the manifest come from assets/lines/<line>.js, so the design stays identical.
+   P&D and Bulky drivers can review and edit the route on the map and submit changes to Dispatch (assets/fieldops.js). */
+(function(){
+const C=CX,esc=C.esc,fmt=C.fmt,$=s=>document.querySelector(s);
+const PILOT_IDS={pd:'CX-PILOT-001',bulky:'CX-PILOT-002',wg:'CX-PILOT-003',ltl:'CX-PILOT-004',shuttle:'CX-PILOT-005'};
+const UIK='cx.driver.ui';
+let ui=Object.assign({screen:'welcome',wid:null,line:'pd',lastId:'CX-PILOT-001',tab:'manifest',filter:'all',q:'',reorder:false,draft:null,edFrom:'route',set:{live:true,follow:true,sound:false,vib:true,theme:'Follow device'}},JSON.parse(localStorage.getItem(UIK)||'{}'));
+let sheet=null,cap={},dmap=null,mapHost=null,mapH={},fitKey='',lastScreen='';
+const saveUI=()=>localStorage.setItem(UIK,JSON.stringify(ui));
+const W=()=>ui.wid,D=()=>C.driver(ui.wid),K=()=>C.lines[(D()||{}).line||ui.line]||C.lines.pd,DC=()=>K().driver||{};
+const R=()=>C.routeAll(W()),openT=()=>R().filter(t=>C.OPEN(t));
+const byId=id=>C.S.drivers.filter(d=>!d.dspSlot&&(d.driverId||'').toUpperCase()===String(id||'').trim().toUpperCase());
+const landing=()=>{const st=D().route.stage;return ['on_road','returning'].includes(st)?'route':st==='loading'?'load':st==='closed'?'closed':'shift'};
+const canEdit=()=>{const d=D();return !!d&&(C.routeEditLines||[]).includes(d.line)&&!['returning','closed'].includes(d.route.stage)&&R().some(t=>t.state==='assigned')};
+const IC={list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',nav:'<path d="m3 11 19-9-9 19-2-8-8-2z"/>',box:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8"/>',check:'<path d="M20 6 9 17l-5-5"/>',alert:'<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',road:'<path d="M4 20 8 4M20 20 16 4M12 6v2M12 11v2M12 16v2"/>',pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7z"/>',grip:'<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',up:'<path d="m6 15 6-6 6 6"/>',down:'<path d="m6 9 6 6 6-6"/>',more:'<path d="M5 12h.01M12 12h.01M19 12h.01"/>',skip:'<path d="m5 4 10 8-10 8V4zM19 5v14"/>',note:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',back:'<path d="m15 18-6-6 6-6"/>',send:'<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>',bolt:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'};
+const I=(n,s=16)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||''}</svg>`;
+function fx(k){const p=$('#phone');if(!p)return;p.classList.remove('fx-ok','fx-bad');void p.offsetWidth;p.classList.add('fx-'+k);clearTimeout(p._fx);p._fx=setTimeout(()=>p.classList.remove('fx-ok','fx-bad'),700);if(ui.set.vib&&navigator.vibrate)try{navigator.vibrate(k==='ok'?25:[40,40,40])}catch(e){}}
+const cur=()=>openT()[0];
+const word=()=>{const w=K().stopWord1||'stop';return w[0].toUpperCase()+w.slice(1)};
+const no=t=>`${word()} ${String(t.seq+1).padStart(3,'0')}`;
+const items=()=>R().reduce((a,t)=>a+t.items.length,0);
+const unitW=()=>(K().units||'Items').toLowerCase();
+const hubName=()=>{const d=D();return (C.S.hubs[d.hub]||{}).name||d.hubName||'hub'};
+const hubAddr=()=>{const d=D();return (C.S.hubs[d.hub]||{}).address||''};
+const stepsOf=t=>K().steps?K().steps(t,C.S):[];
+const nextStep=t=>stepsOf(t).find(s=>!t.stepData[s.id]);
+const elig=()=>C.eligibility?C.eligibility(W(),ui.line):{ok:true,reasons:[],warnings:[]};
+const appH=()=>`<div class="app-h"><span class="wordmark">Chain<span class="ex">Ex</span></span><span class="who">${D()&&ui.screen!=='welcome'?`<span class="av-s">${esc(D().name.split(' ').map(x=>x[0]).join(''))}</span>`+esc(K().name):'Driver'}</span></div>`;
+const toast=m=>{const e=$('#ptoast');const ok=/^✓/.test(m),bad=/isn't on|doesn't belong|Not on the|not found|Blocked|required|Scan every/.test(m);if(ok)fx('ok');else if(bad)fx('bad');e.className='ptoast'+(ok?' ok':bad?' bad':'');e.textContent=m;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200)};
+function go(s){ui.screen=s;saveUI();closeSheet();render()}
+const stLabel=t=>C.stateLabel(t.state,ui.line);
+function eligBlock(){const e=elig();if(!e.ok)return `<div class="policy bad"><b>Not eligible for dispatch</b><br>${e.reasons.map(esc).join('<br>')}<div style="margin-top:6px">Dispatch can't assign you work and offers are locked until this is fixed. <a href="dashboard.html#onboard" target="_blank" rel="noopener">Update documents in the partner portal ↗</a></div></div>`;
+  return `<div class="okline">✓ Eligible for ${esc(K().name)} · documents verified by the ChainEx partner portal</div>${(e.warnings||[]).map(w=>`<div class="policy warn">⚠ ${esc(w)}</div>`).join('')}`}
+
+const screens={
+welcome:()=>`${appH()}<div class="body" style="padding-top:44px"><div class="hero-ic">${I('user',26)}</div><div class="h1">Welcome</div><div class="sub">Sign in with your Driver ID. You'll see only the work assigned to you.</div>
+  <label class="lbl">Driver ID</label><input class="dinput" id="did" autocomplete="off" value="${esc(ui.lastId||'CX-PILOT-001')}">
+  <label class="terms"><input type="checkbox" id="terms"><span>By using this app, you agree to the <a href="#" onclick="return false">Terms &amp; Conditions</a> and <a href="#" onclick="return false">Privacy Policy</a>.</span></label>
+  <div class="idlist"><div class="eyebrow">Pilot driver IDs · tap to fill</div>${[['CX-PILOT-001','P&D · Eastside Express'],['CX-PILOT-002','Bulky · Eastside Express'],['CX-PILOT-003','White glove · Rainier'],['CX-PILOT-004','LTL · Cascade Freight'],['CX-PILOT-005','Shuttle · Valley Drayage'],['CX-1188','P&D · Eastside · no work yet'],['CX-1440','Shuttle floater · Cascade'],['CX-1103','P&D independent · blocked']].map(x=>`<button class="idchip" data-a="fillid" data-v="${x[0]}"><b>${x[0]}</b><span>${esc(x[1])}</span></button>`).join('')}</div></div>
+  <div class="bottom"><button class="pillbtn" id="contBtn" data-a="continue" disabled>Sign in</button></div>`,
+mywork:()=>{const hits=byId(ui.lastId);return `${appH()}<div class="body"><div class="eyebrow">${esc(ui.lastId)}</div><div class="h1" style="font-size:22px">Your assigned work</div><div class="sub">You're set up on more than one service line. Pick today's assignment.</div><div class="rows">${hits.map(d=>`<div class="rowi" data-a="pickwork" data-v="${d.id}"><span>${esc(C.lines[d.line].long)}<small>${esc(d.route.id)} · ${C.route(d.id).length} open</small></span></div>`).join('')}</div></div><div class="bottom"><button class="linkbtn" data-a="signout">Sign out</button></div>`},
+shift:()=>{const d=D(),ci=d.route.checkin,k=K(),e=elig(),has=R().length>0;const par=e.partner&&e.partner.parent&&CX.portal.partner(e.partner.parent);
+  const approved=C.LINE_ORDER.filter(l=>l===d.line&&C.eligibility(d.id,l).ok);const offers=C.claimOn(d.line)?C.S.offers.filter(o=>approved.includes(o.line)&&(!o.claimedBy||o.claimedBy===W())):[];
+  const src=par?`${esc(CX.portal.short(par))} (your ${esc(par.type==='Carrier'?'carrier':'DSP')})`:'ChainEx dispatch';
+  const open=openT(),first=open[0],pkgs=items(),hub=C.S.hubs[d.hub]||{},startAt=(d.route&&d.route.startAt)||C.T(8,0);
+  const canPlan=canEdit()||(has&&['not_started','loading'].includes(d.route.stage));
+  const offerBlock=C.claimOn(d.line)?`<div class="dcard" id="offerCard"><div class="eyebrow">Job offers · ${approved.map(l=>esc(C.lines[l].name)).join(', ')||'none'}</div><h3>${approved.length?'Open work you can claim':'Offers are locked'}</h3>
+   ${offers.map(o=>`<div class="offer"><b>${esc(o.title)}</b><div class="sub" style="font-size:12px">${o.taskIds.length} ${esc(k.stopWord||'stops')} · ${esc(o.zone)} · pickup ${esc(o.pickup)}</div><div class="r"><b style="color:var(--st-completed)">${o.pay}</b>${o.claimedBy?`<span class="chip green">Claimed</span>`:`<button class="btn primary" data-a="claim" data-v="${o.id}" ${e.ok?'':'disabled title="Blocked by eligibility"'}>${e.ok?'Claim':'Locked'}</button>`}</div></div>`).join('')||`<div class="sub">${approved.length?'No offers right now for your approved lines.':'Offers open once your documents are current.'}</div>`}</div>`:'';
+  const routeFull=`<div class="dcard route-ready" id="routeReady">
+    <div class="eyebrow">${esc(DC().checkinTitle||'Assigned route')} · ${esc(hubName())}</div>
+    <h3>${ui.line==='shuttle'?'Run':'Route'} ${esc(d.route.id)}</h3>
+    <div class="rstats">
+      <div><b>${R().length}</b><span>stops</span></div>
+      <div><b>${pkgs}</b><span>${esc(unitW())}</span></div>
+      <div><b>${esc((hub.id||d.hub||'—'))}</b><span>station</span></div>
+      <div><b>${esc(fmt(startAt))}</b><span>start</span></div>
+    </div>
+    ${first?`<div class="first-stop"><span class="eyebrow">First stop</span><b>${esc(first.name)}</b><div class="sub" style="font-size:12px">${esc(first.address)}</div></div>`:''}
+    <div class="shift-map"><div class="mapslot" id="mapslot"></div></div>
+    <div class="racts">${canPlan?`<button class="pillbtn out" data-a="reditopen" data-v="shift">${I('map',15)} Review route</button>`:`<button class="pillbtn out" data-a="nav" data-v="review">Review route</button>`}
+      ${['on_road','returning'].includes(d.route.stage)?`<button class="pillbtn" data-a="nav" data-v="route">Open route</button>`:ci==='none'?`<button class="pillbtn" data-a="omwhub" ${e.ok?'':'disabled'}>Start route</button>`:ci==='on_my_way'?`<button class="pillbtn" data-a="arrhub">I've arrived</button>`:`<button class="pillbtn" data-a="${DC().skipLoad||d.route.stage==='loading'?'nav':'nav'}" data-v="${DC().skipLoad?'route':'load'}">${DC().skipLoad?'Start route':'Continue to load scan'}</button>`}</div>
+    ${edBan(d)}
+  </div>`;
+  const routeLocked=has?`<div class="dcard route-locked" id="routeReady">
+    <div class="eyebrow">Assigned · locked until you go on duty</div>
+    <h3>${ui.line==='shuttle'?'Run':'Route'} ${esc(d.route.id)} · ${R().length} ${esc(k.stopWord||'stops')}</h3>
+    <div class="sub" style="font-size:12px">${esc(hubName())} · ${pkgs} ${esc(unitW())}</div>
+    <div class="hint">Go on duty to open the full route card, map and planner.</div>
+  </div>`:'';
+  const check=has&&d.duty?`<div class="dcard"><div class="eyebrow">${esc(DC().checkinTitle||'Hub check-in')} · ${esc(hubName())}</div>
+    <div class="sub" style="font-size:12px">${esc(hubAddr())}</div>
+    <div class="steps"><span class="${ci!=='none'?'on':''}"></span><span class="${ci==='arrived'?'on':''}"></span><span class="${['loading','on_road','returning','closed'].includes(d.route.stage)?'on':''}"></span></div>
+    <div style="display:flex;gap:8px;margin-top:10px">${ci==='none'?`<button class="pillbtn" data-a="omwhub" ${e.ok?'':'disabled'}>On my way to ${esc(hubName().replace(/^ChainEx /, ''))}</button>`:ci==='on_my_way'?`<button class="pillbtn" data-a="arrhub">I've arrived</button>`:`<div class="okline">✓ Checked in · ${esc(hubName())}</div>`}</div></div>`:'';
+  return `${appH()}<div class="body tight"><div class="eyebrow">Driver home · ${esc(d.name)} · ${esc(d.driverId)}</div><div class="h1" style="font-size:24px">Today</div>
+  <div class="dcard duty"><div><div class="eyebrow">Duty status</div><h3>${d.duty?'On duty':'Off duty'}</h3><div class="sub" style="font-size:12px">${d.duty?'Your route is open. Review it, optimize it, or start toward the station.':'Go on duty to open your assigned route.'}</div></div><button class="toggle${d.duty?' on':''}" data-a="duty" aria-label="Duty"></button></div>
+  ${eligBlock()}
+  <div class="aprow"><span class="tiny muted">Approved for</span>${C.LINE_ORDER.filter(l=>l===d.line).map(l=>`<span class="chip ${C.eligibility(d.id,l).ok?'green':'red'}">${esc(C.lines[l].name)}</span>`).join('')}<span class="tiny muted" style="margin-left:auto">Work from ${src}</span></div>
+  ${has?(d.duty?routeFull:routeLocked):`<div class="empty-st"><div class="es-ic">${I('inbox',30)}</div><b>No work assigned</b><div class="sub" style="font-size:12.5px">Nothing is assigned to you right now. When ${src} assigns you a route, it shows up here on its own. No refresh needed.</div></div>`}
+  ${d.duty?check:''}
+  ${offerBlock}
+  </div>
+  <div class="bottom">${has?(['on_road','returning'].includes(d.route.stage)?`<button class="pillbtn" data-a="nav" data-v="route">Back to ${ui.line==='shuttle'?'my run':'my route'}</button>`:d.duty?`<button class="pillbtn" data-a="nav" data-v="review">Review route</button>`:`<button class="pillbtn" data-a="duty">Go on duty</button>`):`<button class="pillbtn out" data-a="sync">Check for work</button>`}<button class="linkbtn" data-a="signout">Sign out</button></div>`},
+review:()=>{const d=D(),r=R(),k=K();
+  return `${appH()}<div class="body"><div class="eyebrow">Ready to begin</div><div class="h1" style="font-size:22px">Review route</div>
+  <div style="font-weight:800;font-size:17px;margin-top:14px">${esc(k.name)} · ${esc(d.route.id)}</div><div class="sub" style="font-size:12.5px">${esc(hubName())} · ${esc(hubAddr())}</div><div class="sub" style="font-size:12.5px">${r.length} ${esc(k.stopWord||'stops')} · ${items()} ${esc(unitW())} · ${esc(d.vehicle||'')}</div>
+  ${DC().review?DC().review(d,r,C.S):''}
+  ${canEdit()?`<button class="pillbtn out edit-cta" data-a="reditopen" data-v="review">${I('map',15)} Open route planner</button>${edBan(d)}`:''}
+  ${ui.line!=='shuttle'?`<div class="dcard"><div class="eyebrow">First and last ${esc(k.stopWord1||'stop')}</div><div class="kvrow"><span>First</span><span>${r[0]?esc(r[0].name)+' · by '+fmt(r[0].window[1]):'—'}</span></div><div class="kvrow"><span>Last</span><span>${r.length?esc(r[r.length-1].name):'—'}</span></div><div class="hint">Load the last ${esc(k.stopWord1||'stop')} first, deepest in the vehicle.</div></div>`:''}</div>
+  <div class="bottom"><button class="pillbtn" data-a="${DC().skipLoad?'startroute':'nav'}" data-v="load">${DC().skipLoad?'Start shift':'Start load scan'}</button><button class="linkbtn" data-a="nav" data-v="shift">Back</button></div>`},
+load:()=>{const r=R().filter(t=>t.kind!=='pickup'),all=r.flatMap(t=>t.items.map(p=>({p,t}))),done=all.filter(x=>x.p.loaded).length,pct=all.length?Math.round(done/all.length*100):100;
+  const gb=DC().groupBy||(p=>p.tote||'Items');const groups={};all.slice().sort((a,b)=>b.t.seq-a.t.seq).forEach(x=>{const g=gb(x.p,x.t)||'Items';(groups[g]=groups[g]||[]).push(x)});
+  return `${appH()}<div class="body tight"><div class="eyebrow">Load scan · ${esc(hubName())}</div><div class="h1" style="font-size:22px">${esc(DC().loadTitle||'Scan every item before loading')}</div><div class="sub" style="font-size:12.5px">${esc(DC().loadSub||'')}</div>
+  <div class="scanbox"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12.5px">Barcode</b><button class="btn" data-a="loadscan" data-v="cam">Use camera</button></div><div class="r"><input class="input" id="lbc" placeholder="Scan or type an ID"><button class="btn blue" data-a="loadscan">Scan</button></div></div>
+  <div class="prog">${done} / ${all.length} ${esc(unitW())} load-scanned · ${pct}%<div class="bar"><i style="width:${pct}%"></i></div></div>
+  ${Object.entries(groups).map(([g,xs])=>{const left=xs.filter(x=>!x.p.loaded);return `<div class="shsec"><h4 style="font-size:13px;display:flex;justify-content:space-between;align-items:center">${esc(g)}${left.length?`<button class="btn" style="padding:2px 8px;font-size:11px" data-a="groupscan" data-v="${esc(left.map(x=>x.p.id).join(','))}">${esc(DC().groupScan||'Scan group')} (${left.length})</button>`:'<span class="scanned">Loaded</span>'}</h4>${xs.map(x=>`<div class="pkgrow"><span>${esc(x.p.id)}<span class="tote">${no(x.t)} · ${esc(x.t.name)}${K().itemMeta?' · '+esc(K().itemMeta(x.p)):''}</span></span>${x.p.loaded?'<span class="scanned">Loaded</span>':'<span class="unscanned">Unscanned</span>'}</div>`).join('')}</div>`}).join('')}
+  ${R().some(t=>t.kind==='pickup')?`<div class="hint">${R().filter(t=>t.kind==='pickup').length} pickup(s) on this route are scanned at the shipper.</div>`:''}</div>
+  <div class="bottom"><button class="pillbtn" data-a="startroute" ${done===all.length?'':'disabled'}>${done===all.length?'Start route':`Scan ${all.length-done} more to start`}</button></div>`},
+route:()=>{const d=D(),r=R(),k=K(),done=r.filter(t=>t.state==='completed').length,fail=r.filter(t=>t.state==='failed').length,pct=r.length?Math.round(done/r.length*100):0,et=C.etas(W()),risk=openT().some(t=>et[t.id]&&et[t.id].risk),c=cur(),ce=c&&et[c.id];
+  const mlab=(DC().manifestLabel||'Manifest').replace(/^[^A-Za-z]+/,'');
+  const top=`${d.sos?`<div class="sosactive"><span>⚠ SOS sent to Dispatch · ${fmt(C.S.clock)}</span><button class="closebtn" data-a="cancelsos">Cancel</button></div>`:''}<div class="ws-top"><div class="ws-head"><div class="ws-title"><div class="eyebrow" style="font-size:9px">${esc(k.name)} · ${esc(d.route.id)}</div><div class="h2">${ui.line==='shuttle'?'My run':'My route'}</div></div>
+   <button class="dutybtn" data-a="duty"><span class="dot" style="background:${d.duty?'var(--st-completed)':'var(--st-pending)'}"></span>${d.duty?'On duty':'Off duty'}</button><button class="sosbtn" data-a="sos">SOS</button></div></div>
+   <div class="tabs">${[['manifest','list',mlab],['map','map','Map'],...(canEdit()?[['edit','edit','Edit route']]:[]),['settings','gear','Settings']].map(x=>`<button class="${ui.tab===x[0]?'on':''}" data-a="tab" data-v="${x[0]}">${I(x[1],14)}<span>${esc(x[2])}</span></button>`).join('')}</div>`;
+  if(ui.tab==='map')return top+`<div class="mapwrap"><div class="mapslot" id="mapslot"></div><div class="mapcard glass"><div class="mc-row"><span class="pring sm" style="--p:${pct}"><b>${pct}%</b></span><span class="muted">${openT().length} of ${r.length} ${esc(k.stopWord||'stops')} left · ${items()} ${esc(unitW())}</span></div>${c?`<b>${ui.line==='shuttle'?fmt(c.x.dep)+' · ':no(c)+' · '}${esc(c.name)}</b><span class="muted">${esc(c.address)}${ce?' · ETA '+fmt(ce.eta):''}</span><div class="dual" style="margin-top:8px"><button class="pillbtn" style="border-radius:10px" data-a="nav-stop" data-v="${c.id}">${I('nav',14)} Navigate</button>${canEdit()?`<button class="pillbtn out" style="border-radius:10px" data-a="tab" data-v="edit">${I('edit',14)} Edit route</button>`:''}</div>`:`<b>All done</b><button class="pillbtn" style="margin-top:8px;border-radius:10px" data-a="returnhub">${esc(DC().returnTitle||'Return to hub')}</button>`}</div></div>`;
+  if(ui.tab==='settings')return top+settings();
+  const edB=edBan(d);
+  const hud=`<div class="hud"><div class="mapslot" id="mapslot"></div><div class="hud-ov glass"><span class="pring" style="--p:${pct}"><b>${pct}%</b><small>done</small></span><div class="hud-t"><b>${openT().length} left</b><span>${c?(ce?'Next ETA '+fmt(ce.eta):'Next '+esc(c.name)):'Route complete'}</span></div>${openT().length?(risk?'<span class="chip red pulse">At risk</span>':'<span class="chip green">On track</span>'):''}</div><div class="hud-live"><i></i>LIVE · ${fmt(C.S.clock)}</div></div>
+   <div class="tiles"><div class="tile"><span>${I('pin',13)} ${esc((k.stopWord||'stops').replace(/^./,x=>x.toUpperCase()))}</span><b>${r.length}</b></div><div class="tile ok"><span>${I('check',13)} Done</span><b>${done}</b></div><div class="tile ${fail?'bad':''}"><span>${I('alert',13)} Exceptions</span><b>${fail}</b></div><div class="tile"><span>${I('box',13)} ${esc(K().units||'Items')}</span><b>${items()}</b></div></div>`;
+  if(DC().manifest)return top+`<div class="body tight" style="padding-top:8px">${hud}${eligInline()}${DC().manifest(d,r,C.S,{no,stLabel})}</div>`;
+  let curCard;
+  if(c){const ns=nextStep(c),st=stepsOf(c),e=et[c.id],sc=c.items.filter(p=>p.stopScanned).length,started=Object.keys(c.stepData).length>0;
+    curCard=`<div class="cur sticky"><div class="t"><span class="eyebrow">Next ${esc(k.stopWord1||'stop')}</span><span class="status st-${c.state}">${c.state==='active'?(c.arrivedAt?'Arrived':stLabel(c)):'Pending'}</span></div><div class="cur-n"><b>${no(c)}</b> · ${esc(c.name)}</div><div class="addr" data-a="stop" data-v="${c.id}">${I('pin',13)} ${esc(c.address)} ›</div>
+     <div class="tiny" style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip ${sc===c.items.length?'green':''}">${sc}/${c.items.length} scanned</span><span class="chip">${I('clock',11)} ${fmt(c.window[0])}–${fmt(c.window[1])}</span>${e?`<span class="chip ${e.risk?'red':'blue'}">ETA ${fmt(e.eta)}${e.risk?' · at risk':''}</span>`:''}${c.tags.includes('REATTEMPT')?'<span class="chip orange">Reattempt</span>':''}${c.kind==='pickup'?'<span class="chip">Pickup</span>':''}${c.driverNote?'<span class="chip">📝 note</span>':''}</div>
+     <div class="steps">${st.map(s=>`<span class="${c.stepData[s.id]?'on':''}" title="${esc(s.label)}"></span>`).join('')}</div><div class="tiny muted" style="margin-top:4px">Step ${st.indexOf(ns)+1} of ${st.length} · ${esc(ns?ns.label:'')}</div>
+     <div class="acts"><button class="btn primary" data-a="step" data-v="${c.id}">${esc(ns?ns.label:'Continue')}</button>${started?`<button class="btn peach" data-a="cant" data-v="${c.id}">${esc(k.exceptionLabel||"Can't deliver")}</button>`:`<button class="btn" data-a="nav-stop" data-v="${c.id}">${I('nav',13)} Navigate</button>`}</div></div>`}
+  else curCard=`<div class="cur"><div class="t"><b>Route complete</b><span class="status st-completed">${done} done</span></div><div class="sub" style="font-size:12.5px;margin-top:6px">${fail} exception(s). Return anything undelivered and scan it in to close the route.</div><button class="pillbtn" style="margin-top:12px;border-radius:10px" data-a="returnhub">${esc(DC().returnTitle||'Return to hub')}</button></div>`;
+  const q=ui.q.toLowerCase();const list=r.filter(t=>(ui.filter==='all'||(ui.filter==='open'?C.OPEN(t):!C.OPEN(t)))&&(!q||(t.name+t.address+t.id+JSON.stringify(t.x||{})).toLowerCase().includes(q)));
+  return top+`<div class="body tight" style="padding-top:8px">${hud}${edB}${eligInline()}${curCard}<div class="list"><div class="list-h"><div><b>Route ${esc(k.stopWord||'stops')}</b><div class="tiny muted">${esc(k.name)} · ${r.length} ${esc(k.stopWord||'stops')} · ${items()} ${esc(unitW())}</div></div>${canEdit()?`<button class="btn" style="padding:3px 9px;font-size:11.5px" data-a="tab" data-v="edit">${I('edit',12)} Edit route</button>`:''}</div>
+   <div class="list-tools"><input class="input" id="stopq" placeholder="Search ${esc(k.stopWord1||'stop')} or shipment" value="${esc(ui.q)}"><span class="tiny muted">Show</span><select class="input" id="stopf" style="width:110px">${[['all','All'],['open','Open'],['done','Done']].map(o=>`<option value="${o[0]}"${ui.filter===o[0]?' selected':''}>${o[1]}</option>`).join('')}</select></div>
+   ${list.map(t=>{const sc=t.items.every(p=>p.loaded);return `<div class="stop${c&&c.id===t.id?' curr':''}${t.state==='completed'?' done':''}" data-a="stop" data-v="${t.id}"><b><span class="sq">${t.seq+1}</span>${esc(t.name)}</b><span class="tiny muted" style="display:flex;gap:6px;align-items:center">${t.items.length} ${esc(unitW())}</span><span class="a">${esc(t.address)}</span><span class="s"><span class="status st-${t.state}">${esc(stLabel(t))}</span>${t.tags.includes('DRIVER SKIP')?'<span class="chip">Skipped</span>':''}${t.tags.includes('PIN FIX')?'<span class="chip">Pin fixed</span>':''}${t.state==='completed'?'<span class="scanned">Done</span>':t.kind==='pickup'?'<span class="muted">Pickup</span>':sc?'<span class="scanned">Loaded</span>':'<span class="unscanned">Unscanned</span>'}</span></div>`}).join('')||'<div class="stop"><span class="a">Nothing matches.</span></div>'}</div></div>`},
+redit:()=>{const d=D(),k=K(),dr=draft(),rows=edRows(dr),n=nChanges(dr),sel=dr.sel.filter(id=>dr.order.includes(id)),pf=dr.pinFor&&C.task(dr.pinFor);
+  const modes=[['select','Select'],['seq','Tap to sequence'],['lasso','Lasso a block'],['pin','Fix a pin']];
+  const hint=dr.mode==='seq'?`Tap pins in the order you'll drive. ${dr.placed} placed${dr.placed?' · <a href="#" data-a="eseqreset">restart</a>':''}`:dr.mode==='lasso'?'Drag on the map to select every stop in a block. Then group, loop, or move them.':dr.mode==='pin'?(pf?`Fixing <b>${esc(pf.name)}</b>. ${mapIsGL()?'Tap the map at the right spot, or nudge:':'Nudge the pin to the right spot:'}`:'Tap the pin (or a row) whose location is wrong.'):'Tap pins or rows to select, then reorder, group, skip, lock or split into loops.';
+  const hub=(C.S.hubs[d.hub]||{});
+  const live=rows.filter(x=>!x.lock&&!x.skip);
+  const beforeKm=dr.opt?dr.opt.beforeKm:C.pathKm(pathOf(dr));
+  const svc=k.serviceMin||3;
+  const beforeMin=beforeKm*2.2+live.length*svc;
+  const optBox=dr.opt?`<div class="opt-result" id="optResult">
+      <div class="eyebrow">Optimize result</div>
+      <div class="opt-cmp"><div><span>Before</span><b>${dr.opt.beforeKm.toFixed(1)} km</b><small>${Math.round(dr.opt.beforeMin)} min</small></div>
+        <div class="opt-arr">→</div>
+        <div><span>After</span><b>${dr.opt.afterKm.toFixed(1)} km</b><small>${Math.round(dr.opt.afterMin)} min</small></div>
+        <div class="opt-saved">${(dr.opt.beforeKm-dr.opt.afterKm)>=-0.01?`<b>${Math.max(0,dr.opt.beforeKm-dr.opt.afterKm).toFixed(1)} km</b><small>${Math.max(0,Math.round(dr.opt.beforeMin-dr.opt.afterMin))} min saved</small>`:'<small>Same distance</small>'}</div></div>
+      <div class="racts"><button class="pillbtn" data-a="eoptok">Accept</button><button class="pillbtn out" data-a="eoptundo">Undo</button></div>
+    </div>`:`<div class="opt-box" id="optBox">
+      <div class="eyebrow">Auto-optimize</div>
+      <div class="opt-ends">
+        <div><span>First stop</span><b>${dr.first&&C.task(dr.first)?esc(C.task(dr.first).name):'Tap a pin, then set as first'}</b>
+          <div class="tiny muted">Start from <a href="#" data-a="estartfrom" data-v="stop" class="${dr.startFrom==='stop'?'on':''}">this stop</a> · <a href="#" data-a="estartfrom" data-v="station" class="${dr.startFrom==='station'?'on':''}">station</a> · <a href="#" data-a="estartfrom" data-v="myloc" class="${dr.startFrom==='myloc'?'on':''}">my location</a></div></div>
+        <div><span>Last stop</span><b>${dr.last&&C.task(dr.last)?esc(C.task(dr.last).name):'Tap a pin, then set as last'}</b>
+          <div class="tiny muted">End at <a href="#" data-a="eendat" data-v="stop" class="${dr.endAt==='stop'?'on':''}">this stop</a> · <a href="#" data-a="eendat" data-v="station" class="${dr.endAt==='station'?'on':''}">return to station</a></div></div>
+      </div>
+      <button class="pillbtn" data-a="eopt" ${dr.first&&dr.last&&dr.first!==dr.last?'':'disabled'} id="optGo">Optimize remaining stops</button>
+    </div>`;
+  const loopsUsed=[...new Set(Object.values(dr.loops||{}).filter(Boolean))].sort();
+  const clusterOn=!!dr.cluster;
+  function rowHTML(x){const t=x.t,id=t.id,s=dr.sel.includes(id);const lp=dr.loops[id],mk=dr.marks[id],lk=(dr.locked||[]).includes(id);
+    return `<div class="erow${s?' sel':''}${x.skip?' skip':''}${x.lock||lk?' lock':''}${id===dr.first?' first':''}${id===dr.last?' last':''}" ${x.lock?'':'draggable="true"'} data-eid="${id}"><span class="grip">${x.lock?I('check',14):I('grip',14)}</span><span class="eno${dr.anim?' pop':''}" style="${dr.anim?`animation-delay:${Math.min(x.n,30)*0.03}s`:''}">${id===dr.first?'A':id===dr.last?'Z':x.n}</span><div class="einfo" data-a="${x.lock?'stop':'esel'}" data-v="${id}"><b>${esc(t.name)}</b><small>${esc(t.address)}</small><span class="ebadges">${x.lock?`<span class="status st-${t.state}">${esc(stLabel(t))}</span>`:''}${x.skip?'<span class="chip">Skipped · end</span>':''}${lp?`<span class="chip blue">Loop ${esc(lp)}</span>`:''}${lk?'<span class="chip">Locked</span>':''}${mk==='apt'?'<span class="chip">Apartment</span>':mk==='biz'?'<span class="chip">Business</span>':''}${id===dr.first?'<span class="chip green">First</span>':''}${id===dr.last?'<span class="chip green">Last</span>':''}${dr.notes[id]?'<span class="chip blue">Note</span>':''}${dr.pins[id]?'<span class="chip blue">Pin fixed</span>':''}</span></div>${x.lock?'':`<span class="eacts"><button data-a="eup" data-v="${id}" aria-label="Up">${I('up',13)}</button><button data-a="edown" data-v="${id}" aria-label="Down">${I('down',13)}</button><button data-a="estop" data-v="${id}" aria-label="More">${I('more',13)}</button></span>`}</div>`}
+  const listParts=[];
+  if(clusterOn){
+    const groups=[];const seen=new Map();
+    rows.forEach(x=>{if(x.lock){groups.push({key:'_done_'+x.t.id,title:null,rows:[x]});return}
+      const lp=dr.loops[x.t.id];const key=(lp?('loop:'+lp+':'):'')+streetKey(x.t);
+      if(!seen.has(key)){seen.set(key,groups.length);groups.push({key,title:(lp?('Loop '+lp+' · '):'')+streetKey(x.t),rows:[x]})}else groups[seen.get(key)].rows.push(x)});
+    groups.forEach(g=>{if(g.title&&g.rows.length)listParts.push(`<div class="egrp">${esc(g.title)} · ${g.rows.length}</div>`);g.rows.forEach(x=>listParts.push(rowHTML(x)))});
+  }else{rows.forEach(x=>listParts.push(rowHTML(x)))}
+  return `<div class="ed-h"><button class="iconbtn" data-a="edback" aria-label="Back">${I('back',18)}</button><div style="flex:1"><b>Route planner</b><small>${esc(d.route.id)} · ${rows.length} ${esc(k.stopWord||'stops')} · pick first and last, then optimize — or tap pins to build your own sequence</small></div><button class="iconbtn" data-a="eissue" title="Report a road issue">${I('road',18)}</button></div>
+  <div class="ed-map"><div class="mapslot" id="mapslot"></div><div class="lasso-rect" id="lassoRect" hidden></div></div>
+  <div class="ed-tools"><div class="seg2">${modes.map(m=>`<button class="${dr.mode===m[0]?'on':''}" data-a="emode" data-v="${m[0]}">${m[1]}</button>`).join('')}</div><div class="ed-hint">${hint}</div>
+   ${dr.mode==='pin'&&pf?`<div class="nudge"><button data-a="nudge" data-v="n">↑</button><button data-a="nudge" data-v="s">↓</button><button data-a="nudge" data-v="w">←</button><button data-a="nudge" data-v="e">→</button><button data-a="myloc">${I('nav',12)} My location</button>${dr.pins[pf.id]?'<button data-a="pinreset">Reset</button>':''}</div>`:''}
+   ${sel.length?`<div class="selbar"><b>${sel.length} selected</b><button data-a="emove" data-v="start">Move to start</button><button data-a="emove" data-v="end">Move to end</button>${sel.length>1?'<button data-a="emove" data-v="group">Group together</button>':''}${sel.length===1?`<button data-a="efirst" data-v="${sel[0]}">Set as first</button><button data-a="elast" data-v="${sel[0]}">Set as last</button>`:''}<button data-a="eloop" data-v="A">Loop A</button><button data-a="eloop" data-v="B">Loop B</button><button data-a="elock">Lock</button><button data-a="emove" data-v="skip">${I('skip',11)} Skip</button><button data-a="emove" data-v="clear">Clear</button></div>`:''}
+   ${optBox}
+   <div class="plan-mini"><button class="linkish${clusterOn?' on':''}" data-a="ecluster">Group by street</button>${loopsUsed.length?`<span class="tiny muted">Loops ${loopsUsed.join(', ')}</span>`:''}<button class="linkish" data-a="esavemy">Save as My route</button><button class="linkish" data-a="eloademy">Load My route</button></div>
+  </div>
+  <div class="body tight ed-list">${listParts.join('')}
+   ${dr.issues.length?`<div class="dcard" style="padding:10px"><div class="eyebrow">Road issues to report (${dr.issues.length})</div>${dr.issues.map((x,i)=>`<div class="kvrow"><span>🚧 ${esc(x.type)}${x.near?' · '+esc(x.near):''}</span><span><a href="#" data-a="edelissue" data-v="${i}">Remove</a></span></div>`).join('')}</div>`:''}</div>
+  <div class="bottom ed-bottom"><button class="pillbtn" data-a="esubmit" ${n?'':'disabled'}>${I('send',14)} Submit route changes${n?' ('+n+')':''}</button>${n?'<button class="linkbtn" data-a="ediscard">Discard</button>':''}<button class="linkbtn" data-a="edback">Back</button></div>`},
+closed:()=>{const r=R(),done=r.filter(t=>t.state==='completed').length,pct=r.length?Math.round(done/r.length*100):0;return `${appH()}<div class="body done-hero"><div class="eyebrow">${esc(K().name)} · ${esc(D().route.id)}</div><div class="h1">${ui.line==='shuttle'?'Shift ended':'Route closed'}</div><div class="sub">Return scan complete. You're off duty. Earnings post to your settlement in the partner portal.</div><div class="ring" style="--p:${pct}"><span>${pct}%<small>completed</small></span></div><div class="sub">${done} of ${r.length} ${esc(K().stopWord||'stops')} completed · ${r.filter(t=>t.state==='failed').length} exception(s)</div></div><div class="bottom"><button class="pillbtn out" data-a="signout">Sign out</button></div>`}
+};
+function edBan(d){const ed=d.route.edit;return ed?(ed.status==='pending'?`<div class="edban pend">${I('send',14)} Route changes sent ${fmt(ed.at)} · waiting for Dispatch to review</div>`:ed.status==='accepted'?`<div class="edban ok">${I('check',14)} Dispatch accepted your route changes</div>`:`<div class="edban rev">${I('back',14)} Dispatch restored the original sequence</div>`):''}
+function eligInline(){const e=elig();return e.ok?((e.warnings||[]).length?`<div class="policy warn" style="margin:6px 0">⚠ ${esc(e.warnings[0])}</div>`:''):`<div class="policy bad" style="margin:6px 0"><b>Eligibility blocked:</b> ${e.reasons.map(esc).join(' · ')}</div>`}
+function settings(){const s=ui.set,T=k=>`<button class="toggle${s[k]?' on':''}" data-a="set" data-v="${k}"></button>`,d=D(),e=elig();return `<div class="body tight"><div class="sethead">Navigation</div>
+ <div class="setrow"><div>Navigation<small>Directions stay inside the app.</small></div><span class="v">ChainEx ›</span></div>
+ <div class="setrow"><div>Use live location<small>Navigate from your device's GPS position.</small></div>${T('live')}</div>
+ <div class="setrow"><div>Follow my position<small>Keep the map centered as you move.</small></div>${T('follow')}</div>
+ <div class="sethead">Scanning</div><div class="setrow"><div>Scan sound<small>Play a short tone after a successful scan.</small></div>${T('sound')}</div><div class="setrow"><div>Scan vibration<small>Vibrate after a successful scan.</small></div>${T('vib')}</div>
+ <div class="sethead">Device &amp; connection</div><div class="setrow"><div>Camera permission<small>Used for scanning and photos.</small></div><span class="v">Ask when needed ›</span></div><div class="setrow"><div>Sync assignments<small>Fetch the latest work from Dispatch.</small></div><span class="v">Live · ${fmt(C.S.clock)} ›</span></div>
+ <div class="sethead">Your work</div><div class="setrow"><div>${esc(d.name)} · ${esc(d.driverId)}<small>${esc(K().long)} · ${esc(hubName())} · ${esc(d.vehicle||'')}</small></div></div>
+ <div class="setrow"><div>Partner &amp; documents<small>${e.partner?esc(e.partner.name)+' · ':''}${e.ok?'Eligible':'Blocked: '+esc(e.reasons.join('; '))}</small></div><a class="v" href="dashboard.html#onboard" target="_blank" rel="noopener">Portal ›</a></div>
+ <div class="setrow" data-a="nav" data-v="shift" style="cursor:pointer"><div>Driver home<small>Duty, assigned route, check-in</small></div><span class="v">›</span></div>
+ <div class="setrow set-theme"><div>Appearance<small>Auto follows Seattle sunrise and sunset. Day and Night stay locked.</small></div></div>
+ <div class="cx-theme-sw on-light" style="padding:4px 0 10px">${window.CXUI?CXUI.switcherHTML():''}</div>
+ <div style="margin-top:14px"><button class="pillbtn out" data-a="signout">Sign out</button></div></div>`}
+
+// ---- sheets ----
+function openSheet(type,id){sheet={type,id};cap={photos:{},sig:false};drawSheet();$('#sheet').classList.add('show');$('#pback').classList.add('show')}
+function closeSheet(){sheet=null;$('#sheet').classList.remove('show');$('#pback').classList.remove('show')}
+const opts=(f,t)=>typeof f.options==='function'?f.options(t,C.S):(f.options||[]);
+function fld(f,t){const v=f.value?f.value(t,C.S):(f.type==='checks'?[]:'');const id='sf_'+f.id;const req=f.required?' <span class="unscanned">*</span>':'';
+  if(f.type==='check')return `<label class="chkrow"><input type="checkbox" id="${id}" ${v?'checked':''}> ${esc(f.label)}${req}</label>`;
+  if(f.type==='checks')return `<label class="lbl">${esc(f.label)}</label><div class="chkwrap">${opts(f,t).map(o=>`<label class="chkrow"><input type="checkbox" name="${id}" value="${esc(o)}" ${(v||[]).includes(o)?'checked':''}> ${esc(o)}</label>`).join('')}</div>`;
+  if(f.type==='select')return `<label class="lbl">${esc(f.label)}${req}</label><select class="input" id="${id}">${opts(f,t).map(o=>`<option${String(o)===String(v)?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  return `<label class="lbl">${esc(f.label)}${req}</label><input class="input" id="${id}" type="${f.type==='number'?'number':f.type==='time'?'time':'text'}" value="${esc(v==null?'':v)}">`}
+function readF(fs){const o={};let miss=null;(fs||[]).forEach(f=>{const id='sf_'+f.id;let v;if(f.type==='check')v=$('#'+id).checked;else if(f.type==='checks')v=[...document.querySelectorAll(`[name="${id}"]:checked`)].map(x=>x.value);else{v=$('#'+id).value;if(f.type==='number'&&v!=='')v=+v}
+  if(f.required&&(v===''||v===false||v==null))miss=miss||f.label;o[f.id]=v});return {o,miss}}
+function drawSheet(){if(!sheet)return;const t=sheet.id&&C.task(sheet.id),k=K(),c=t&&(C.S.contracts[t.contract]||{name:'—',maxAttempts:2,sameDay:false});let h='';
+ if(sheet.type==='stop'){const shp=window.CX.portal&&CX.portal.shipperOf?CX.portal.shipperOf(t):null;h=`<div class="sh-h"><button class="back" data-a="close">‹</button><h3>${esc(word())} details</h3><span style="width:30px"></span></div><div class="sh-b"><div class="bluecard"><div class="eyebrow"><b>${t.items.length} ${esc(unitW())}</b></div><h2>${ui.line==='shuttle'?fmt(t.x.dep)+' · '+esc(t.x.lane):no(t)}</h2><div style="font-size:13.5px">${esc(t.name)} · ${esc(t.address)}</div><div style="font-size:13px;margin:6px 0 10px">${esc(stLabel(t))}</div><button class="pillbtn out" style="border-radius:10px;padding:9px" data-a="viewmap">View on map</button></div>
+  <div class="shsec"><h4>Shipment details</h4><div class="kvrow"><span>Shipper</span><span>${esc(shp?shp.name:'—')}</span></div><div class="kvrow"><span>Contract</span><span>${esc(c.name)}</span></div><div class="kvrow"><span>Window</span><span>${fmt(t.window[0])} – ${fmt(t.window[1])}</span></div><div class="kvrow"><span>Attempts</span><span>${t.attempts} of ${c.maxAttempts}</span></div>${k.fields?k.fields(t,C.S).slice(0,8).map(f=>`<div class="kvrow"><span>${esc(f[0])}</span><span>${esc(f[1])}</span></div>`).join(''):''}</div>
+  <div class="shsec"><h4>${esc(k.units||'Items')}</h4>${t.items.map(p=>`<div class="pkgrow"><span>${esc(p.id)}<span class="tote">${k.itemMeta?esc(k.itemMeta(p)):esc(p.tote||'')}</span></span>${p.stopScanned||t.state==='completed'?'<span class="scanned">Scanned</span>':p.loaded?'<span class="scanned">Loaded</span>':'<span class="unscanned">Unscanned</span>'}</div>`).join('')}</div>
+  <div class="shsec"><h4>Steps</h4>${stepsOf(t).map(s=>`<div class="kvrow"><span>${esc(s.label)}</span><span>${t.stepData[s.id]?'<span class="scanned">✓ '+fmt(t.stepData[s.id].at)+'</span>'+(t.stepData[s.id].summary?' · '+esc(t.stepData[s.id].summary):''):'<span class="muted">—</span>'}</span></div>`).join('')}</div>
+  <div class="shsec"><h4>Contact</h4><div class="kvrow"><span>Reach</span><span><a href="#" data-a="call">Call contact (masked)</a> · <a href="#" data-a="msgdisp">Message Dispatch</a></span></div></div>
+  ${t.state==='failed'?`<div class="shsec"><h4>Exception</h4><div class="kvrow"><span>Reason</span><span>${esc(t.failReason)}</span></div><div class="kvrow"><span>Next action</span><span>${esc(t.nextAction)}</span></div></div>`:''}</div>`}
+ if(sheet.type==='step'){const s=nextStep(t);if(!s){closeSheet();return}const st=stepsOf(t);const head=`<div class="sh-h"><h3>${esc(s.label)}</h3><button class="closebtn" data-a="close">Close</button></div><div class="sh-b"><div class="eyebrow">${esc(k.name)} · step ${st.indexOf(s)+1} of ${st.length}</div><div style="font-weight:800;font-size:16px;margin-bottom:4px">${ui.line==='shuttle'?fmt(t.x.dep)+' · ':no(t)+' · '}${esc(t.name)}</div>${s.desc?`<div class="hint" style="margin-bottom:6px">${esc(s.desc)}</div>`:''}`;
+  const exc=`<button class="pillbtn peach" data-a="cant" data-v="${t.id}">${esc(k.exceptionLabel||"Can't deliver")}</button>`;
+  if(s.kind==='scan'){const n=t.items.filter(p=>p.stopScanned).length,all=t.items.length,pct=all?Math.round(n/all*100):100;
+   h=head+`<button class="btn" style="margin-top:6px" data-a="stopscan">Use camera</button><div class="scanbox"><b style="font-size:12.5px">Barcode</b><div class="r"><input class="input" id="sbc"><button class="btn blue" data-a="stopscan">Scan</button></div></div>
+   <div class="prog">${n} / ${all} ${esc(unitW())} scanned · ${pct}%<div class="bar"><i style="width:${pct}%"></i></div><ul>${t.items.map(p=>`<li style="${p.stopScanned?'':'color:var(--st-unscanned)'}">${esc(p.id)} ${p.stopScanned?'':'· unscanned'}</li>`).join('')}</ul></div>
+   <div class="dual">${exc}<button class="pillbtn" data-a="dostep" ${n===all?'':'disabled'}>Confirm · next</button></div>${n<all?'<div class="hint">Scan every one to continue.</div>':''}</div>`}
+  else if(s.kind==='pod'){h=head+`<label class="lbl" style="margin-top:6px">Photo ${s.photoReq?'(required)':''}</label><div class="capture${cap.photos.pod?' ok':''}" data-a="cap" data-v="pod">${cap.photos.pod?'✓ Photo captured<br><span style="font-weight:500;font-size:11px">GPS + time stamped</span>':'📷 '+esc(s.photoHint||'Tap to take photo')}</div>
+   <label class="lbl">Signature ${s.sigReq?'(required)':'(optional)'}</label><canvas class="sig" id="sig" width="356" height="120"></canvas><div class="hint">Recipient signs with a finger. <a href="#" data-a="clrsig">Clear</a></div>
+   <label class="lbl">Location / received by</label><select class="input" id="podloc">${(s.placements||['Front door','Handed to recipient']).map(x=>`<option>${esc(x)}</option>`).join('')}</select>
+   <label class="lbl">Recipient name</label><input class="input" id="podname" placeholder="Optional"><label class="lbl">Driver notes</label><textarea class="input" id="podnotes" rows="2"></textarea>
+   <div class="dual" style="margin-top:14px">${exc}<button class="pillbtn green" data-a="dostep">Submit</button></div></div>`}
+  else if(s.kind==='photo'){h=head+(s.photos||['Photo']).map((p,i)=>`<label class="lbl">${esc(p)} (required)</label><div class="capture${cap.photos['p'+i]?' ok':''}" data-a="cap" data-v="p${i}" style="height:70px">${cap.photos['p'+i]?'✓ '+esc(p)+' captured':'📷 Tap to capture'}</div>`).join('')+(s.fields||[]).map(f=>fld(f,t)).join('')+`<div class="dual" style="margin-top:14px">${exc}<button class="pillbtn" data-a="dostep">Save · next</button></div></div>`}
+  else if(s.kind==='sign'){h=head+`<label class="lbl">Signature (required)</label><canvas class="sig" id="sig" width="356" height="120"></canvas><div class="hint"><a href="#" data-a="clrsig">Clear</a></div><label class="lbl">Signed by</label><input class="input" id="podname" placeholder="Full name">${s.survey?`<label class="lbl">Customer rating (1–5)</label><div class="rate">${[1,2,3,4,5].map(n=>`<button class="btn${cap.survey===n?' primary':''}" data-a="rate" data-v="${n}">${n}★</button>`).join('')}</div>`:''}<label class="lbl">Notes</label><textarea class="input" id="podnotes" rows="2"></textarea><div class="dual" style="margin-top:14px">${exc}<button class="pillbtn green" data-a="dostep">Submit</button></div></div>`}
+  else{h=head+(s.fields||[]).map(f=>fld(f,t)).join('')+`<div class="dual" style="margin-top:14px">${exc}<button class="pillbtn" data-a="dostep">${s.effect==='arrive'?'Arrived · next':'Save · next'}</button></div></div>`}}
+ if(sheet.type==='cant'){h=`<div class="sh-h"><h3>${esc(k.exceptionLabel||'Unable to deliver')}</h3><button class="closebtn" data-a="close">Close</button></div><div class="sh-b"><div class="sub" style="font-size:12px">${esc(k.name)} · ${no(t)} · ${esc(t.name)}</div>
+  <div class="dcard" style="margin-top:8px;padding:10px"><b style="font-size:12.5px">Before you log an exception</b><div class="hint" style="margin-top:2px">Try the contact and Dispatch first. Many exceptions resolve in two minutes.</div><div style="display:flex;gap:6px;margin-top:8px"><button class="btn" data-a="call">Call contact</button><button class="btn" data-a="msgdisp">Message Dispatch</button></div></div>
+  <fieldset class="exc"><legend>Exception details</legend><label class="lbl" style="margin-top:4px">Reason</label><select class="input" id="cr"><option value="">Choose a reason</option>${(k.reasons||C.REASONS||[]).map(r=>`<option>${esc(r)}</option>`).join('')}</select>
+  <label class="lbl">Next action for Dispatch</label><select class="input" id="cn"><option value="">Choose one</option>${(k.nextActions||C.NEXT_ACTIONS||[]).map(r=>`<option>${esc(r)}</option>`).join('')}</select></fieldset>
+  <fieldset class="exc"><legend>Photo</legend><div class="capture${cap.photos.exc?' ok':''}" data-a="cap" data-v="exc" style="height:80px">${cap.photos.exc?'✓ Photo attached':'📷 Tap to attach a photo'}</div></fieldset>
+  <label class="lbl">Driver notes</label><input class="input" id="cnotes">
+  <div class="policy">Contract policy · ${esc(c.name)}: up to ${c.maxAttempts} attempt(s), ${c.sameDay?'same-day reattempt allowed':'next business day only'}. This is attempt ${t.attempts+1}.</div>
+  <button class="btn primary" style="margin-top:12px;padding:9px 14px" data-a="submitcant">Submit outcome</button></div>`}
+ if(sheet.type==='sos'){const d=D();h=`<div class="sh-h"><h3>SOS</h3><button class="closebtn" data-a="close">Close</button></div><div class="sh-b"><div class="sub">Use this if you're unsafe, injured, in a crash, or the vehicle can't continue. Dispatch sees your location right away.</div>
+  ${d.sos?`<div class="policy" style="background:#fde8e8;border-color:#f3b4b4;color:#8f1d1d">SOS active · Dispatch has been alerted.</div><button class="pillbtn out" style="margin-top:12px" data-a="cancelsos">I'm safe · cancel SOS</button>`:`<button class="pillbtn red" style="margin-top:16px" data-a="sendsos">Send SOS to Dispatch</button>`}
+  <button class="pillbtn out" style="margin-top:8px" data-a="call911">Call 911</button><button class="pillbtn out" style="margin-top:8px" data-a="msgdisp">Call Dispatch</button></div>`}
+ if(sheet.type==='estop'){const dr=draft(),sk=dr.skipped.includes(t.id);h=`<div class="sh-h"><h3>${esc(t.name)}</h3><button class="closebtn" data-a="close">Close</button></div><div class="sh-b"><div class="sub" style="font-size:12.5px">${esc(t.address)}</div>
+  <label class="lbl">Address note for this ${esc(k.stopWord1||'stop')}</label><textarea class="input" id="enote" rows="3" placeholder="Gate code, entrance, loading dock, dog in yard…">${esc(dr.notes[t.id]||t.driverNote||'')}</textarea><div class="hint">Saved to the task for Dispatch and the next driver once you submit.</div>
+  <div class="dual" style="margin-top:12px"><button class="pillbtn out" data-a="epinfix" data-v="${t.id}">${I('pin',14)} ${dr.pins[t.id]?'Adjust pin':'Correct the pin'}</button><button class="pillbtn out" data-a="eskip" data-v="${t.id}">${I('skip',14)} ${sk?'Un-skip':'Skip · move to end'}</button></div>
+  <div class="dual" style="margin-top:8px"><button class="pillbtn out" data-a="efirst" data-v="${t.id}">Set as first</button><button class="pillbtn out" data-a="elast" data-v="${t.id}">Set as last</button></div>
+  <div class="dual" style="margin-top:8px"><button class="pillbtn out" data-a="elock" data-v="${t.id}">${(dr.locked||[]).includes(t.id)?'Unlock stop':'Lock stop'}</button><button class="pillbtn out" data-a="emark" data-v="${t.id}">${dr.marks[t.id]==='apt'?'Mark as business':dr.marks[t.id]==='biz'?'Clear mark':'Mark apartment'}</button></div>
+  ${dr.pins[t.id]?`<div class="policy" style="margin-top:8px">Pin moved to ${dr.pins[t.id][1].toFixed(5)}, ${dr.pins[t.id][0].toFixed(5)} (was ${t.ll[1].toFixed(5)}, ${t.ll[0].toFixed(5)})</div>`:''}
+  <button class="pillbtn" style="margin-top:12px" data-a="esavenote" data-v="${t.id}">Save note</button></div>`}
+ if(sheet.type==='issue'){const dr=draft(),rows=edRows(dr).filter(x=>!x.lock);h=`<div class="sh-h"><h3>Report a road issue</h3><button class="closebtn" data-a="close">Close</button></div><div class="sh-b"><div class="sub" style="font-size:12.5px">Dispatch sees this on your route and can re-route other drivers.</div>
+  <label class="lbl">Issue</label><select class="input" id="ritype">${['Road closed','Construction / lane closure','Low clearance / weight limit','Gate or access blocked','Flooding / hazard','Parking not possible','Bridge or ramp closed'].map(x=>`<option>${x}</option>`).join('')}</select>
+  <label class="lbl">Where</label><select class="input" id="rinear"><option value="">My current location</option>${rows.map(x=>`<option value="${x.t.id}">Near ${x.n} · ${esc(x.t.name)} · ${esc(x.t.address.split(',')[0])}</option>`).join('')}</select>
+  <label class="lbl">Details</label><input class="input" id="rinote" placeholder="e.g. NE 8th closed between 108th and 112th"><button class="pillbtn" style="margin-top:12px" data-a="eaddissue">Add to route changes</button><div class="hint">Sent with your route changes when you tap Submit.</div></div>`}
+ $('#sheet').innerHTML=h;bindSig()}
+function bindSig(){const cv=$('#sig');if(!cv)return;const x=cv.getContext('2d');x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#172b45';let dn=false;
+ const P=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
+ cv.onpointerdown=e=>{dn=true;x.beginPath();x.moveTo(...P(e));cv.setPointerCapture(e.pointerId)};cv.onpointermove=e=>{if(!dn)return;x.lineTo(...P(e));x.stroke();cap.sig=true};cv.onpointerup=()=>dn=false;
+ cv._demo=()=>{x.beginPath();x.moveTo(30,80);for(let i=0;i<14;i++)x.lineTo(40+i*20,60+Math.sin(i*1.3)*22);x.stroke();cap.sig=true}}
+
+// ---- route review / edit draft (P&D, Bulky) ----
+function emptyDraft(ed){return{wid:W(),order:ed.slice(),skipped:[],notes:{},pins:{},issues:[],sel:[],mode:'select',placed:0,pinFor:null,first:ed[0]||null,last:ed.length?ed[ed.length-1]:null,startFrom:'stop',endAt:'stop',loops:{},locked:[],marks:{},opt:null,cluster:true,anim:false}}
+function draft(){const ed=R().filter(t=>t.state==='assigned').map(t=>t.id);let dr=ui.draft;
+  if(!dr||dr.wid!==W())dr=ui.draft=emptyDraft(ed);
+  const base=emptyDraft(ed);Object.keys(base).forEach(k=>{if(dr[k]===undefined)dr[k]=base[k]});
+  if(!dr.loops)dr.loops={};if(!dr.locked)dr.locked=[];if(!dr.marks)dr.marks={};
+  dr.order=dr.order.filter(id=>ed.includes(id));ed.forEach(id=>{if(!dr.order.includes(id))dr.order.push(id)});dr.skipped=dr.skipped.filter(id=>ed.includes(id));dr.sel=dr.sel.filter(id=>ed.includes(id));
+  if(dr.first&&!ed.includes(dr.first))dr.first=ed[0]||null;if(dr.last&&!ed.includes(dr.last))dr.last=ed.length?ed[ed.length-1]:null;
+  return dr}
+function edRows(dr){const all=R(),lock=all.filter(t=>t.state!=='assigned').sort((a,b)=>a.seq-b.seq),T=id=>all.find(t=>t.id===id);
+  const live=dr.order.filter(id=>!dr.skipped.includes(id)),sk=dr.order.filter(id=>dr.skipped.includes(id));
+  return [...lock.map(t=>({t,lock:true})),...live.map(id=>({t:T(id)})),...sk.map(id=>({t:T(id),skip:true}))].filter(x=>x.t).map((x,i)=>Object.assign(x,{n:i+1}))}
+function streetKey(t){const a=(t.address||t.name||'').split(',')[0].replace(/\s+(Apt|Unit|#)\s+\S+$/i,'').replace(/^\d+\s+/,'');return a||t.name||t.id}
+function liveStops(dr){return edRows(dr).filter(x=>!x.lock&&!x.skip).map(x=>x.t)}
+function pathOf(dr,extra){const d=D(),hub=(C.S.hubs[d.hub]||{}).ll,rows=edRows(dr).filter(x=>!x.lock&&!x.skip);
+  const lls=rows.map(x=>dr.pins[x.t.id]||x.t.ll);const start=dr.startFrom==='station'&&hub?hub:dr.startFrom==='myloc'?d.loc:null;const end=dr.endAt==='station'&&hub?hub:null;
+  return (start?[start]:[]).concat(lls).concat(end?[end]:[])}
+function nChanges(dr){const ed=R().filter(t=>t.state==='assigned').map(t=>t.id);return (dr.order.join()!==ed.join()?1:0)+dr.skipped.length+Object.values(dr.notes).filter(Boolean).length+Object.keys(dr.pins).length+dr.issues.length}
+function moveIds(dr,ids,where){const set=new Set(ids),rest=dr.order.filter(id=>!set.has(id)),mv=dr.order.filter(id=>set.has(id));
+  if(where==='start')dr.order=[...mv,...rest];else if(where==='end')dr.order=[...rest,...mv];
+  else if(where==='group'){const first=dr.order.findIndex(id=>set.has(id));const before=dr.order.slice(0,first).filter(id=>!set.has(id)).length;rest.splice(before,0,...mv);dr.order=rest}}
+function moveBefore(dr,id,target,after){if(id===target)return;const o=dr.order.filter(x=>x!==id);let i=o.indexOf(target);if(i<0)return;if(after)i++;o.splice(i,0,id);dr.order=o}
+const mapIsGL=()=>!!(dmap&&dmap.mode==='gl');
+
+function render(){C.load();const d=D();if(d)ui.line=d.line;else if(!['welcome','mywork'].includes(ui.screen))ui.screen='welcome';
+ if(ui.screen==='redit'&&!canEdit()){ui.screen=d?landing():'welcome';ui.draft=null}
+ const night=window.CXUI?CXUI.mode()==='night':document.documentElement.classList.contains('dark');$('#phone').classList.toggle('dark',!!night);
+ const s=screens[ui.screen]?ui.screen:'welcome';const scr=$('#screen');scr.innerHTML=screens[s]();
+ const sk=s+(s==='route'?ui.tab:'');if(sk!==lastScreen){scr.classList.remove('enter');void scr.offsetWidth;scr.classList.add('enter');lastScreen=sk}
+ if(s==='welcome'){const tb=$('#terms');tb.onchange=()=>$('#contBtn').disabled=!tb.checked}
+ const slot=$('#mapslot');if(slot)mountMap(slot,s);
+ const q=$('#stopq');if(q)q.oninput=e=>{ui.q=e.target.value;saveUI();const pos=e.target.selectionStart;render();const n=$('#stopq');n.focus();n.setSelectionRange(pos,pos)};
+ const f=$('#stopf');if(f)f.onchange=e=>{ui.filter=e.target.value;saveUI();render()};
+ if(sheet&&!['step','cant','estop','issue'].includes(sheet.type))drawSheet();if(window.CXUI&&CXUI.refreshTheme)CXUI.refreshTheme()}
+function bindLasso(){if(!mapHost||mapHost._lasso)return;mapHost._lasso=true;let down=null;
+  const box=()=>document.getElementById('lassoRect');
+  const pos=e=>{const r=mapHost.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+  mapHost.addEventListener('pointerdown',e=>{if(ui.screen!=='redit')return;const dr=ui.draft;if(!dr||dr.mode!=='lasso')return;down=pos(e);const b=box();if(b){b.hidden=false;b.style.left=down.x+'px';b.style.top=down.y+'px';b.style.width='0px';b.style.height='0px'}if(dmap&&dmap.map&&dmap.map.dragPan)dmap.map.dragPan.disable();e.preventDefault();try{mapHost.setPointerCapture(e.pointerId)}catch(x){}});
+  mapHost.addEventListener('pointermove',e=>{if(!down)return;const p=pos(e),b=box();if(!b)return;const x=Math.min(down.x,p.x),y=Math.min(down.y,p.y);b.style.left=x+'px';b.style.top=y+'px';b.style.width=Math.abs(p.x-down.x)+'px';b.style.height=Math.abs(p.y-down.y)+'px'});
+  const finish=e=>{if(!down)return;const p=pos(e),x0=down.x,y0=down.y,x1=p.x,y1=p.y;down=null;const b=box();if(b)b.hidden=true;if(dmap&&dmap.map&&dmap.map.dragPan)dmap.map.dragPan.enable();
+    const minx=Math.min(x0,x1),maxx=Math.max(x0,x1),miny=Math.min(y0,y1),maxy=Math.max(y0,y1);if(maxx-minx<8||maxy-miny<8)return;
+    const ids=[];const hit=(id,x,y)=>{if(x>=minx&&x<=maxx&&y>=miny&&y<=maxy&&id)ids.push(id)};
+    if(dmap&&dmap.mode==='gl'&&dmap.map){dmap.markers.forEach(m=>{const el=m.getElement&&m.getElement();if(!el||!el.dataset.id)return;const pt=dmap.map.project(m.getLngLat());hit(el.dataset.id,pt.x,pt.y)})}
+    else{mapHost.querySelectorAll('.pin[data-id]').forEach(el=>{const br=el.getBoundingClientRect(),hb=mapHost.getBoundingClientRect();hit(el.dataset.id,br.left+br.width/2-hb.left,br.top+br.height/2-hb.top)})}
+    if(ids.length){const dr=draft();dr.sel=[...new Set(ids.filter(id=>dr.order.includes(id)))];saveUI();render();toast(dr.sel.length+' stops in this block')}
+  };
+  mapHost.addEventListener('pointerup',finish);mapHost.addEventListener('pointercancel',()=>{down=null;const b=box();if(b)b.hidden=true;if(dmap&&dmap.map&&dmap.map.dragPan)dmap.map.dragPan.enable()});
+}
+function mountMap(slot,s){const d=D(),r=R();const hb=C.S.hubs[d.hub];
+ if(!mapHost){mapHost=document.createElement('div');mapHost.className='dmap-host';slot.appendChild(mapHost);dmap=new CXMap(mapHost,{center:(hb&&hb.ll)||d.loc,zoom:11.5,controls:false,pad:()=>ui.screen==='redit'?{top:30,left:30,right:30,bottom:30}:ui.screen==='shift'?{top:24,left:20,right:20,bottom:24}:ui.tab==='map'?{top:40,left:30,right:30,bottom:170}:{top:34,left:24,right:24,bottom:74},onPin:id=>mapH.pin&&mapH.pin(id),onMap:ll=>mapH.map&&mapH.map(ll)})}else slot.appendChild(mapHost);
+ bindLasso();
+ const key=s+(s==='route'?ui.tab:'')+'|'+W()+'|'+(s==='redit'&&ui.draft&&ui.draft.mode||'');const refit=key!==fitKey;fitKey=key;
+ if(s==='redit'){const dr=draft(),rows=edRows(dr);mapH={pin:id=>act('epin',id),map:ll=>act('emapclick',ll)};
+   const hub=(C.S.hubs[d.hub]||{}).ll;const live=rows.filter(x=>!x.lock&&!x.skip);
+   const start=dr.startFrom==='station'&&hub?hub:dr.startFrom==='myloc'?d.loc:d.loc;
+   const end=dr.endAt==='station'&&hub?hub:null;
+   const coords=[start,...live.map(x=>dr.pins[x.t.id]||x.t.ll)].concat(end?[end]:[]);
+   dmap.set({pins:rows.map(x=>{const id=x.t.id;let cls='';if(id===dr.first)cls+=' is-first';if(id===dr.last)cls+=' is-last';if(dr.anim)cls+=' pop';if((dr.locked||[]).includes(id))cls+=' is-lock';
+     return{id,ll:dr.pins[id]||x.t.ll,state:x.skip?'skipped':x.t.state,label:id===dr.first?'A':id===dr.last?'Z':x.n,sel:dr.sel.includes(id)||dr.pinFor===id,title:x.t.name+(id===dr.first?' · first':id===dr.last?' · last':''),cls:cls.trim(),delay:dr.anim?(Math.min(x.n,40)*0.03)+'s':''}}),
+     lines:[{sel:true,coords}],drivers:[{id:d.id,ll:d.loc,name:d.name}],fitTo:[d.loc,...rows.map(x=>x.t.ll),hub].filter(Boolean),refit})}
+ else if(s==='shift'){mapH={pin:id=>openSheet('stop',id),map:null};const open=r.filter(t=>C.OPEN(t));
+   dmap.set({pins:r.map(t=>({id:t.id,ll:t.ll,state:t.state,label:t.seq+1,sel:open[0]&&open[0].id===t.id})),lines:[{sel:true,coords:[d.loc,...open.map(t=>t.ll)]}],drivers:[{id:d.id,ll:d.loc,name:d.name}],fitTo:[d.loc,...r.map(t=>t.ll)],refit})}
+ else{mapH={pin:id=>openSheet('stop',id),map:null};dmap.set({pins:r.map(t=>({id:t.id,ll:t.ll,state:t.state,label:t.seq+1})),lines:[{sel:true,coords:[d.loc,...r.filter(t=>C.OPEN(t)).map(t=>t.ll)]}],drivers:[{id:d.id,ll:d.loc,name:d.name,sos:d.sos}],fitTo:[d.loc,...r.map(t=>t.ll)],refit})}
+ requestAnimationFrame(()=>dmap&&dmap.resize())}
+
+function doStep(id){const t=C.task(id),s=nextStep(t),d=D();if(!s)return;let data={};
+ if(s.kind==='scan'){if(t.items.some(p=>!p.stopScanned)){toast('Scan every one first');return}data={summary:`${t.items.length} scanned`}}
+ else if(s.kind==='pod'){if(s.photoReq&&!cap.photos.pod){toast('Photo required');return}if(s.sigReq&&!cap.sig){toast('Signature required');return}data={photos:cap.photos.pod?1:0,signature:cap.sig,receivedBy:$('#podloc').value+($('#podname').value?` · ${$('#podname').value}`:''),notes:$('#podnotes').value};data.summary=data.receivedBy}
+ else if(s.kind==='photo'){const need=(s.photos||['Photo']).length,got=Object.keys(cap.photos).filter(k=>k[0]==='p'&&k!=='pod').length;if(got<need){toast(`${need-got} photo(s) still required`);return}const r=readF(s.fields);if(r.miss){toast(r.miss+' is required');return}data=Object.assign(r.o,{photos:need})}
+ else if(s.kind==='sign'){if(!cap.sig){toast('Signature required');return}if(s.survey&&!cap.survey){toast('Ask for a 1–5 rating');return}data={signature:true,receivedBy:$('#podname').value,survey:cap.survey,notes:$('#podnotes').value}}
+ else if(s.kind==='form'){const r=readF(s.fields);if(r.miss){toast(r.miss+' is required');return}data=r.o}
+ if(s.summary)try{data.summary=s.summary(data,t)}catch(e){}
+ closeSheet();C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2)});const T=C.task(id);
+ toast(T.state==='completed'?`${K().completeText?K().completeText(T):'Completed'} ✓ · synced to Dispatch`:`✓ ${s.label}`)}
+function act(a,v,el){const d=D(),w=W();
+ switch(a){
+ case 'duty':C.update(()=>C.ops.duty(w,!d.duty));toast(D().duty?'You are on duty':'You are off duty');break;
+ case 'claim':{if(!d.duty){toast('Go on duty to claim work');break}let ok;C.update(()=>{ok=C.ops.claim(w,v)});if(ok===false)toast('Blocked · '+elig().reasons.join(' · '));else toast('Offer claimed · added to your route');break}
+ case 'omwhub':if(!elig().ok){toast('Blocked · '+elig().reasons.join(' · '));break}C.update(()=>C.ops.checkin(w,'on_my_way'));toast(`${hubName()} notified · staging your load`);break;
+ case 'arrhub':C.update(()=>C.ops.checkin(w,'arrived'));toast(`Checked in at ${hubName()}`);break;
+ case 'loadscan':{const inp=$('#lbc'),val=(inp&&inp.value.trim())||'';let n=0,id=val;C.update(()=>{if(!val){const nx=C.routeAll(w).filter(t=>t.kind!=='pickup').sort((a,b)=>b.seq-a.seq).flatMap(t=>t.items).find(p=>!p.loaded);if(nx){id=nx.id;n=C.ops.loadScan(w,nx.id)}}else n=C.ops.loadScan(w,val)});toast(n?`✓ ${id} loaded`:val?`${val} isn't on this route`:'All scanned');break}
+ case 'groupscan':{let n;C.update(()=>{n=C.ops.loadScan(w,v.split(','))});toast(`✓ ${n} loaded`);break}
+ case 'startroute':C.update(()=>{const D2=C.driver(w);if(D2.route.checkin!=='arrived')C.ops.checkin(w,'arrived');if(DC().skipLoad)C.routeAll(w).forEach(t=>t.items.forEach(p=>p.loaded=true));C.ops.startRoute(w)});ui.tab='manifest';go('route');toast(ui.line==='shuttle'?'Shift started · next trip ready':'Route started · drive safe');break;
+ case 'tab':if(v==='edit'){ui.edFrom='route';go('redit');break}ui.tab=v;saveUI();render();break;
+ case 'step':{const t=C.task(v),s=nextStep(t);if(!s)break;if(s.kind==='confirm'){C.update(()=>{C.ops.completeStep(v,s,{},d.name);C.ops.tick(s.effect==='active'?3:2)});toast(s.effect==='active'?`Dispatch notified · ${s.label}`:`✓ ${s.label}`)}else openSheet('step',v);break}
+ case 'dostep':doStep(sheet.id);break;
+ case 'stopscan':{const inp=$('#sbc'),val=inp&&inp.value.trim();let id=null;C.update(S=>{const T=C.task(sheet.id),s=nextStep(T);const p=val?T.items.find(p=>p.id===val):T.items.find(p=>!p.stopScanned);if(p&&!p.stopScanned){p.stopScanned=true;p.events.push({type:(s&&s.itemEvent)||'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name});id=p.id}});toast(id?`✓ ${id}`:val?`${val} doesn't belong here`:'All scanned');drawSheet();break}
+ case 'cap':cap.photos[v]=true;drawSheet();break;
+ case 'rate':cap.survey=+v;{const nm=($('#podname')||{}).value,nt=($('#podnotes')||{}).value,sg=cap.sig;drawSheet();if($('#podname'))$('#podname').value=nm||'';if($('#podnotes'))$('#podnotes').value=nt||'';if(sg){cap.sig=false;$('#sig')._demo()}}break;
+ case 'clrsig':{const cv=$('#sig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cap.sig=false}break;
+ case 'stop':if(el&&el.closest('.reord'))break;openSheet('stop',v);break;
+ case 'cant':openSheet('cant',v);break;
+ case 'submitcant':{const r=$('#cr').value,n=$('#cn').value;if(!r||!n){toast('Choose a reason and next action');break}const id=sheet.id,notes=$('#cnotes').value;closeSheet();C.update(()=>{C.ops.fail(id,r,n,notes,d.name);C.ops.tick(3)});const t=C.task(id);toast(C.OPEN(t)?(t.tags.includes('DELAY')?'Delay logged · Dispatch notified':'Logged · moved to end of route'):t.tags.includes('RTS')?'Logged · return to shipper':'Logged · Dispatch notified');break}
+  case 'up_legacy':{C.update(S=>{const open=C.routeAll(w).filter(t=>t.state==='assigned');const i=open.findIndex(t=>t.id===v),j=a==='up'?i-1:i+1;if(j<0||j>=open.length)return;const s1=open[i].seq;open[i].seq=open[j].seq;open[j].seq=s1;open[i].timeline.push({at:S.clock,text:`Driver moved to ${word().toLowerCase()} ${open[i].seq+1}`,actor:d.name})});break}
+ case 'reorder':ui.reorder=!ui.reorder;saveUI();render();break;
+ case 'repeat':{if(!v)break;let id;C.update(()=>{id=DC().repeat(D(),C.S,v)});const t=id&&C.task(id);toast(t?`Repeat trip added · departs ${fmt(t.x.dep)} · trailer ${t.x.trailer} · seal ${t.x.seal}`:'Could not add trip');break}
+ case 'nav-stop':toast('Opening in-app navigation (pilot)');break;
+ case 'viewmap':closeSheet();ui.tab='map';saveUI();render();break;
+ case 'sos':openSheet('sos');break;
+ case 'sendsos':C.update(()=>C.ops.sos(w,true));drawSheet();toast('SOS sent · Dispatch alerted');break;
+ case 'cancelsos':C.update(()=>C.ops.sos(w,false));if(sheet)drawSheet();toast('SOS cancelled');break;
+ case 'call':case 'msgdisp':case 'call911':toast(a==='call911'?'Pilot: would dial 911':a==='call'?'Calling through a masked number (pilot)':'Connecting to Dispatch (pilot)');break;
+ case 'returnhub':C.update(()=>C.ops.returnHub(w));go('returnscr');break;
+ case 'retscan':{const inp=$('#rbc'),val=inp&&inp.value.trim();let id=null;C.update(()=>{const pk=C.routeAll(w).filter(t=>t.state!=='completed'&&t.kind!=='pickup').flatMap(t=>t.items);const p=val?pk.find(p=>p.id===val):pk.find(p=>!p.returned);if(p&&C.ops.returnScan(w,p.id))id=p.id});toast(id?`✓ ${id} returned`:'Not on the return list');break}
+ case 'closeroute':C.update(()=>C.ops.closeRoute(w));go('closed');toast(ui.line==='shuttle'?'Shift ended':'Route closed');break;
+ case 'set':ui.set[v]=!ui.set[v];saveUI();render();break;
+ case 'close':closeSheet();break;
+ case 'fillid':{const i=$('#did');if(i)i.value=v;const tb=$('#terms');if(tb&&!tb.checked){tb.checked=true;$('#contBtn').disabled=false}break}
+ case 'continue':{const id=(($('#did')||{}).value||'').trim().toUpperCase();const hits=byId(id);if(!hits.length){toast('Driver ID not found · check with your DSP or ChainEx');break}ui.lastId=id;ui.q='';ui.tab='manifest';ui.draft=null;if(hits.length>1){go('mywork');break}ui.wid=hits[0].id;ui.line=hits[0].line;go(landing());toast(`Signed in · ${hits[0].name}`);break}
+ case 'pickwork':ui.wid=v;ui.line=D().line;go(landing());break;
+ case 'signout':ui.wid=null;ui.draft=null;go('welcome');break;
+ case 'sync':toast(`✓ Synced · ${R().length?'work found':'nothing assigned yet'}`);render();break;
+ case 'theme':{if(window.CXUI){if(v)CXUI.setPref(v);else CXUI.cycleTheme(); }render();break}
+ case 'esel':{const dr=draft();if(dr.mode==='pin'){dr.pinFor=v;saveUI();render();break}const i=dr.sel.indexOf(v);i<0?dr.sel.push(v):dr.sel.splice(i,1);saveUI();render();break}
+ case 'epin':{const dr=draft();if(!dr.order.includes(v)){openSheet('stop',v);break}if(dr.mode==='seq'){dr.skipped=dr.skipped.filter(x=>x!==v);const o=dr.order.filter(x=>x!==v);o.splice(Math.min(dr.placed,o.length),0,v);dr.order=o;dr.placed++;fx('ok')}else if(dr.mode==='pin'){dr.pinFor=v}else{const i=dr.sel.indexOf(v);i<0?dr.sel.push(v):dr.sel.splice(i,1)}saveUI();render();break}
+ case 'emapclick':{const dr=draft();if(dr.mode!=='pin'||!dr.pinFor)break;dr.pins[dr.pinFor]=v;saveUI();render();toast('✓ Pin moved · submit to send to Dispatch');break}
+ case 'emode':{const dr=draft();dr.mode=v;dr.placed=0;if(v!=='pin')dr.pinFor=null;else if(dr.sel.length===1)dr.pinFor=dr.sel[0];saveUI();render();break}
+ case 'eseqreset':{const dr=draft();dr.placed=0;saveUI();render();break}
+ case 'emove':{const dr=draft(),sel=dr.sel.filter(id=>dr.order.includes(id));if(v==='clear'){dr.sel=[]}else if(v==='skip'){sel.forEach(id=>{const i=dr.skipped.indexOf(id);i<0?dr.skipped.push(id):dr.skipped.splice(i,1)});dr.sel=[]}else{moveIds(dr,sel,v);dr.sel=[]}saveUI();render();if(v!=='clear')toast(v==='skip'?'Skipped stops move to the end':v==='group'?'Grouped together':'Moved');break}
+ case 'eup':case 'edown':{const dr=draft(),live=dr.order.filter(id=>!dr.skipped.includes(id)),i=live.indexOf(v),j=a==='eup'?i-1:i+1;if(i<0||j<0||j>=live.length)break;moveBefore(dr,v,live[j],a==='edown');saveUI();render();break}
+ case 'estop':openSheet('estop',v);break;
+ case 'eskip':{const dr=draft(),i=dr.skipped.indexOf(v);i<0?dr.skipped.push(v):dr.skipped.splice(i,1);saveUI();closeSheet();render();break}
+ case 'esavenote':{const dr=draft();dr.notes[v]=($('#enote').value||'').trim();saveUI();closeSheet();render();toast(dr.notes[v]?'✓ Note added':'Note cleared');break}
+ case 'epinfix':{const dr=draft();dr.mode='pin';dr.pinFor=v;saveUI();closeSheet();render();break}
+ case 'nudge':{const dr=draft(),t=C.task(dr.pinFor);if(!t)break;const ll=(dr.pins[t.id]||t.ll).slice();const st=v==='n'?[0,.0003]:v==='s'?[0,-.0003]:v==='e'?[.00045,0]:[-.00045,0];dr.pins[t.id]=[+(ll[0]+st[0]).toFixed(5),+(ll[1]+st[1]).toFixed(5)];saveUI();render();break}
+ case 'myloc':{const dr=draft();if(!dr.pinFor)break;dr.pins[dr.pinFor]=D().loc.slice();saveUI();render();toast('✓ Pin set to your current location');break}
+ case 'pinreset':{const dr=draft();delete dr.pins[dr.pinFor];saveUI();render();break}
+ case 'eissue':openSheet('issue');break;
+ case 'eaddissue':{const dr=draft(),nid=$('#rinear').value,t=nid&&C.task(nid);dr.issues.push({type:$('#ritype').value,note:$('#rinote').value.trim(),near:t?t.address.split(',')[0]:'driver location',ll:t?t.ll.slice():D().loc.slice()});saveUI();closeSheet();render();toast('✓ Road issue added · submit to send');break}
+ case 'edelissue':{const dr=draft();dr.issues.splice(+v,1);saveUI();render();break}
+ case 'ediscard':ui.draft=null;saveUI();render();toast('Changes discarded');break;
+ case 'esubmit':{const dr=draft();if(!nChanges(dr)){toast('No changes to submit');break}let sum;C.update(()=>{sum=C.ops.submitRouteEdit(w,{order:dr.order,skipped:dr.skipped,notes:dr.notes,pins:dr.pins,issues:dr.issues});Object.entries(dr.loops||{}).forEach(([id,lp])=>{const t=C.task(id);if(t)t.x.loop=lp||undefined});(dr.locked||[]).forEach(id=>{const t=C.task(id);if(t&&!t.tags.includes('LOCKED'))t.tags.push('LOCKED')});Object.entries(dr.marks||{}).forEach(([id,mk])=>{const t=C.task(id);if(!t||!mk)return;t.tags=t.tags.filter(x=>x!=='MULTI-UNIT'&&x!=='COMMERCIAL'&&x!=='RESIDENTIAL');if(mk==='apt')t.tags.push('MULTI-UNIT','RESIDENTIAL');if(mk==='biz')t.tags.push('COMMERCIAL')})});ui.draft=null;ui.tab='manifest';go(ui.edFrom==='review'?'review':'route');toast(sum?'✓ Route changes sent · Dispatch will review':'Could not submit');break}
+ case 'edback':go(ui.edFrom||'route');break;
+ case 'reditopen':ui.edFrom=v||'route';go('redit');break;
+  case 'efirst':{const dr=draft();dr.first=v||(dr.sel[0]);if(dr.last===dr.first)dr.last=dr.order.filter(id=>id!==dr.first).slice(-1)[0]||dr.last;closeSheet();saveUI();render();toast('First stop set');break}
+  case 'elast':{const dr=draft();dr.last=v||(dr.sel[0]);if(dr.first===dr.last)dr.first=dr.order.filter(id=>id!==dr.last)[0]||dr.first;closeSheet();saveUI();render();toast('Last stop set');break}
+  case 'estartfrom':{const dr=draft();dr.startFrom=v;saveUI();render();break}
+  case 'eendat':{const dr=draft();dr.endAt=v;saveUI();render();break}
+  case 'eopt':{const dr=draft(),d2=D(),k2=K(),svc=k2.serviceMin||3,hub=(C.S.hubs[d2.hub]||{}).ll;
+    const live=edRows(dr).filter(x=>!x.lock&&!x.skip).map(x=>({id:x.t.id,ll:dr.pins[x.t.id]||x.t.ll,window:x.t.window,x:x.t.x}));
+    if(live.length<3){toast('Need at least three open stops to optimize');break}
+    const first=dr.first||live[0].id,last=dr.last||live[live.length-1].id;
+    const opts={clock:C.S.clock,serviceMin:svc,locked:dr.locked,startLL:dr.startFrom==='station'?hub:dr.startFrom==='myloc'?d2.loc:null,endLL:dr.endAt==='station'?hub:null};
+    const beforeKm=C.pathKm(pathOf(dr)),beforeMin=beforeKm*2.2+live.length*svc;
+    const res=C.nn2opt(live,first,last,opts);
+    if(res.order[0].id!==first||res.order[res.order.length-1].id!==last){toast('Could not keep those endpoints');break}
+    dr.opt={prev:dr.order.slice(),beforeKm,afterKm:res.km,beforeMin,afterMin:res.minutes,first,last};
+    const mid=res.order.map(s=>s.id);
+    dr.order=mid.concat(dr.skipped.filter(id=>!mid.includes(id)));
+    dr.anim=true;saveUI();render();toast('Sequence updated · review miles saved, then Accept or Undo');break}
+  case 'eoptok':{const dr=draft();dr.opt=null;dr.anim=false;saveUI();render();toast('✓ New sequence kept');break}
+  case 'eoptundo':{const dr=draft();if(dr.opt&&dr.opt.prev)dr.order=dr.opt.prev.slice();dr.opt=null;dr.anim=false;saveUI();render();toast('Sequence restored');break}
+  case 'eloop':{const dr=draft(),sel=dr.sel.filter(id=>dr.order.includes(id));sel.forEach(id=>{if(dr.loops[id]===v)delete dr.loops[id];else dr.loops[id]=v});saveUI();render();toast(sel.length?`Loop ${v} updated`:'Select stops first');break}
+  case 'elock':{const dr=draft();const ids=v?[v]:dr.sel.filter(id=>dr.order.includes(id));ids.forEach(id=>{const i=dr.locked.indexOf(id);i<0?dr.locked.push(id):dr.locked.splice(i,1)});closeSheet();saveUI();render();break}
+  case 'emark':{const dr=draft();const id=v||(dr.sel[0]);if(!id)break;dr.marks[id]=dr.marks[id]==='apt'?'biz':dr.marks[id]==='biz'?'':'apt';closeSheet();saveUI();render();break}
+  case 'ecluster':{const dr=draft();dr.cluster=!dr.cluster;saveUI();render();break}
+  case 'esavemy':{const dr=draft();try{localStorage.setItem('cx.myroute.'+W(),JSON.stringify({at:Date.now(),route:(D().route||{}).id,order:dr.order,first:dr.first,last:dr.last,loops:dr.loops,locked:dr.locked,marks:dr.marks,notes:dr.notes,startFrom:dr.startFrom,endAt:dr.endAt}))}catch(e){}toast('✓ Saved as My route on this device');break}
+  case 'eloademy':{const raw=localStorage.getItem('cx.myroute.'+W());if(!raw){toast('No saved route on this device');break}try{const my=JSON.parse(raw),dr=draft();const keep=id=>dr.order.includes(id);
+    if(Array.isArray(my.order)){const kept=my.order.filter(keep);dr.order=kept.concat(dr.order.filter(id=>!kept.includes(id)))}
+    if(keep(my.first))dr.first=my.first;if(keep(my.last))dr.last=my.last;if(my.loops)dr.loops=my.loops;if(my.locked)dr.locked=my.locked.filter(keep);if(my.marks)dr.marks=my.marks;if(my.notes)Object.assign(dr.notes,my.notes);if(my.startFrom)dr.startFrom=my.startFrom;if(my.endAt)dr.endAt=my.endAt;
+    saveUI();render();toast('✓ Loaded My route')}catch(e){toast('Could not load My route')}break}
+ }}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||!$('#phone').contains(el))return;if(el.tagName==='A'&&el.getAttribute('href')&&el.getAttribute('href')!=='#')return;e.preventDefault();e.stopPropagation();act(el.dataset.a,el.dataset.v,el)},true);
+let dragId=null;
+document.addEventListener('dragstart',e=>{const r=e.target.closest&&e.target.closest('.erow[draggable]');if(!r)return;dragId=r.dataset.eid;r.classList.add('dragging');try{e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move'}catch(x){}});
+document.addEventListener('dragover',e=>{const r=e.target.closest&&e.target.closest('.erow');if(!r||!dragId)return;e.preventDefault();document.querySelectorAll('.erow.over-t,.erow.over-b').forEach(x=>x.classList.remove('over-t','over-b'));const b=r.getBoundingClientRect();r.classList.add(e.clientY>b.top+b.height/2?'over-b':'over-t')});
+document.addEventListener('drop',e=>{const r=e.target.closest&&e.target.closest('.erow');if(!r||!dragId)return;e.preventDefault();const dr=draft(),b=r.getBoundingClientRect(),after=e.clientY>b.top+b.height/2,tid=r.dataset.eid;if(dr.order.includes(tid)){dr.skipped=dr.skipped.filter(x=>x!==dragId||dr.skipped.includes(tid));moveBefore(dr,dragId,tid,after);saveUI();fx('ok')}dragId=null;render()});
+document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.erow.dragging,.erow.over-t,.erow.over-b').forEach(x=>x.classList.remove('dragging','over-t','over-b'))});
+$('#pback').onclick=closeSheet;
+$('#restart').onclick=e=>{e.preventDefault();ui.screen='welcome';ui.wid=null;saveUI();closeSheet();render()};
+$('#resetAll').onclick=e=>{e.preventDefault();localStorage.removeItem(UIK);C.reset();location.reload()};
+C.subscribe(()=>{const ae=document.activeElement;if(ae&&$('#phone').contains(ae)&&ae.matches('input,textarea,select'))return;render()});
+window.addEventListener('cx-theme',()=>render());
+C.init();
+const qp=new URLSearchParams(location.search);const qid=qp.get('id')||(qp.get('line')&&PILOT_IDS[qp.get('line')]);
+if(qid){const h=byId(qid);if(h.length){ui.lastId=qid.toUpperCase();ui.wid=h[0].id;ui.line=h[0].line;ui.screen=landing();ui.draft=null}}
+if(qp.get('screen')&&(ui.wid||qp.get('screen')==='welcome')){ui.screen=qp.get('screen');if(qp.get('tab'))ui.tab=qp.get('tab')}
+/* theme query is handled by CXUI (?theme=day|night|auto) */
+render();
+window.__drv={act,openSheet,go,doStep,get ui(){return ui},cap:()=>cap,sig:()=>{const c=$('#sig');c&&c._demo()},cur:()=>cur(),next:t=>nextStep(t||cur()),signIn(id){const h=byId(id);if(!h.length)return false;ui.lastId=id;ui.wid=h[0].id;ui.line=h[0].line;ui.draft=null;ui.tab='manifest';go(landing());return true},draft:()=>ui.draft,setLine(l){this.signIn(PILOT_IDS[l])}};
+})();

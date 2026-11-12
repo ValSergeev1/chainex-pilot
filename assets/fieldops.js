@@ -9,7 +9,7 @@ C.registerModule({id:'fieldops',
     const P=C.portal,find=n=>S.partners.find(p=>p.short===n);
     const L=[['DSP-EEX-01','Eastside Express','Carla Mendes','Owner'],['DSP-EEX-02','Eastside Express','Marco Diaz','Dispatch manager'],['DSP-RFM-01','Rainier Final Mile','Dev Raman','Owner'],['DSP-SRP-01','Sound Route Partners','Ty Wells','Owner'],['CAR-CFR-01','Cascade Freight','Lin Park','Operations manager'],['CAR-VDR-01','Valley Drayage','Ana Ruiz','Owner']];
     S.contractorLogins=L.map(([login,short,name,title])=>{const p=find(short);return p&&{login,partnerId:p.id,name,title}}).filter(Boolean);
-    const sh=[['JITSU-PNW','u-jitsu'],['ONTRAC-SEA','u-ontrac']];S.shipperLogins=sh.map(([login,uid])=>{const u=S.users.find(x=>x.id===uid);return u&&{login,name:u.name,partnerId:u.customers[0].customer,stations:u.customers[0].stations}}).filter(Boolean);
+    const sh=[['SPN-PNW','u-spn'],['HPL-SEA','u-hpl']];S.shipperLogins=sh.map(([login,uid])=>{const u=S.users.find(x=>x.id===uid);return u&&{login,name:u.name,partnerId:u.customers[0].customer,stations:u.customers[0].stations}}).filter(Boolean);
     S.partners.filter(p=>p.type==='Shipper'&&p.status==='Fully approved'&&!/accounts/i.test(p.name)).forEach(p=>S.shipperLogins.push({login:'SHP-'+(p.short||p.name).split(/\s|&/)[0].replace(/[^A-Za-z]/g,'').toUpperCase(),name:(p.short||p.name)+' shipping desk',partnerId:p.id,stations:p.stations||[]}))},
   ops:(api,ops)=>({
     submitRouteEdit(wid,draft){const S=api.S,d=api.driver(wid);if(!d||!EDIT_LINES.includes(d.line))return false;const all=C.routeAll(wid);
@@ -23,7 +23,7 @@ C.registerModule({id:'fieldops',
       Object.entries(draft.pins||{}).forEach(([id,ll])=>{const t=api.task(id);if(!t)return;t.llOrig=t.llOrig||t.ll.slice();t.ll=ll.slice();if(!t.tags.includes('PIN FIX'))t.tags.push('PIN FIX');t.timeline.push({at:S.clock,text:`Driver corrected the pin (${ll[1].toFixed(5)}, ${ll[0].toFixed(5)})`,actor:d.name})});
       (draft.issues||[]).forEach(x=>{S.roadIssues=S.roadIssues||[];S.roadIssues.unshift(Object.assign({id:'RI-'+(100+S.roadIssues.length),at:S.clock,wid,by:d.name,line:d.line,status:'Open'},x));api.log(`Road issue · ${x.type}${x.near?' near '+x.near:''} · reported by ${d.name}${x.note?' · '+x.note:''}`,'exception',d.line)});
       const sum={moved,skipped:skip.size,notes:Object.values(draft.notes||{}).filter(Boolean).length,pins:Object.keys(draft.pins||{}).length,issues:(draft.issues||[]).length};
-      d.route.edit={status:'pending',at:S.clock,by:d.name,prev,summary:sum};
+      d.route.edit={status:'pending',at:S.clock,by:d.name,prev,summary:sum};d.route.plan={first:draft.first||null,last:draft.last||null,locked:(draft.locked||[]).slice(),by:d.name,at:S.clock};
       api.log(`${d.name} submitted route changes on ${d.route.id} · ${[sum.moved&&'new sequence',sum.skipped&&sum.skipped+' skipped',sum.notes&&sum.notes+' address note(s)',sum.pins&&sum.pins+' pin fix(es)',sum.issues&&sum.issues+' road issue(s)'].filter(Boolean).join(' · ')||'no changes'}`,'driver',d.line);return sum},
     reviewRouteEdit(wid,accept,actor='Dispatcher'){const S=api.S,d=api.driver(wid);const e=d&&d.route.edit;if(!e||e.status!=='pending')return false;
       if(accept){e.status='accepted';e.reviewedBy=actor;api.log(`${actor} accepted ${d.name}'s route changes (${d.route.id})`,'desk',d.line);return true}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230f1b2d%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-family=%22system-ui%22 font-weight=%22800%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%235b93ea%22%3EEx%3C/text%3E%3C/svg%3E"><title>ChainEx Pilot · Start here</title>
+<link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/desk.css">
+<style>
+.hero{max-width:1120px;margin:0 auto;padding:30px 22px 10px}.hero h1{font-size:34px;letter-spacing:-.02em}.hero p{max-width:760px;color:var(--muted);font-size:15px}
+.apps{max-width:1120px;margin:0 auto;padding:10px 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.app{padding:18px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--ink);transition:.15s}.app:hover{border-color:#9db9e6;transform:translateY(-1px)}.app h3{font-size:18px}.app p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}.app .go{margin-top:auto;font-weight:700;color:var(--blue);font-size:13px}
+.app.dark{background:linear-gradient(180deg,#111f34,#0b1626);color:#e6eef9;border-color:#1d2e47}.app.dark p{color:#9fb3cf}.app.dark .go{color:#8fb9ff}
+.sec2{max-width:1120px;margin:0 auto;padding:10px 22px 40px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}.sec2 .card{padding:18px 20px}.sec2 h3{font-size:16px;margin-bottom:8px}.sec2 ol,.sec2 ul{margin:0;padding-left:20px;font-size:13.5px;line-height:1.6}
+.lines{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.lines a{text-decoration:none}
+</style><link rel="stylesheet" href="assets/theme.css"><script src="assets/cx-ui.js"></script>
+</head><body>
+<header class="topbar on-dark"><a class="wordmark" href="start.html">Chain<span class="ex">Ex</span></a>
+<nav class="topnav"><a class="tn" href="dashboard.html">Dashboard</a><a class="tn" href="index.html">Dispatch</a><a class="tn" href="driver.html" target="_blank" rel="noopener">Driver app ↗</a><a class="tn" href="shipper.html">Shipper view</a><a class="tn" href="dsp.html">DSP portal</a></nav>
+<div class="tb-right"><span class="pilot-badge">Pilot · Sample data</span></div></header>
+<section class="hero"><div class="eyebrow">ChainEx pilot · start here</div><h1>Mission control for five service lines: dispatch, drivers, DSPs, shippers and partners</h1>
+<p>P&amp;D, Bulky, White glove, LTL and Shuttle run on one desk and one driver app with the same design. Only data fields, assignment rules, service levels and driver steps change per line. A partner directory decides who may be dispatched. Everything uses sample data and runs in your browser; nothing is sent anywhere.</p>
+<div class="lines"><span class="muted small">Open the desk on a line:</span> <a class="chip blue" href="index.html" onclick="localStorage.setItem('cx.desk.ui',JSON.stringify(Object.assign(JSON.parse(localStorage.getItem('cx.desk.ui')||'{}'),{line:'all',view:'overview'})))">All lines</a><a class="chip blue" href="index.html" data-l="pd">P&amp;D</a><a class="chip blue" href="index.html" data-l="bulky">Bulky</a><a class="chip blue" href="index.html" data-l="wg">White glove</a><a class="chip blue" href="index.html" data-l="ltl">LTL</a><a class="chip blue" href="index.html" data-l="shuttle">Shuttle</a></div></section>
+<section class="apps">
+ <a class="app card" href="index.html"><div class="eyebrow">Operations · mission control</div><h3>Dispatch board</h3><p>Full-bleed live map with a glass dispatch queue, live KPI tiles with sparklines, five service lines plus an All-lines overview, trip board for Shuttle, manifests, partners. Driver-edited routes show a ✎ badge with Accept / Revert. Press <kbd>Ctrl K</kbd> for the command palette, <kbd>?</kbd> for shortcuts.</p><span class="go">Open Dispatch →</span></a>
+ <a class="app card" href="driver.html" target="_blank" rel="noopener"><div class="eyebrow">Phone frame</div><h3>Driver app</h3><p>Sign in with a Driver ID and land on your assigned work only. Map-first home with live HUD, progress ring, stat tiles and sticky next-stop card. P&amp;D and Bulky drivers can review and edit the route on the map and submit changes to Dispatch.</p><span class="go">Open Driver app ↗</span></a>
+ <a class="app card" href="dsp.html"><div class="eyebrow">External · contractors</div><h3>DSP &amp; carrier portal</h3><p>For delivery service partners and carriers: accept or decline tendered routes, assign and reassign their own drivers, live progress, exceptions and POD, compliance, pay statements, roster and vehicles. Nothing outside their own business.</p><span class="go">Open DSP portal →</span></a>
+ <a class="app card" href="shipper.html"><div class="eyebrow">External · shippers</div><h3>Shipper portal</h3><p>Their shipments with tracking and ETA, exceptions, photo/signature POD, submitted manifests, create orders or upload a manifest, CSV reports, invoices (placeholder). No driver pay, DSP names or routing internals.</p><span class="go">Open Shipper portal →</span></a>
+ <a class="app card" href="dashboard.html"><div class="eyebrow">Partner dashboard · Design A</div><h3>Mission control</h3><p>The new system style: KPIs with sparklines, owned work queue with SLA timers, directory and partner files, self-serve onboarding, agreements, payments, recruiting, team roles, audit.</p><span class="go">Open Design A →</span></a>
+ <a class="app card" href="dashboard-alt.html"><div class="eyebrow">Partner dashboard · Design B</div><h3>Aurora (alternative)</h3><p>Same data and features in a different premium treatment: icon rail, KPI ticker, kanban-first directory and queue, slide-over partner file, gradient-edged cards. Toggle A/B in the top bar.</p><span class="go">Open Design B →</span></a>
+ <a class="app card" href="classic.html"><div class="eyebrow">For comparison</div><h3>Classic dispatch</h3><p>Snapshot of the desk's look before the redesign. Same data and features.</p><span class="go">Open classic desk →</span></a>
+ <a class="app card" href="README.md"><div class="eyebrow">Docs</div><h3>README &amp; changes</h3><p>How each line works, the portal integration contract, the design system, and what changed in this build.</p><span class="go">Read the README →</span></a>
+</section>
+<section class="sec2"><div class="card"><h3>Sample sign-ins</h3>
+ <table class="tbl ids"><thead><tr><th>Driver ID</th><th>Who</th><th>What they see</th></tr></thead><tbody>
+ <tr><td><code>CX-PILOT-001</code></td><td>Avery Valdez · Eastside Express (DSP)</td><td>P&amp;D · has PD-BEL-01 (60 stops). An 80-stop unassigned route, <code>PD-BEL-02</code>, waits on the desk for you to assign.</td></tr>
+ <tr><td><code>CX-PILOT-002</code></td><td>Lena Park · Eastside Express (DSP)</td><td>Bulky route · route review/edit on map</td></tr>
+ <tr><td><code>CX-PILOT-003</code></td><td>Marcus Reed · Rainier Final Mile (DSP)</td><td>White glove appointments (no route editing)</td></tr>
+ <tr><td><code>CX-PILOT-004</code></td><td>Jorge Alvarez · Cascade Freight (carrier)</td><td>LTL shipments</td></tr>
+ <tr><td><code>CX-PILOT-005</code></td><td>Sam Okafor · Valley Drayage (carrier)</td><td>Shuttle trips · Start next trip</td></tr>
+ <tr><td><code>CX-1188</code></td><td>Nate Silva · Eastside Express</td><td>No work assigned until his DSP assigns the tendered route</td></tr>
+ <tr><td><code>CX-1103</code></td><td>Jamal Price · independent</td><td>No work · blocked (insurance expired) · offers locked</td></tr>
+ <tr><td><code>CX-1440</code></td><td>Ivan Petrov · Cascade Freight</td><td>Shuttle floater</td></tr>
+ </tbody></table>
+ <table class="tbl ids" style="margin-top:12px"><thead><tr><th>DSP / carrier login</th><th>Company</th></tr></thead><tbody>
+ <tr><td><code>DSP-EEX-01</code></td><td>Eastside Express · Carla Mendes (owner) · has a route offer waiting</td></tr><tr><td><code>DSP-EEX-02</code></td><td>Eastside Express · Marco Diaz (dispatch manager)</td></tr>
+ <tr><td><code>DSP-RFM-01</code></td><td>Rainier Final Mile · Dev Raman</td></tr><tr><td><code>DSP-SRP-01</code></td><td>Sound Route Partners · still in team review</td></tr>
+ <tr><td><code>CAR-CFR-01</code></td><td>Cascade Freight (carrier) · Lin Park</td></tr><tr><td><code>CAR-VDR-01</code></td><td>Valley Drayage (carrier) · Ana Ruiz</td></tr></tbody></table>
+ <table class="tbl ids" style="margin-top:12px"><thead><tr><th>Shipper account</th><th>Scope</th></tr></thead><tbody>
+ <tr><td><code>ONTRAC-SEA</code></td><td>OnTrac Seattle manager · station SEA1</td></tr><tr><td><code>JITSU-PNW</code></td><td>Jitsu PNW manager · station BEL1</td></tr>
+ <tr><td><code>SHP-NORTHLINE</code></td><td>Northline Home · Bulky + Shuttle</td></tr><tr><td><code>SHP-KESTREL</code></td><td>Kestrel Appliances · Bulky + White glove</td></tr><tr><td><code>SHP-ALDER</code></td><td>Alder &amp; Oak Furniture · White glove</td></tr><tr><td><code>SHP-PACIFIC</code></td><td>Pacific Builders Supply · LTL</td></tr><tr><td><code>SHP-RIDGELINE</code></td><td>Ridgeline · P&amp;D</td></tr></tbody></table>
+ <p class="muted small">Passwords are not needed in the pilot.</p></div>
+ <div class="card"><h3>Try this end to end</h3><ol>
+  <li>Open <b>Dispatch</b> (P&amp;D). An 80-stop unassigned route, <code>PD-BEL-02</code> (Bellevue Crossroads · AM wave), is in the queue. Use <b>Walkthrough: assign a P&amp;D route</b> or Assign route → Avery Valdez (<code>CX-PILOT-001</code>) → confirm.</li>
+  <li>Open the <b>Driver app</b> as <code>CX-PILOT-001</code> in another tab of the same browser. Go on duty to open the route card and map, then Review route to auto-optimize (pick first and last stops) or tap pins to build your own sequence.</li>
+  <li>Driver: go on duty, check in, then <b>Review assignment → Review &amp; edit route on map</b>. Select pins and <i>Move to start</i>, use <i>Tap to sequence</i>, drag rows, skip a stop, add an address note, fix a pin, report a road issue, then <b>Submit route changes</b>.</li>
+  <li>Dispatch: Avery's row shows <b>✎ edited</b> with a summary and a road issue. Press <b>Accept</b> or <b>Revert</b>; the driver sees the result.</li>
+  <li><b>DSP portal</b> as <code>DSP-EEX-01</code>: accept the offered route, assign it to Nate Silva. Sign in to the driver app as <code>CX-1188</code>: his empty state turns into the route.</li>
+  <li><b>Shipper portal</b> as <code>ONTRAC-SEA</code>: open a delivered shipment to see tracking and POD, create an order, upload the sample manifest, export a report.</li>
+  <li>Press <kbd>Ctrl K</kbd> anywhere to jump to a page, task or driver. <kbd>Shift L</kbd> cycles Auto / Day / Night. Appearance follows Seattle sunrise and sunset when set to Auto.</li></ol></div>
+</section>
+<section class="sec2">
+ <div class="card"><h3>How to test</h3><ol>
+  <li>Open <b>Dispatch</b> and the <b>Driver app</b> in two tabs of the <b>same browser</b>. They share state through local storage and update live.</li>
+  <li>In the driver app, sign in with a sample Driver ID (table above), go on duty, check in, load-scan and complete a stop. Watch the task move on the desk.</li>
+  <li>On the desk, switch lines in the top bar. Try <b>Auto-assign</b>, drag a task onto a driver, or drag one onto <b>Jamal Price</b> or <b>Ben Okoye</b> to see a blocked assignment with its reason.</li>
+  <li>Shuttle: open the <b>Trip board</b>, press <b>Run lane again</b>, change a lane's standing driver. In the driver app, <b>Start next trip</b> has trailer and seal prefilled.</li>
+  <li>Desk → <b>Partners</b> → <b>DSP view</b>: tender stops to Eastside Express, then assign its driver Nate Silva.</li>
+  <li>Dashboard → <b>Partner onboarding</b>: apply as a Carrier, upload all, sign, set payouts, submit. All checks pass and it auto-approves. Use the simulation panel to make a check fail.</li>
+  <li>Dashboard → <b>Automation &amp; security</b> → <b>+7 days</b> twice: Valley Drayage's insurance expires, it's suspended, and Sam is blocked in Dispatch and the driver app.</li>
+  <li>Switch <b>Acting as</b> to Owen (Finance) or Ari (Viewer) to see role gating.</li></ol></div>
+ <div class="card"><h3>Test tools &amp; reset</h3><ul>
+  <li>Desk top bar: <b>+15 min</b> clock, <b>Test tools</b> (scenarios, simulate a driver, +7 days, export/import JSON, reset a line or everything).</li>
+  <li>Driver app frame: <b>Restart app</b> and <b>Reset sample data</b>.</li>
+  <li>Dashboard: <b>Automation &amp; security → Test tools</b> (+1/+7 days, run expiry monitor, reset).</li>
+  <li>State is per browser. A reset in any app resets all of them.</li></ul>
+  <p class="muted small" style="margin-top:10px">Sample date: Nov 12, 2026 · Pacific time. Maps need internet for tiles and fall back to a schematic offline.</p>
+  <p class="muted small">Appearance: Auto (default, Seattle sunrise–sunset), Day or Night. Shared across every app. Try <code>?theme=day</code>, <code>?theme=night</code>, <code>?theme=auto&amp;now=13:00</code> or <code>?now=22:00</code>.</p>
+  <button class="btn danger" onclick="if(confirm('Reset all sample data?')){Object.keys(localStorage).filter(k=>k.startsWith('chainex.')||k.startsWith('cx.')).forEach(k=>localStorage.removeItem(k));alert('Reset. Open any app to reseed.')}">Reset all sample data</button></div>
+</section>
+<footer class="foot" style="max-width:1120px;margin:0 auto;padding:0 22px 30px"><span>ChainEx pilot</span><span>Sample data only · no live tracking, payments or e-signature</span></footer>
+<script>document.querySelectorAll('[data-l]').forEach(a=>a.addEventListener('click',()=>{const u=JSON.parse(localStorage.getItem('cx.desk.ui')||'{}');u.line=a.dataset.l;u.view=a.dataset.l==='shuttle'?'board':'map';localStorage.setItem('cx.desk.ui',JSON.stringify(u))}));</script>
+</body></html>

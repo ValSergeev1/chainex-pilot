@@ -9,7 +9,7 @@ const addDays=(S,n)=>iso(DAY0+((S.dayOffset||0)+n)*DAY);
 const daysUntil=(S,d)=>d?Math.round((Date.parse(d)-Date.parse(today(S)))/DAY):null;
 const nowH=S=>(S.dayOffset||0)*24+S.clock/60;
 const fmtDate=d=>{if(!d)return '—';const x=new Date(d+'T12:00:00Z');return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})};
-const TYPES=['Driver','DSP','Carrier','Shipper','Customer','Warehouse'];
+const TYPES=['Driver','DSP','Carrier','Shipper','Customer','Warehouse','Warehouse worker'];
 const STATUSES=['Completing setup','Needs team review','Fully approved','Closed'];
 const ROLES=['Owner','Operations','Recruiting','Finance','Viewer','Sales'];
 const STEPS=[['profile','Profile'],['documents','Documents'],['agreements','Agreements'],['payment','Payment setup'],['review','Team review']];
@@ -20,10 +20,11 @@ function reqDocs(p){const indep=p.type==='Driver'&&!p.parent;switch(p.type){
   case 'Driver':return[{type:"Driver's license",exp:true,check:'background'},{type:'Background check',exp:true,check:'background'},{type:'Motor vehicle record (MVR)',exp:true,check:'background'},...(indep?[{type:'Auto insurance (COI)',exp:true,check:'insurance'},{type:'W-9',exp:false}]:[])];
   case 'DSP':return[{type:'Commercial auto insurance (COI)',exp:true,check:'insurance'},{type:'General liability insurance',exp:true,check:'insurance'},{type:'W-9',exp:false},{type:'Business license',exp:true}];
   case 'Carrier':return[{type:'Auto liability insurance (COI)',exp:true,check:'insurance'},{type:'Cargo insurance',exp:true,check:'insurance'},{type:'Operating authority (USDOT / MC)',exp:false,check:'fmcsa'},{type:'W-9',exp:false}];
+  case 'Warehouse worker':return[{type:'Photo ID',exp:true},{type:'Work authorization (I-9)',exp:false},{type:'Background check',exp:true,check:'background'}];
   case 'Warehouse':return[{type:'Warehouse legal liability insurance',exp:true,check:'insurance'},{type:'W-9',exp:false},{type:'Facility inspection',exp:true}];
   default:return[{type:'W-9',exp:false},{type:'Credit application',exp:false}]}}
 function reqAgreements(p){switch(p.type){case 'Driver':return p.parent?['Safety & conduct policy','DSP driver acknowledgement']:['Independent Contractor Agreement','Safety & conduct policy'];
-  case 'DSP':return['DSP Master Services Agreement','Rate schedule · 2026'];case 'Carrier':return['Carrier Services Agreement','Rate confirmation · 2026'];case 'Warehouse':return['Facility Services Agreement'];default:return['Master Services Agreement','Rate card · 2026']}}
+  case 'DSP':return['DSP Master Services Agreement','Rate schedule · 2026'];case 'Carrier':return['Carrier Services Agreement','Rate confirmation · 2026'];case 'Warehouse':return['Facility Services Agreement'];case 'Warehouse worker':return['Employee handbook acknowledgement','Warehouse safety policy'];default:return['Master Services Agreement','Rate card · 2026']}}
 const checksFor=p=>[...new Set(reqDocs(p).map(d=>d.check).filter(Boolean))];
 const paidThroughParent=p=>p.type==='Driver'&&!!p.parent;
 const isBilling=p=>p.type==='Shipper'||p.type==='Customer';
@@ -39,7 +40,7 @@ function nextAction(S,p){if(p.status==='Closed')return['Closed','—'];const st=
   const soon=p.docs.filter(d=>docState(S,d)==='expiring');if(soon.length)return[`${soon[0].type} expires ${fmtDate(soon[0].expires)}`,'Partner'];return['None','—']}
 const partner=(S,id)=>S.partners.find(p=>p.id===id);
 const short=p=>p?(p.short||p.name):'—';
-function audit(S,actor,action,target,detail){S.audit.unshift({at:`${today(S)} ${C.fmt(S.clock)}`,h:nowH(S),actor:actor||'System',action,target,detail:detail||''});S.audit=S.audit.slice(0,400)}
+function audit(S,actor,action,target,detail){S.audit.unshift({at:`${today(S)} ${C.fmt(S.clock)}`,h:nowH(S),actor:actor||'System',action,target,detail:detail||''});if(S.audit.length>20000)S.audit.length=20000}
 function event(S,name,payload,line){S.events.unshift({name,at:`${today(S)} ${C.fmt(S.clock)}`,h:nowH(S),payload});S.events=S.events.slice(0,300);S.activity.unshift({at:S.clock,text:`Portal event · ${name}${payload&&payload.name?' · '+payload.name:''}${payload&&payload.detail?' · '+payload.detail:''}`,kind:'partner',line:line||null})}
 const ROUTING={Driver:'u-hannah',DSP:'u-hannah',Carrier:'u-miguel',Warehouse:'u-miguel',Shipper:'u-nina',Customer:'u-nina'};
 function routeOwner(S,kind,pid){const p=partner(S,pid);if(/payment|payout|billing/i.test(kind))return 'u-owen';if(/insurance|background|renew|expir/i.test(kind))return p&&(p.type==='Driver'||p.type==='DSP')?'u-sasha':'u-miguel';return p?ROUTING[p.type]:null}
@@ -49,6 +50,7 @@ function enqueue(S,kind,pid,o={}){const ex=S.queue.find(q=>q.kind===kind&&q.part
 function partnerBlocks(S,p,line,vt,label){const r=[],w=[];if(!p){r.push('No partner record in the directory');return{r,w}}const pre=label?label+': ':'';
   if(p.status!=='Fully approved')r.push(`${pre}Setup status: ${p.status}`);
   reqDocs(p).forEach(q=>{const d=p.docs.find(x=>x.type===q.type);const s=docState(S,d);if(s==='expired')r.push(`${pre}${q.type.replace(/ \(.*\)/,'')} expired`);else if(s==='missing'||s==='rejected')r.push(`${pre}${q.type.replace(/ \(.*\)/,'')} ${s}`);else if(s==='expiring')w.push(`${pre}${q.type.replace(/ \(.*\)/,'')} expires in ${daysUntil(S,d.expires)} days (${fmtDate(d.expires)})`)});
+  reqAgreements(p).forEach(n=>{const a=(p.agreements||[]).find(x=>x.name===n);if(!a||a.status!=='Signed')r.push(`${pre}Agreement not signed: ${n}`)});
   if(line&&!(p.lines||[]).includes(line))r.push(`${pre}Not approved for ${LINE_NAMES[line]}`);
   if(vt&&p.vehicleTypes&&p.vehicleTypes.length&&!p.vehicleTypes.includes(vt))r.push(`${pre}Vehicle type not approved: ${vt}`);return{r,w}}
 function eligibility(wid,line){const S=C.S;const d=C.driver(wid);if(!d)return{ok:false,reasons:['Unknown driver'],warnings:[]};line=line||d.line;const v=S.vehicles.find(x=>x.name===d.vehicle);const vt=v&&v.type;
@@ -149,8 +151,8 @@ function seed(S,api,geo){const r=geo.rng(2026);const hex=()=>Array.from({length:
   P('Driver','Kevin Shaw',{lines:['pd'],vehicleTypes:['Cargo van'],age:210,status:'Closed',source:'Portal invite',notes:[{at:addDays(S,-30),by:'Sasha Patel',text:'Closed at partner request (moved out of state).'}]}).driverId='CX-DRV-'+String(++drvN).padStart(6,'0');
   // shippers / customers (own contracts, stations, facilities)
   const cust=(type,name,o)=>{const p=full(P(type,name,Object.assign({age:500,owner:'u-nina'},o)),{tta:14});(o.contracts||[]).forEach(c=>{if(S.contracts[c])S.contracts[c].shipper=p.id});return p};
-  cust('Customer','Jitsu',{contracts:['PD-COM'],stations:['BEL1'],city:'Bellevue',contact:{name:'Regional ops',email:'pnw-ops@jitsu.example',phone:''}});
-  cust('Customer','OnTrac',{contracts:['PD-OT'],stations:['SEA1'],city:'Seattle',contact:{name:'Seattle terminal',email:'sea@ontrac.example',phone:''}});
+  cust('Customer','Summit Parcel Network',{contracts:['PD-COM'],stations:['BEL1'],city:'Bellevue',contact:{name:'Regional ops',email:'pnw-ops@summitparcel.example',phone:''}});
+  cust('Customer','Harborline Parcel',{contracts:['PD-OT'],stations:['SEA1'],city:'Seattle',contact:{name:'Seattle terminal',email:'sea@harborline.example',phone:''}});
   cust('Shipper','Ridgeline Outfitters',{short:'Ridgeline',contracts:['PD-RG'],stations:['SEA1'],city:'Seattle'});
   cust('Shipper','Northline Home',{contracts:['BK-RET','SH-3PL'],stations:['KNTB','KNT-DC'],city:'Kent'});
   cust('Shipper','Kestrel Appliances',{contracts:['BK-APP','WG-APPL'],stations:['KNTB','WGH'],city:'Renton'});
@@ -160,8 +162,8 @@ function seed(S,api,geo){const r=geo.rng(2026);const hex=()=>Array.from({length:
   cust('Warehouse','ChainEx Facilities (internal)',{short:'ChainEx internal',contracts:['SH-INT'],stations:['KNT-DC','SEA-SODO','BEL-WH','EVT-WH'],facilities:['Kent DC','Seattle SoDo','Bellevue warehouse','Everett warehouse']});
   const wg=Object.values(S.hubs).find(h=>h.line==='wg');if(wg)S.partners.forEach(p=>{p.stations=p.stations.map(s=>s==='WGH'?wg.id:s)});
   // customer-manager users scoped to stations
-  const jit=S.partners.find(p=>p.name==='Jitsu'),ont=S.partners.find(p=>p.name==='OnTrac');
-  S.users.push({id:'u-jitsu',name:'Jitsu PNW manager',email:'pnw-ops@jitsu.example',role:'Viewer',customers:[{customer:jit.id,stations:['BEL1']}],external:true},{id:'u-ontrac',name:'OnTrac Seattle manager',email:'sea@ontrac.example',role:'Viewer',customers:[{customer:ont.id,stations:['SEA1']}],external:true});
+  const jit=S.partners.find(p=>p.name==='Summit Parcel Network'),ont=S.partners.find(p=>p.name==='Harborline Parcel');
+  S.users.push({id:'u-spn',name:'Summit Parcel PNW manager',email:'pnw-ops@summitparcel.example',role:'Viewer',customers:[{customer:jit.id,stations:['BEL1']}],external:true},{id:'u-hpl',name:'Harborline Seattle manager',email:'sea@harborline.example',role:'Viewer',customers:[{customer:ont.id,stations:['SEA1']}],external:true});
   S.users.find(u=>u.id==='u-nina').customers=[{customer:jit.id,stations:['BEL1']},{customer:ont.id,stations:['SEA1']}];
   // recruiting pipeline
   const RC=[['Marisol Vega','Driver','pd','Submitted','Indeed'],['Darnell Fox','Driver','bulky','Contact requested','Referral'],['Quick Lane Couriers','DSP','pd','Interview','Sales referral'],['Yuki Sato','Driver','wg','Reviewing','Self-serve'],['Brett Olson','Driver','ltl','Submitted','CDL school'],['Harbor Line Freight','Carrier','ltl','Reviewing','FMCSA lookup'],['Owen Pike','Driver','pd','Closed','Indeed'],['Fatima Noor','Driver','pd','Talent pool','Job fair'],['Ricardo Gomez','Driver','shuttle','Interview','CDL school']];

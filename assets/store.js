@@ -1,6 +1,6 @@
 /* ChainEx Pilot · shared state engine. Service lines plug in via CX.registerLine(config) (assets/lines/*.js). Sample data only. */
 (function(){
-const KEY='chainex.pilot.v6',VERSION=6;
+const KEY='chainex.pilot.v02',VERSION=7;
 const LINE_ORDER=['pd','bulky','wg','ltl','shuttle'];
 const lines={};const modules=[];
 const fmt=m=>{if(m==null||isNaN(m))return '—';m=Math.round(m);let h=Math.floor(m/60)%24,mm=((m%60)+60)%60,ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(mm).padStart(2,'0')} ${ap}`};
@@ -9,17 +9,19 @@ function ev(type,at,where,actor='System'){return{type,at,where,actor}}
 function dist(a,b){const dx=(a[0]-b[0])*75,dy=(a[1]-b[1])*111;return Math.sqrt(dx*dx+dy*dy)}
 let S=null;const subs=[];
 function mk(line,id,name,address,ll,o={}){return Object.assign({id,line,kind:'stop',name,address,ll,contract:null,tags:[],window:[T(8),T(20)],workerId:null,teamId:null,seq:0,state:'unassigned',attempts:0,items:[],timeline:[{at:T(6,0),text:'Task created from manifest',actor:'System'}],stepData:{},x:{},notes:'',pod:null,failReason:null,nextAction:null,completedAt:null,arrivedAt:null,offerId:null,manifest:null},o)}
-function log(text,kind='desk',line=null){S.activity.unshift({at:S.clock,text,kind,line});S.activity=S.activity.slice(0,200)}
+function log(text,kind='desk',line=null){S.activity.unshift({at:S.clock,text,kind,line});S.activity=S.activity.slice(0,200);if(S.audit){S.audit.unshift({at:(CX.portal&&CX.portal.today?CX.portal.today()+" ":"")+fmt(S.clock),h:(S.dayOffset||0)*24+S.clock/60,actor:kind==="driver"?"Driver app":kind==="partner"?"Portal":"Dispatch desk",action:text,target:line||"",detail:"",area:kind});if(S.audit.length>20000)S.audit.length=20000}}
 const uid=(p)=>p+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
 const api={T,ev,mk,dist,fmt,uid,log:(...a)=>log(...a),get S(){return S},task:id=>S.tasks.find(t=>t.id===id),driver:id=>S.drivers.find(d=>d.id===id)};
 function base(){return{version:VERSION,clock:T(10,40),sim:{playing:false,speed:1},contracts:{},teams:[],drivers:[],vehicles:[],hubs:{},tasks:[],manifests:[],offers:[],activity:[],lanes:[],facilities:{},meta:{},partners:[],users:[],queue:[],recruits:[],audit:[],events:[],payouts:[],dayOffset:0,settings:{claimEnabled:{pd:false,bulky:false,wg:false,ltl:false,shuttle:false}}}}
 function seedLine(l,scenario){const c=lines[l];if(c&&c.seed)c.seed(S,api,CXGeo,scenario||'normal')}
 function seed(){S=base();LINE_ORDER.forEach(l=>seedLine(l));modules.forEach(m=>m.seed&&m.seed(S,api,CXGeo));S.activity.sort((a,b)=>b.at-a.at);return S}
 function load(){try{const j=localStorage.getItem(KEY);S=j?JSON.parse(j):null}catch(e){S=null} if(!S||S.version!==VERSION)seed(); return S}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){console.warn('save failed',e)}}
+let bc=null;try{bc=new BroadcastChannel('cx-pilot-sync')}catch(e){}
+function save(){S._rev=(S._rev||0)+1+Math.random();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){console.warn('save failed',e)}try{bc&&bc.postMessage(Date.now())}catch(e){}}
 function emit(){subs.forEach(f=>{try{f(S)}catch(e){console.error(e)}})}
 function update(fn){load();const r=fn(S);save();emit();return r}
-window.addEventListener('storage',e=>{if(e.key===KEY){load();emit()}});
+function sync(){const r=S&&S._rev;let j=null;try{j=localStorage.getItem(KEY)}catch(e){}if(!j)return;let n;try{n=JSON.parse(j)}catch(e){return}if(n&&n._rev===r&&r!=null)return;S=n&&n.version===VERSION?n:S;if(!emitT)emitT=setTimeout(()=>{emitT=null;emit()},30)}let emitT=null;
+window.addEventListener('storage',e=>{if(e.key===KEY)sync()});if(bc)bc.onmessage=()=>sync();
 const task=id=>S.tasks.find(t=>t.id===id),driver=id=>S.drivers.find(d=>d.id===id);
 const OPEN=t=>t.state==='assigned'||t.state==='active';
 const route=wid=>S.tasks.filter(t=>t.workerId===wid&&OPEN(t)).sort((a,b)=>a.seq-b.seq);

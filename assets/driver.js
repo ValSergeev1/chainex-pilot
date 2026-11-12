@@ -169,12 +169,15 @@ redit:()=>{const d=D(),k=K(),dr=draft(),rows=edRows(dr),n=nChanges(dr),sel=dr.se
   <div class="bottom ed-bottom"><button class="pillbtn" data-a="esubmit" ${n?'':'disabled'}>${I('send',14)} Submit route changes${n?' ('+n+')':''}</button>${n?'<button class="linkbtn" data-a="ediscard">Discard</button>':''}<button class="linkbtn" data-a="edback">Back</button></div>`},
 closed:()=>{const r=R(),done=r.filter(t=>t.state==='completed').length,pct=r.length?Math.round(done/r.length*100):0;return `${appH()}<div class="body done-hero"><div class="eyebrow">${esc(K().name)} · ${esc(D().route.id)}</div><div class="h1">${ui.line==='shuttle'?'Shift ended':'Route closed'}</div><div class="sub">Return scan complete. You're off duty. Earnings post to your settlement in the partner portal.</div><div class="ring" style="--p:${pct}"><span>${pct}%<small>completed</small></span></div><div class="sub">${done} of ${r.length} ${esc(K().stopWord||'stops')} completed · ${r.filter(t=>t.state==='failed').length} exception(s)</div></div><div class="bottom"><button class="pillbtn out" data-a="signout">Sign out</button></div>`}
 };
-function edBan(d){const ed=d.route.edit;return ed?(ed.status==='pending'?`<div class="edban pend">${I('send',14)} Route changes sent ${fmt(ed.at)} · waiting for Dispatch to review</div>`:ed.status==='accepted'?`<div class="edban ok">${I('check',14)} Dispatch accepted your route changes</div>`:`<div class="edban rev">${I('back',14)} Dispatch restored the original sequence</div>`):''}
+function noticeBan(d){const n=d.route&&d.route.notice;return n&&!n.seen?`<div class="edban ok" id="reoptNotice">${I('send',14)} Route re-optimized by dispatch · ${fmt(n.at)}${n.savedKm>0?' · '+n.savedKm+' km shorter':''} <button class="btn" style="margin-left:auto;padding:2px 8px;font-size:11px" data-a="noticeok">OK</button></div>`:''}
+function edBan(d){return noticeBan(d)+edBan0(d)}
+function edBan0(d){const ed=d.route.edit;return ed?(ed.status==='pending'?`<div class="edban pend">${I('send',14)} Route changes sent ${fmt(ed.at)} · waiting for Dispatch to review</div>`:ed.status==='accepted'?`<div class="edban ok">${I('check',14)} Dispatch accepted your route changes</div>`:`<div class="edban rev">${I('back',14)} Dispatch restored the original sequence</div>`):''}
 function eligInline(){const e=elig();return e.ok?((e.warnings||[]).length?`<div class="policy warn" style="margin:6px 0">⚠ ${esc(e.warnings[0])}</div>`:''):`<div class="policy bad" style="margin:6px 0"><b>Eligibility blocked:</b> ${e.reasons.map(esc).join(' · ')}</div>`}
 function settings(){const s=ui.set,T=k=>`<button class="toggle${s[k]?' on':''}" data-a="set" data-v="${k}"></button>`,d=D(),e=elig();return `<div class="body tight"><div class="sethead">Navigation</div>
  <div class="setrow"><div>Navigation<small>Directions stay inside the app.</small></div><span class="v">ChainEx ›</span></div>
  <div class="setrow"><div>Use live location<small>Navigate from your device's GPS position.</small></div>${T('live')}</div>
  <div class="setrow"><div>Follow my position<small>Keep the map centered as you move.</small></div>${T('follow')}</div>
+ <div class="sethead">Map style</div><div class="mapstyles">${Object.entries(CXMap.STYLES).map(([k,v])=>`<button class="msty${CXMap.getStyle()===k?' on':''}" data-a="mapstyle" data-v="${k}"><i class="ms-${k}"></i><b>${esc(v.label)}</b><small>${esc(v.desc)}</small></button>`).join('')}</div><div class="tiny muted" style="padding:2px 2px 8px">Applies to the route map, the route planner and in-app navigation.</div>
  <div class="sethead">Scanning</div><div class="setrow"><div>Scan sound<small>Play a short tone after a successful scan.</small></div>${T('sound')}</div><div class="setrow"><div>Scan vibration<small>Vibrate after a successful scan.</small></div>${T('vib')}</div>
  <div class="sethead">Device &amp; connection</div><div class="setrow"><div>Camera permission<small>Used for scanning and photos.</small></div><span class="v">Ask when needed ›</span></div><div class="setrow"><div>Sync assignments<small>Fetch the latest work from Dispatch.</small></div><span class="v">Live · ${fmt(C.S.clock)} ›</span></div>
  <div class="sethead">Your work</div><div class="setrow"><div>${esc(d.name)} · ${esc(d.driverId)}<small>${esc(K().long)} · ${esc(hubName())} · ${esc(d.vehicle||'')}</small></div></div>
@@ -318,6 +321,11 @@ function doStep(id){const t=C.task(id),s=nextStep(t),d=D();if(!s)return;let data
  if(s.summary)try{data.summary=s.summary(data,t)}catch(e){}
  closeSheet();C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2)});const T=C.task(id);
  toast(T.state==='completed'?`${K().completeText?K().completeText(T):'Completed'} ✓ · synced to Dispatch`:`✓ ${s.label}`)}
+function openNav(id){const t=C.task(id),d=D();if(!t||!d||!window.CXNav)return;const hub=(C.S.hubs[d.hub]||{}).ll;const from=(d.loc&&d.loc.length===2)?d.loc:hub;
+ CXNav.open({host:$('#phone'),from,to:t.ll,title:`${no(t)} · ${t.name}`,address:t.address,label:String(no(t)).replace(/\D/g,'')||'★',speed:3,
+  onMove:ll=>{C.update(()=>{const x=C.driver(W());if(x)x.loc=ll})},
+  onArrive:()=>{C.update(()=>{const x=C.driver(W());if(x)x.loc=t.ll.slice();let s=nextStep(C.task(id)),g=0;while(s&&s.kind==='confirm'&&/omw|arrive|depart|enroute/.test(s.id)&&g++<4){C.ops.completeStep(id,s,{via:'in-app navigation'},x?x.name:'Driver');s=nextStep(C.task(id))}C.task(id).arrivedAt=C.task(id).arrivedAt||C.S.clock});ui.tab='manifest';go('route');toast('Arrived · '+t.name)}});
+ toast('In-app navigation · '+t.name)}
 function act(a,v,el){const d=D(),w=W();
  switch(a){
  case 'duty':C.update(()=>C.ops.duty(w,!d.duty));toast(D().duty?'You are on duty':'You are off duty');break;
@@ -340,7 +348,9 @@ function act(a,v,el){const d=D(),w=W();
   case 'up_legacy':{C.update(S=>{const open=C.routeAll(w).filter(t=>t.state==='assigned');const i=open.findIndex(t=>t.id===v),j=a==='up'?i-1:i+1;if(j<0||j>=open.length)return;const s1=open[i].seq;open[i].seq=open[j].seq;open[j].seq=s1;open[i].timeline.push({at:S.clock,text:`Driver moved to ${word().toLowerCase()} ${open[i].seq+1}`,actor:d.name})});break}
  case 'reorder':ui.reorder=!ui.reorder;saveUI();render();break;
  case 'repeat':{if(!v)break;let id;C.update(()=>{id=DC().repeat(D(),C.S,v)});const t=id&&C.task(id);toast(t?`Repeat trip added · departs ${fmt(t.x.dep)} · trailer ${t.x.trailer} · seal ${t.x.seal}`:'Could not add trip');break}
- case 'nav-stop':toast('Opening in-app navigation (pilot)');break;
+ case 'nav-stop':openNav(v);break;
+ case 'mapstyle':CXMap.setStyle(v);toast('Map style · '+CXMap.STYLES[v].label);render();break;
+ case 'noticeok':C.update(()=>C.ops.noticeSeen(w));break;
  case 'viewmap':closeSheet();ui.tab='map';saveUI();render();break;
  case 'sos':openSheet('sos');break;
  case 'sendsos':C.update(()=>C.ops.sos(w,true));drawSheet();toast('SOS sent · Dispatch alerted');break;
