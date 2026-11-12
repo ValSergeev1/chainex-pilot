@@ -3,7 +3,7 @@
    Built on the shared Mission Control tokens (theme.css), so light and dark both work. */
 body.design-b{--b-a1:#3b8cff;--b-a2:#22d3ee;--b-a3:#8b7cff;--b-r:20px}
 html.cx.dark body.design-b{background:radial-gradient(900px 500px at 85% -10%,rgba(139,124,255,.22),transparent 60%),radial-gradient(900px 600px at -5% 20%,rgba(34,211,238,.12),transparent 60%),radial-gradient(1200px 700px at 50% 120%,rgba(59,140,255,.18),transparent 60%),#050913;background-attachment:fixed}
-html.cx:not(.dark) body.design-b{background:radial-gradient(900px 500px at 85% -10%,rgba(139,124,255,.18),transparent 60%),radial-gradient(900px 600px at -5% 20%,rgba(34,211,238,.14),transparent 60%),radial-gradient(1200px 700px at 50% 120%,rgba(59,140,255,.14),transparent 60%),#f3f5fb;background-attachment:fixed}
+html.cx:not(.dark) body.design-b{background:radial-gradient(900px 500px at 85% -10%,rgba(139,124,255,.18),transparent 60%),radial-gradient(900px 600px at -5% 20%,rgba(34,211,238,.14),transparent 60%),radial-gradient(1200px 700px at 50% 120%,rgba(59,140,255,.14),transparent 60%),#f5f7fa;background-attachment:fixed}
 .design-b .topbar{background:linear-gradient(90deg,rgba(5,9,19,.92),rgba(18,16,46,.9))!important}
 .design-b .cmd{display:flex;gap:2px;margin-left:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:3px}
 .design-b .ck{display:flex;flex-direction:column;padding:2px 12px;border-right:1px solid rgba(255,255,255,.08);line-height:1.1}.design-b .ck:last-child{border-right:none}

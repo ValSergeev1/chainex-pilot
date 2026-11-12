@@ -1,5 +1,5 @@
 .frame-page{display:flex;flex-direction:column;align-items:center;padding:18px 10px 30px;background:#f5f7fa}
-.frame-top{width:390px;display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:4px}
+.frame-top{width:390px;display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:4px;gap:8px;flex-wrap:wrap}.frame-top .cx-theme-sw{margin-left:auto}.frame-top .muted.tiny{display:none}
 .pilot-badge.dark{color:var(--navy-blue);background:#e5eefc;border-color:#c6d7f3}
 .frame-links{width:390px;font-size:12.5px;margin-bottom:10px;color:var(--muted)}
 .frame-note{width:390px;margin-top:12px}
@@ -191,8 +191,7 @@ fieldset.exc{border:1px solid var(--line);border-radius:12px;padding:10px 12px 1
 .ed-bottom{padding-top:8px;border-top:1px solid var(--line);background:var(--card)}
 .pin.sel{transform:scale(1.25);box-shadow:0 0 0 3px rgba(47,124,246,.45)!important;z-index:5}
 .pin.st-skipped{background:#9aa6b6!important;opacity:.8}
-.phone.dark .dmap-host canvas{filter:invert(.9) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.7)}
-.phone.dark .map-fallback{filter:invert(.88) hue-rotate(180deg)}
+.phone .dmap-host,.phone .map-fallback{transition:filter 360ms ease}
 .dmap-host .maplibregl-ctrl-attrib{font-size:9px;line-height:1.3;opacity:.8}.dmap-host .maplibregl-ctrl-attrib.maplibregl-compact-show{padding:1px 22px 1px 6px}
 
 /* frame page in the mission-control system */
@@ -201,3 +200,5 @@ html.cx.dark .frame-top b,html.cx.dark .frame-top{color:#e7eefa}
 html.cx .phone{border-radius:34px;box-shadow:0 0 0 10px #05090f,0 0 0 11px rgba(120,165,230,.25),0 40px 80px -30px rgba(0,0,0,.8),0 0 60px -10px rgba(59,140,255,.35)}
 html.cx:not(.dark) .phone{box-shadow:0 0 0 10px #0d1726,0 0 0 11px rgba(13,23,38,.2),0 40px 80px -30px rgba(13,27,47,.45)}
 .phone .btn,.phone .pillbtn,.phone .iconbtn,.phone .tabs button{min-height:40px}.phone .btn{padding:8px 12px}.phone .eacts button{width:32px;height:32px}
+
+.set-theme{border-bottom:none;padding-bottom:2px}.phone .cx-theme-sw{width:100%;justify-content:flex-start}

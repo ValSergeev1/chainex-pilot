@@ -1,7 +1,7 @@
 /* =====================================================================
    ChainEx Mission Control · shared design system (tokens + components)
    Loaded after brand.css/desk.css/dashboard.css/portal.css on every app.
-   html.cx is set by cx-ui.js; html.dark = dark (default), else light.
+   html.cx is set by cx-ui.js; html.dark = night, else day. Preference: Auto (default) / Day / Night.
    ===================================================================== */
 html.cx{--mono:"JetBrains Mono","SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--ease:cubic-bezier(.2,.8,.2,1);--t:180ms;--radius:14px;
   --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",Ubuntu,sans-serif;font-family:var(--font);font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased}
@@ -11,16 +11,16 @@ html.cx.dark{color-scheme:dark;--bg:#060b14;--bg-2:#0a1220;--card:#0c1625;--card
   --st-completed:#22c55e;--st-enroute:#3b8cff;--st-assigned:#7aa5ff;--st-exception:#f59e0b;--st-pending:#7d8da6;--st-unscanned:#f25f5f;--danger:#ef4444;
   --peach:#3a2417;--peach-ink:#ffb48a;--ok-bg:rgba(34,197,94,.14);--bad-bg:rgba(239,68,68,.15);--warn-bg:rgba(245,158,11,.15);--info-bg:rgba(59,140,255,.15);
   --shadow:0 1px 0 rgba(255,255,255,.035) inset,0 18px 40px -22px rgba(0,0,0,.85);--panel-hi:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 40%)}
-html.cx:not(.dark){color-scheme:light;--bg:#eef2f8;--bg-2:#e5ebf4;--card:#ffffff;--card-2:#f6f8fc;--glass:rgba(255,255,255,.8);--glass-b:rgba(16,42,84,.11);
-  --ink:#0d1b2f;--muted:#51647c;--line:#dce3ee;--line-2:#e9eef5;--chip:#edf2f8;--chip-ink:#2f4560;--sel:#e6effd;--topbar:#060d1a;
-  --blue:#1e6ae0;--navy-blue:#1f4f9a;--accent:#1e6ae0;--accent-2:#0891b2;--glow:0 0 0 1px rgba(30,106,224,.35),0 6px 18px -6px rgba(30,106,224,.45);
+html.cx:not(.dark){color-scheme:light;--bg:#f5f7fa;--bg-2:#eef2f6;--card:#ffffff;--card-2:#f3f6f9;--glass:rgba(255,255,255,.88);--glass-b:rgba(23,43,69,.12);
+  --ink:#172b45;--muted:#51647c;--line:#d5deea;--line-2:#e8edf3;--chip:#edf2f8;--chip-ink:#2f4560;--sel:#e6effd;--topbar:#0f1b2d;
+  --blue:#2563c9;--navy-blue:#172b45;--accent:#2563c9;--accent-2:#0891b2;--glow:0 0 0 1px rgba(37,99,201,.32),0 6px 18px -6px rgba(37,99,201,.42);
   --st-completed:#16a34a;--st-enroute:#1e6ae0;--st-assigned:#1f4f9a;--st-exception:#d97706;--st-pending:#8a99ad;--st-unscanned:#dc2626;--danger:#dc2626;
   --ok-bg:#e4f6ea;--bad-bg:#fde9e9;--warn-bg:#fff2df;--info-bg:#e6effd;
   --shadow:0 1px 2px rgba(13,27,47,.05),0 12px 30px -16px rgba(13,27,47,.22);--panel-hi:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%)}
 html.cx body{background:var(--bg);color:var(--ink);font-family:var(--font)}
 html.cx.dark body{background:radial-gradient(1100px 520px at 0% -8%,rgba(47,124,246,.16),transparent 60%),radial-gradient(800px 420px at 105% -5%,rgba(34,211,238,.08),transparent 60%),
   linear-gradient(rgba(120,165,230,.035) 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,rgba(120,165,230,.035) 1px,transparent 1px) 0 0/32px 32px,var(--bg);background-attachment:fixed}
-html.cx:not(.dark) body{background:radial-gradient(1100px 520px at 0% -8%,rgba(30,106,224,.10),transparent 60%),radial-gradient(800px 420px at 105% -5%,rgba(8,145,178,.07),transparent 60%),var(--bg);background-attachment:fixed}
+html.cx:not(.dark) body{background:radial-gradient(1100px 520px at 0% -8%,rgba(37,99,201,.10),transparent 60%),radial-gradient(800px 420px at 105% -5%,rgba(8,145,178,.07),transparent 60%),var(--bg);background-attachment:fixed}
 html.cx ::selection{background:rgba(59,140,255,.35)}
 html.cx *::-webkit-scrollbar{width:9px;height:9px}html.cx *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 35%,transparent);border-radius:9px;border:2px solid transparent;background-clip:padding-box}
 html.cx *::-webkit-scrollbar-track{background:transparent}
@@ -170,3 +170,28 @@ html.cx .cxk-launch{min-width:0}@media (max-width:1680px){html.cx .cxk-launch sp
 html.cx .sv-tools select.input{width:auto;flex:0 0 auto;min-width:170px}
 html.cx .topbar .who-box .btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:#e8f0fa}
 html.cx .topbar .who-box .btn.ghost:hover{background:rgba(255,255,255,.14)}
+
+
+/* ---------- Day / Night polish + smooth theme transitions ---------- */
+html.cx,html.cx body,html.cx .card,html.cx .topbar,html.cx .drawer,html.cx .toast,html.cx .kpi,html.cx .kc,html.cx .chip,html.cx .btn,html.cx .rail,html.cx .sheet,html.cx .phone,html.cx .cxk,html.cx .pagehead,html.cx .side,html.cx .mapcard,html.cx .tbl th,html.cx .tbl td,html.cx .legend,html.cx .cx-splash,html.cx .input,html.cx select,html.cx textarea{
+  transition:background-color 360ms var(--ease),background 360ms var(--ease),color 280ms var(--ease),border-color 280ms var(--ease),box-shadow 360ms var(--ease)}
+html.cx .cx-theme-sw,html.cx .cx-theme-seg,html.cx .cx-theme-seg button,html.cx .cx-theme-ind{transition:background 180ms var(--ease),color 180ms var(--ease),box-shadow 180ms var(--ease),border-color 180ms var(--ease)}
+html.cx:not(.dark) .cxk-back{background:rgba(23,43,69,.38)}
+html.cx:not(.dark) .cxt-ring{box-shadow:0 0 0 9999px rgba(23,43,69,.45),0 0 0 2px var(--accent),0 0 24px 4px rgba(37,99,201,.35)}
+html.cx:not(.dark) .backdrop{background:rgba(15,27,45,.32)}
+html.cx:not(.dark) .cxk,html.cx:not(.dark) .cxt-tip{background:rgba(255,255,255,.94);box-shadow:0 30px 70px -24px rgba(23,43,69,.35),var(--glow)}
+html.cx:not(.dark) .map-fallback{background:radial-gradient(600px 300px at 50% 40%,#f4f7fb,#e4ebf3)}
+html.cx:not(.dark) .map-fallback .note,html.cx.dark .map-fallback .note{background:var(--glass);color:var(--ink);border:1px solid var(--glass-b)}
+html.cx.dark .map-fallback .note{background:rgba(8,16,28,.82)}
+html.cx:not(.dark) .legend .status{color:var(--ink)!important}
+html.cx .legend{color:var(--ink)}
+html.cx:not(.dark) .toast{box-shadow:0 18px 40px -16px rgba(23,43,69,.28),var(--glow)}
+html.cx:not(.dark) .dp-login{box-shadow:0 40px 80px -40px rgba(23,43,69,.35),var(--glow)}
+html.cx:not(.dark) .cx-splash .wm span{color:#2563c9}
+html.cx:not(.dark) .pilot-badge{background:rgba(255,255,255,.08);color:#d5e2f5}
+/* Day map controls stay readable on the light basemap */
+html.cx:not(.dark) .maplibregl-ctrl-attrib{background:rgba(255,255,255,.8)!important;color:#51647c}
+html.cx:not(.dark) .mapbox{background:#e7eef5}
+html.cx.dark .mapbox{background:#07101d}
+/* Settings switcher inside light cards */
+html.cx:not(.dark) .setview .cx-theme-sw,html.cx:not(.dark) .body .cx-theme-sw{filter:none}

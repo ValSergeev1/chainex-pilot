@@ -15,7 +15,7 @@ Start at **`start.html`**. It links every app and explains how to test.
 | Dashboard · Design B | `dashboard-alt.html` | Same data and features as A, "Aurora" premium treatment |
 | Classic desk | `classic.html` | Snapshot of the pre-redesign desk, for comparison (same data) |
 
-Every page shares one design system (`assets/theme.css` + `assets/cx-ui.js`): dark by default, an equally polished light mode, **Ctrl/Cmd+K** command palette, **?** shortcuts, **[** collapse side rail, **Shift+L** theme, **/** search, first-run tours and tooltips. The bid board is not part of the pilot.
+Every page shares one design system (`assets/theme.css` + `assets/cx-ui.js`): **Auto / Day / Night** appearance (Auto, the default, follows Seattle sunrise and sunset), **Ctrl/Cmd+K** command palette, **?** shortcuts, **[** collapse side rail, **Shift+L** cycles appearance, **/** search, first-run tours and tooltips. Testers can use `?theme=day|night|auto` and `?now=13:00`. The bid board is not part of the pilot.
 
 ## Run it
 

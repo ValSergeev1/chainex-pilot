@@ -52,7 +52,7 @@
   <li>Dispatch: Avery's row shows <b>✎ edited</b> with a summary and a road issue. Press <b>Accept</b> or <b>Revert</b>; the driver sees the result.</li>
   <li><b>DSP portal</b> as <code>DSP-EEX-01</code>: accept the offered route, assign it to Nate Silva. Sign in to the driver app as <code>CX-1188</code>: his empty state turns into the route.</li>
   <li><b>Shipper portal</b> as <code>ONTRAC-SEA</code>: open a delivered shipment to see tracking and POD, create an order, upload the sample manifest, export a report.</li>
-  <li>Press <kbd>Ctrl K</kbd> anywhere to jump to a page, task or driver. <kbd>Shift L</kbd> switches light/dark.</li></ol></div>
+  <li>Press <kbd>Ctrl K</kbd> anywhere to jump to a page, task or driver. <kbd>Shift L</kbd> cycles Auto / Day / Night. Appearance follows Seattle sunrise and sunset when set to Auto.</li></ol></div>
 </section>
 <section class="sec2">
  <div class="card"><h3>How to test</h3><ol>
@@ -70,6 +70,7 @@
   <li>Dashboard: <b>Automation &amp; security → Test tools</b> (+1/+7 days, run expiry monitor, reset).</li>
   <li>State is per browser. A reset in any app resets all of them.</li></ul>
   <p class="muted small" style="margin-top:10px">Sample date: Nov 12, 2026 · Pacific time. Maps need internet for tiles and fall back to a schematic offline.</p>
+  <p class="muted small">Appearance: Auto (default, Seattle sunrise–sunset), Day or Night. Shared across every app. Try <code>?theme=day</code>, <code>?theme=night</code>, <code>?theme=auto&amp;now=13:00</code> or <code>?now=22:00</code>.</p>
   <button class="btn danger" onclick="if(confirm('Reset all sample data?')){Object.keys(localStorage).filter(k=>k.startsWith('chainex.')||k.startsWith('cx.')).forEach(k=>localStorage.removeItem(k));alert('Reset. Open any app to reseed.')}">Reset all sample data</button></div>
 </section>
 <footer class="foot" style="max-width:1120px;margin:0 auto;padding:0 22px 30px"><span>ChainEx pilot</span><span>Sample data only · no live tracking, payments or e-signature</span></footer>

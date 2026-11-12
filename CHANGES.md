@@ -1,5 +1,18 @@
 # ChainEx Pilot: changes
 
+## v6 · Automatic day / night appearance (Nov 12, 2026)
+
+Every app now shares one appearance preference: **Auto** (the new default), **Day**, or **Night**. It is stored in `localStorage` as `cx.themePref` and carries across the dispatch board, driver app, Dashboards A and B, the DSP and shipper portals, the start page and classic dispatch.
+
+- **Auto** follows Seattle sunrise and sunset (47.6°N, 122.3°W) in America/Los_Angeles (Pacific time), computed in JavaScript with no network. If that calculation cannot run, Auto uses 6:30 AM–7:00 PM Pacific. The OS `prefers-color-scheme` setting is not used, so Auto stays a clock-based mode and `?now=` tests stay predictable (1:00 PM and 10:00 PM are always Pacific). The resolved look is rechecked every minute and when the tab becomes visible, and it switches with a CSS transition — no reload.
+- The top-bar control on every page is a three-way **Auto / Day / Night** selector. The current look is labeled (for example `Auto · Day`). **Shift+L** cycles the three settings. The driver app also has the same control in the phone frame header and in Profile / Settings.
+- Older stored `cx.theme2=dark` (the previous default) is migrated to Auto so existing testers are not stuck in night mode. An explicit prior light choice becomes Day. `?theme=day|night|auto` (aliases `light` / `dark`) and `?now=13:00` or `?now=22:00` override for testers. Test tools on the desk include the same controls.
+- Day mode was audited and retokened to the ChainEx brand (navy `#172b45`, top bar `#0f1b2d`, primary `#2563c9`, background `#f5f7fa`). MapLibre basemaps and the schematic fallback both have finished day and night palettes.
+
+**Tests**: t1–t10 plus t11 (Auto is Day at 13:00 and Night at 22:00 on every page; the preference carries across apps) and the every-button sweep. 0 console errors.
+
+---
+
 ## v5 · Field ops, contractor and shipper portals, mission-control design system (Nov 12, 2026)
 
 **Driver app**
@@ -13,7 +26,7 @@
 
 **Shipper portal (`shipper.html`)**: own shipments, tracking with ETA and events, exceptions, POD, submitted manifests, create order, CSV manifest upload, reports, invoices placeholder. Driver shown as first name + vehicle only; no DSP names, route IDs, pay or internal notes.
 
-**Design system**: `theme.css` + `cx-ui.js` on every app. Mission-control dark (default) and light mode, glass panels over a full-bleed themed map, mono numbers, KPI sparklines, status pulses, command palette (Ctrl/Cmd+K), shortcuts, collapsible rails, first-run tours and tooltips, splash, reduced-motion support. Dashboard A uses it; Dashboard B is the "Aurora" treatment. `classic.html` keeps the pre-redesign desk.
+**Design system**: `theme.css` + `cx-ui.js` on every app. Mission-control night and day modes, glass panels over a full-bleed themed map, mono numbers, KPI sparklines, status pulses, command palette (Ctrl/Cmd+K), shortcuts, collapsible rails, first-run tours and tooltips, splash, reduced-motion support. Dashboard A uses it; Dashboard B is the "Aurora" treatment. `classic.html` keeps the pre-redesign desk.
 
 **Tests**: t1–t10 plus an every-button sweep across every app, view and line: 0 console/page errors.
 

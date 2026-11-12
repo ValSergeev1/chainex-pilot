@@ -32,8 +32,10 @@ CXMap.prototype.fit=function(lls){if(!lls||!lls.length)return;if(this.mode==='gl
 CXMap.prototype.renderSVG=function(d){const el=this.el;el.innerHTML='';const W=el.clientWidth||600,H=el.clientHeight||400;const pts=(this._fit&&this._fit.length?this._fit:d.pins.map(p=>p.ll).concat((d.drivers||[]).map(v=>v.ll)));if(!pts.length)return;
   let x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0])),y0=Math.min(...pts.map(p=>p[1])),y1=Math.max(...pts.map(p=>p[1]));const pad=50,sx=(W-2*pad)/Math.max(1e-4,(x1-x0)*0.674),sy=(H-2*pad)/Math.max(1e-4,(y1-y0));const s=Math.min(sx,sy);
   const P=ll=>[pad+((ll[0]-x0)*0.674)*s+((W-2*pad)-(x1-x0)*0.674*s)/2,H-pad-(ll[1]-y0)*s-((H-2*pad)-(y1-y0)*s)/2];
-  const wrap=document.createElement('div');wrap.className='map-fallback';let svg=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#dde3ea" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#g)"/>`;
-  (d.lines||[]).forEach(l=>{if(l.coords.length>1)svg+=`<polyline points="${l.coords.map(c=>P(c).join(',')).join(' ')}" fill="none" stroke="${l.sel?'#1f4f9a':'#6f97d6'}" stroke-width="${l.sel?4:2.5}" stroke-linejoin="round" opacity="${l.sel?1:.75}"/>`});
+  const dark=document.documentElement.classList.contains('dark');
+  const grid=dark?'#1c3150':'#d5deea',land=dark?'#0a1628':'#e8eef5',route=l=>l.sel?(dark?'#4c95ff':'#1f4f9a'):(dark?'#3d6cac':'#6f97d6');
+  const wrap=document.createElement('div');wrap.className='map-fallback';let svg=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="${grid}" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="${land}"/><rect width="100%" height="100%" fill="url(#g)"/>`;
+  (d.lines||[]).forEach(l=>{if(l.coords.length>1)svg+=`<polyline points="${l.coords.map(c=>P(c).join(',')).join(' ')}" fill="none" stroke="${route(l)}" stroke-width="${l.sel?4:2.5}" stroke-linejoin="round" opacity="${l.sel?1:.75}"/>`});
   svg+='</svg>';wrap.innerHTML=svg+'<div class="note">Map tiles unavailable · schematic view</div>';el.appendChild(wrap);
   d.pins.forEach(p=>{const e=this.pinEl(p);const [x,y]=P(p.ll);e.style.cssText=`position:absolute;left:${x-13}px;top:${y-13}px`;wrap.appendChild(e)});
   (d.drivers||[]).forEach(v=>{const e=document.createElement('div');e.className='drv-marker'+(v.sos?' sos':'');const [x,y]=P(v.ll);e.style.cssText=`position:absolute;left:${x-9}px;top:${y-9}px`;wrap.appendChild(e)})};
@@ -42,14 +44,17 @@ window.CXMap=CXMap;
 })();
 
 /* Mission-control map theming: recolor the vector style in place for dark mode, restore for light. */
-CXMap.prototype.applyTheme=function(){if(this.opts.noTheme)return;const m=this.map;if(!m||!m.getStyle)return;let st;try{st=m.getStyle()}catch(e){return}if(!st||!st.layers)return;
-  const dark=document.documentElement.classList.contains('dark')&&document.documentElement.classList.contains('cx');this._orig=this._orig||{};
+CXMap.prototype.applyTheme=function(){if(this.opts.noTheme)return;
+  if(this.mode==='fallback'){this.render();return}
+  const m=this.map;if(!m||!m.getStyle)return;let st;try{st=m.getStyle()}catch(e){return}if(!st||!st.layers)return;
+  const dark=document.documentElement.classList.contains('dark');this._orig=this._orig||{};
   const set=(id,p,v)=>{try{const k=id+'|'+p;if(!(k in this._orig))this._orig[k]=m.getPaintProperty(id,p);m.setPaintProperty(id,p,dark?v:this._orig[k])}catch(e){}};
   st.layers.forEach(l=>{const id=l.id,n=id.toLowerCase();
     if(l.type==='background')set(id,'background-color','#07101d');
-    else if(l.type==='fill'){if(/water|ocean|lake|river/.test(n))set(id,'fill-color','#0a2038');else if(/park|wood|forest|grass|landcover|green|cemetery/.test(n))set(id,'fill-color','#0b1a22');else if(/building/.test(n)){set(id,'fill-color','#111f33');set(id,'fill-outline-color','#16273f')}else set(id,'fill-color','#0a1626')}
-    else if(l.type==='line'){if(/water|river|stream|canal/.test(n))set(id,'line-color','#0f3156');else if(/motorway|trunk|primary|major/.test(n))set(id,'line-color','#22426b');else if(/rail/.test(n))set(id,'line-color','#17283f');else if(/boundary|admin/.test(n))set(id,'line-color','#2a3f5f');else if(/road|highway|street|transport|minor|secondary|tertiary|path|service|bridge|tunnel/.test(n))set(id,'line-color','#16283f')}
-    else if(l.type==='symbol'){set(id,'text-color','#7f97b8');set(id,'text-halo-color','#07101d')}});
-  if(m.getLayer('routes')){set('routes','line-color',['case',['get','sel'],'#4c95ff','#2f5f9e']);set('routes-casing','line-color','#04101f')}
+    else if(l.type==='fill'){if(/water|ocean|lake|river/.test(n))set(id,'fill-color','#0b2744');else if(/park|wood|forest|grass|landcover|green|cemetery/.test(n))set(id,'fill-color','#0c1d26');else if(/building/.test(n)){set(id,'fill-color','#132038');set(id,'fill-outline-color','#1a2d48')}else if(/sand|beach/.test(n))set(id,'fill-color','#1a2430');else set(id,'fill-color','#0a1628')}
+    else if(l.type==='line'){if(/water|river|stream|canal/.test(n))set(id,'line-color','#123a62');else if(/motorway|trunk|primary|major/.test(n))set(id,'line-color','#3a5f8c');else if(/rail/.test(n))set(id,'line-color','#1a2e48');else if(/boundary|admin/.test(n))set(id,'line-color','#2c4668');else if(/road|highway|street|transport|minor|secondary|tertiary|path|service|bridge|tunnel/.test(n))set(id,'line-color','#1c3350')}
+    else if(l.type==='symbol'){set(id,'text-color','#9aafc8');set(id,'text-halo-color','#07101d');set(id,'text-halo-width',1.2)}});
+  if(m.getLayer('routes')){set('routes','line-color',['case',['get','sel'],'#5aa4ff','#3a6fad']);set('routes-casing','line-color','#04101f')}
   if(dark&&!m.getLayer('routes-glow')&&m.getSource('routes')){try{m.addLayer({id:'routes-glow',type:'line',source:'routes',paint:{'line-color':'#3b8cff','line-width':['case',['get','sel'],14,0],'line-blur':10,'line-opacity':.45},layout:{'line-join':'round','line-cap':'round'}},'routes-casing')}catch(e){}}
-  if(m.getLayer('routes-glow'))m.setLayoutProperty('routes-glow','visibility',dark?'visible':'none')};
+  if(m.getLayer('routes-glow'))try{m.setLayoutProperty('routes-glow','visibility',dark?'visible':'none')}catch(e){}
+  try{m.getContainer().style.background=dark?'#07101d':'#e7eef5'}catch(e){}};

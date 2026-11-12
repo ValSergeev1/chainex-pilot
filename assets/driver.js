@@ -121,7 +121,8 @@ function settings(){const s=ui.set,T=k=>`<button class="toggle${s[k]?' on':''}" 
  <div class="sethead">Your work</div><div class="setrow"><div>${esc(d.name)} · ${esc(d.driverId)}<small>${esc(K().long)} · ${esc(hubName())} · ${esc(d.vehicle||'')}</small></div></div>
  <div class="setrow"><div>Partner &amp; documents<small>${e.partner?esc(e.partner.name)+' · ':''}${e.ok?'Eligible':'Blocked: '+esc(e.reasons.join('; '))}</small></div><a class="v" href="dashboard.html#onboard" target="_blank" rel="noopener">Portal ›</a></div>
  <div class="setrow" data-a="nav" data-v="shift" style="cursor:pointer"><div>Driver home<small>Duty, offers, check-in</small></div><span class="v">›</span></div>
- <div class="setrow" data-a="theme" style="cursor:pointer"><div>Appearance<small>Light, dark, or follow your phone.</small></div><span class="v">${esc(ui.set.theme)} ›</span></div>
+ <div class="setrow set-theme"><div>Appearance<small>Auto follows Seattle sunrise and sunset. Day and Night stay locked.</small></div></div>
+ <div class="cx-theme-sw on-light" style="padding:4px 0 10px">${window.CXUI?CXUI.switcherHTML():''}</div>
  <div style="margin-top:14px"><button class="pillbtn out" data-a="signout">Sign out</button></div></div>`}
 
 // ---- sheets ----
@@ -198,16 +199,16 @@ const mapIsGL=()=>!!(dmap&&dmap.mode==='gl');
 
 function render(){C.load();const d=D();if(d)ui.line=d.line;else if(!['welcome','mywork'].includes(ui.screen))ui.screen='welcome';
  if(ui.screen==='redit'&&!canEdit()){ui.screen=d?landing():'welcome';ui.draft=null}
- const dark=ui.set.theme==='Dark'||(ui.set.theme==='Follow device'&&(window.CXUI?CXUI.theme()==='dark':(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)));$('#phone').classList.toggle('dark',!!dark);
+ const night=window.CXUI?CXUI.mode()==='night':document.documentElement.classList.contains('dark');$('#phone').classList.toggle('dark',!!night);
  const s=screens[ui.screen]?ui.screen:'welcome';const scr=$('#screen');scr.innerHTML=screens[s]();
  const sk=s+(s==='route'?ui.tab:'');if(sk!==lastScreen){scr.classList.remove('enter');void scr.offsetWidth;scr.classList.add('enter');lastScreen=sk}
  if(s==='welcome'){const tb=$('#terms');tb.onchange=()=>$('#contBtn').disabled=!tb.checked}
  const slot=$('#mapslot');if(slot)mountMap(slot,s);
  const q=$('#stopq');if(q)q.oninput=e=>{ui.q=e.target.value;saveUI();const pos=e.target.selectionStart;render();const n=$('#stopq');n.focus();n.setSelectionRange(pos,pos)};
  const f=$('#stopf');if(f)f.onchange=e=>{ui.filter=e.target.value;saveUI();render()};
- if(sheet&&!['step','cant','estop','issue'].includes(sheet.type))drawSheet()}
+ if(sheet&&!['step','cant','estop','issue'].includes(sheet.type))drawSheet();if(window.CXUI&&CXUI.refreshTheme)CXUI.refreshTheme()}
 function mountMap(slot,s){const d=D(),r=R();const hb=C.S.hubs[d.hub];
- if(!mapHost){mapHost=document.createElement('div');mapHost.className='dmap-host';slot.appendChild(mapHost);dmap=new CXMap(mapHost,{center:(hb&&hb.ll)||d.loc,zoom:11.5,controls:false,noTheme:true,pad:()=>ui.screen==='redit'?{top:30,left:30,right:30,bottom:30}:ui.tab==='map'?{top:40,left:30,right:30,bottom:170}:{top:34,left:24,right:24,bottom:74},onPin:id=>mapH.pin&&mapH.pin(id),onMap:ll=>mapH.map&&mapH.map(ll)})}else slot.appendChild(mapHost);
+ if(!mapHost){mapHost=document.createElement('div');mapHost.className='dmap-host';slot.appendChild(mapHost);dmap=new CXMap(mapHost,{center:(hb&&hb.ll)||d.loc,zoom:11.5,controls:false,pad:()=>ui.screen==='redit'?{top:30,left:30,right:30,bottom:30}:ui.tab==='map'?{top:40,left:30,right:30,bottom:170}:{top:34,left:24,right:24,bottom:74},onPin:id=>mapH.pin&&mapH.pin(id),onMap:ll=>mapH.map&&mapH.map(ll)})}else slot.appendChild(mapHost);
  const key=s+(s==='route'?ui.tab:'')+'|'+W();const refit=key!==fitKey;fitKey=key;
  if(s==='redit'){const dr=draft(),rows=edRows(dr);mapH={pin:id=>act('epin',id),map:ll=>act('emapclick',ll)};
    dmap.set({pins:rows.map(x=>({id:x.t.id,ll:dr.pins[x.t.id]||x.t.ll,state:x.skip?'skipped':x.t.state,label:x.n,sel:dr.sel.includes(x.t.id)||dr.pinFor===x.t.id,title:x.t.name})),lines:[{sel:true,coords:[d.loc,...rows.filter(x=>!x.lock&&!x.skip).map(x=>dr.pins[x.t.id]||x.t.ll)]}],drivers:[{id:d.id,ll:d.loc,name:d.name}],fitTo:[d.loc,...rows.map(x=>x.t.ll)],refit})}
@@ -260,7 +261,7 @@ function act(a,v,el){const d=D(),w=W();
  case 'pickwork':ui.wid=v;ui.line=D().line;go(landing());break;
  case 'signout':ui.wid=null;ui.draft=null;go('welcome');break;
  case 'sync':toast(`✓ Synced · ${R().length?'work found':'nothing assigned yet'}`);render();break;
- case 'theme':{const o=['Follow device','Light','Dark'];ui.set.theme=o[(o.indexOf(ui.set.theme)+1)%3];saveUI();render();break}
+ case 'theme':{if(window.CXUI){if(v)CXUI.setPref(v);else CXUI.cycleTheme(); }render();break}
  case 'esel':{const dr=draft();if(dr.mode==='pin'){dr.pinFor=v;saveUI();render();break}const i=dr.sel.indexOf(v);i<0?dr.sel.push(v):dr.sel.splice(i,1);saveUI();render();break}
  case 'epin':{const dr=draft();if(!dr.order.includes(v)){openSheet('stop',v);break}if(dr.mode==='seq'){dr.skipped=dr.skipped.filter(x=>x!==v);const o=dr.order.filter(x=>x!==v);o.splice(Math.min(dr.placed,o.length),0,v);dr.order=o;dr.placed++;fx('ok')}else if(dr.mode==='pin'){dr.pinFor=v}else{const i=dr.sel.indexOf(v);i<0?dr.sel.push(v):dr.sel.splice(i,1)}saveUI();render();break}
  case 'emapclick':{const dr=draft();if(dr.mode!=='pin'||!dr.pinFor)break;dr.pins[dr.pinFor]=v;saveUI();render();toast('✓ Pin moved · submit to send to Dispatch');break}
@@ -293,13 +294,12 @@ $('#pback').onclick=closeSheet;
 $('#restart').onclick=e=>{e.preventDefault();ui.screen='welcome';ui.wid=null;saveUI();closeSheet();render()};
 $('#resetAll').onclick=e=>{e.preventDefault();localStorage.removeItem(UIK);C.reset();location.reload()};
 C.subscribe(()=>{const ae=document.activeElement;if(ae&&$('#phone').contains(ae)&&ae.matches('input,textarea,select'))return;render()});
-if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener&&matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>render());
 window.addEventListener('cx-theme',()=>render());
 C.init();
 const qp=new URLSearchParams(location.search);const qid=qp.get('id')||(qp.get('line')&&PILOT_IDS[qp.get('line')]);
 if(qid){const h=byId(qid);if(h.length){ui.lastId=qid.toUpperCase();ui.wid=h[0].id;ui.line=h[0].line;ui.screen=landing();ui.draft=null}}
 if(qp.get('screen')&&(ui.wid||qp.get('screen')==='welcome')){ui.screen=qp.get('screen');if(qp.get('tab'))ui.tab=qp.get('tab')}
-if(qp.get('theme'))ui.set.theme=qp.get('theme')==='dark'?'Dark':'Light';
+/* theme query is handled by CXUI (?theme=day|night|auto) */
 render();
 window.__drv={act,openSheet,go,doStep,get ui(){return ui},cap:()=>cap,sig:()=>{const c=$('#sig');c&&c._demo()},cur:()=>cur(),next:t=>nextStep(t||cur()),signIn(id){const h=byId(id);if(!h.length)return false;ui.lastId=id;ui.wid=h[0].id;ui.line=h[0].line;ui.draft=null;ui.tab='manifest';go(landing());return true},draft:()=>ui.draft,setLine(l){this.signIn(PILOT_IDS[l])}};
 })();
