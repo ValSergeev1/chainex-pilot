@@ -1,6 +1,6 @@
 /* ChainEx Pilot · shared state engine. Service lines plug in via CX.registerLine(config) (assets/lines/*.js). Sample data only. */
 (function(){
-const KEY='chainex.pilot.v5',VERSION=5;
+const KEY='chainex.pilot.v6',VERSION=6;
 const LINE_ORDER=['pd','bulky','wg','ltl','shuttle'];
 const lines={};const modules=[];
 const fmt=m=>{if(m==null||isNaN(m))return '—';m=Math.round(m);let h=Math.floor(m/60)%24,mm=((m%60)+60)%60,ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(mm).padStart(2,'0')} ${ap}`};
@@ -12,7 +12,7 @@ function mk(line,id,name,address,ll,o={}){return Object.assign({id,line,kind:'st
 function log(text,kind='desk',line=null){S.activity.unshift({at:S.clock,text,kind,line});S.activity=S.activity.slice(0,200)}
 const uid=(p)=>p+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
 const api={T,ev,mk,dist,fmt,uid,log:(...a)=>log(...a),get S(){return S},task:id=>S.tasks.find(t=>t.id===id),driver:id=>S.drivers.find(d=>d.id===id)};
-function base(){return{version:VERSION,clock:T(10,40),sim:{playing:false,speed:1},contracts:{},teams:[],drivers:[],vehicles:[],hubs:{},tasks:[],manifests:[],offers:[],activity:[],lanes:[],facilities:{},meta:{},partners:[],users:[],queue:[],recruits:[],audit:[],events:[],payouts:[],dayOffset:0}}
+function base(){return{version:VERSION,clock:T(10,40),sim:{playing:false,speed:1},contracts:{},teams:[],drivers:[],vehicles:[],hubs:{},tasks:[],manifests:[],offers:[],activity:[],lanes:[],facilities:{},meta:{},partners:[],users:[],queue:[],recruits:[],audit:[],events:[],payouts:[],dayOffset:0,settings:{claimEnabled:{pd:false,bulky:false,wg:false,ltl:false,shuttle:false}}}}
 function seedLine(l,scenario){const c=lines[l];if(c&&c.seed)c.seed(S,api,CXGeo,scenario||'normal')}
 function seed(){S=base();LINE_ORDER.forEach(l=>seedLine(l));modules.forEach(m=>m.seed&&m.seed(S,api,CXGeo));S.activity.sort((a,b)=>b.at-a.at);return S}
 function load(){try{const j=localStorage.getItem(KEY);S=j?JSON.parse(j):null}catch(e){S=null} if(!S||S.version!==VERSION)seed(); return S}
@@ -33,6 +33,61 @@ function etas(wid){const d=driver(wid);if(!d)return{};const cfg=lines[d.line]||{
   r.forEach(t=>{const km=prev?dist(prev,t.ll):3;c+=km*2.2+1;if(cfg.waitForWindow&&c<t.window[0])c=t.window[0];out[t.id]={eta:c,risk:c>t.window[1]};c+=svc*(t.x.svcFactor||1);prev=t.ll});return out}
 function nn(startLL,arr){const rem=arr.slice(),out=[];let cur=startLL;while(rem.length){rem.sort((a,b)=>dist(cur,a.ll)-dist(cur,b.ll));const n=rem.shift();out.push(n);cur=n.ll}return out}
 function applySeq(wid,openOrdered){const doneT=S.tasks.filter(t=>t.workerId===wid&&!OPEN(t)).sort((a,b)=>a.seq-b.seq);[...doneT,...openOrdered].forEach((t,i)=>t.seq=i)}
+
+function routeId(t){return (t.x&&t.x.routeId)||String(t.id||'').replace(/-\d+$/,'')}
+function routeTasks(rid){return S.tasks.filter(t=>routeId(t)===rid).sort((a,b)=>(a.seq||0)-(b.seq||0))}
+function pathKm(lls){let k=0;for(let i=1;i<lls.length;i++)k+=dist(lls[i-1],lls[i]);return k}
+function claimOn(line){return !!(S.settings&&S.settings.claimEnabled&&S.settings.claimEnabled[line])}
+function capOf(d){if(!d)return null;const v=S.vehicles.find(x=>x.line===d.line&&(x.name===d.vehicle||(d.vehicle&&x.name.indexOf((d.vehicle.split('·')[0]||'').trim())>=0)));const m=String((v&&v.capacity)||'').match(/(\d{2,4})/);return m?+m[1]:null}
+function loadOf(wid){return route(wid).reduce((a,t)=>a+t.items.length,0)}
+function nn2opt(stops,firstId,lastId,opts){
+  opts=opts||{};if(!stops||!stops.length)return{order:[],km:0,miles:0,minutes:0};
+  let first=stops.find(s=>s.id===firstId)||stops[0];
+  let last=stops.find(s=>s.id===lastId)||stops[stops.length-1];
+  if(first.id===last.id&&stops.length>1) last=stops[stops.length-1]===first?stops[0]:stops[stops.length-1];
+  const locked=new Set(opts.locked||[]);
+  const mid=stops.filter(s=>s.id!==first.id&&s.id!==last.id);
+  const speed=opts.speed||2.2,svc=opts.serviceMin||3,clock0=opts.clock||0;
+  const startLL=opts.startLL||null,endLL=opts.endLL||null;
+  function costOf(arr){
+    let c=0,tm=clock0,prev=startLL||arr[0].ll;
+    if(startLL)c+=dist(startLL,arr[0].ll);else prev=arr[0].ll;
+    for(let i=1;i<arr.length;i++){
+      const km=dist(prev,arr[i].ll);c+=km;tm+=km*speed+svc*((arr[i].x&&arr[i].x.svcFactor)||1);
+      const w=arr[i].window;if(w){if(tm<w[0])tm=w[0];if(tm>w[1])c+=(tm-w[1])*0.08}
+      prev=arr[i].ll;
+    }
+    if(endLL)c+=dist(arr[arr.length-1].ll,endLL);
+    return c;
+  }
+  let cur=first.ll,t=clock0,rem=mid.slice(),ordered=[first];
+  while(rem.length){
+    rem.sort((a,b)=>{
+      const da=dist(cur,a.ll),db=dist(cur,b.ll);
+      const etaA=t+da*speed,etaB=t+db*speed;
+      const pen=(x,eta)=>{if(!x.window)return 0;if(eta>x.window[1])return (eta-x.window[1])*4;if(eta<x.window[0])return (x.window[0]-eta)*0.12;return 0};
+      return (da+pen(a,etaA))-(db+pen(b,etaB));
+    });
+    const n=rem.shift();ordered.push(n);
+    const km=dist(cur,n.ll);t+=km*speed+svc;if(n.window&&t<n.window[0])t=n.window[0];cur=n.ll;
+  }
+  ordered.push(last);
+  let best=ordered,bestC=costOf(best),improved=true,guard=0;
+  while(improved&&guard++<120){
+    improved=false;
+    for(let i=1;i<best.length-2;i++){
+      for(let j=i+1;j<best.length-1;j++){
+        let blocked=false;for(let k=i;k<=j;k++)if(locked.has(best[k].id)){blocked=true;break}
+        if(blocked)continue;
+        const cand=best.slice(0,i).concat(best.slice(i,j+1).reverse(),best.slice(j+1));
+        const c=costOf(cand);
+        if(c+1e-9<bestC){best=cand;bestC=c;improved=true}
+      }
+    }
+  }
+  const minutes=bestC*speed+best.length*svc;
+  return{order:best,km:bestC,miles:bestC*0.621371,minutes};
+}
 const ops={
   assign(id,wid,teamId,index,actor='Dispatcher'){const t=task(id);if(!t)return;const prev=t.workerId;
     if(wid&&wid!==prev&&window.CX&&CX.eligibility){const e=CX.eligibility(wid,t.line);if(!e.ok){const msg=`Blocked: ${driver(wid).name} can't take ${t.id} · ${e.reasons.join('; ')}`;tl(t,msg,actor);log(msg,'exception',t.line);ops.lastBlock=e.reasons;return false}}ops.lastBlock=null;t.workerId=wid||null;t.teamId=wid?driver(wid).team:(teamId||null);
@@ -41,6 +96,14 @@ const ops={
     const who=wid?driver(wid).name:(teamId?(S.teams.find(x=>x.id===teamId)||{}).name:'Unassigned');
     if(prev!==wid){tl(t,wid?`Assigned to ${who}`:`Moved to ${who}`,actor);log(`${t.name} → ${who}`,'desk',t.line)}else if(wid){tl(t,`Resequenced to stop ${t.seq+1}`,actor)}
     if(prev&&prev!==wid)reseq(prev);return true},
+  setClaim(line,on){S.settings=S.settings||{claimEnabled:{}};S.settings.claimEnabled=S.settings.claimEnabled||{};S.settings.claimEnabled[line]=!!on;log(`Driver claiming ${on?'enabled':'disabled'} for ${(lines[line]&&lines[line].name)||line}`,'desk',line)},
+  assignRoute(rid,wid,teamId,actor='Dispatcher'){const mine=routeTasks(rid).filter(t=>t.state==='unassigned'||!t.workerId||t.workerId===wid);
+    if(wid&&window.CX&&CX.eligibility){const e=CX.eligibility(wid,mine[0]&&mine[0].line);if(!e.ok){ops.lastBlock=e.reasons;log(`Blocked: ${driver(wid).name} can't take route ${rid} · ${e.reasons.join('; ')}`,'exception',mine[0]&&mine[0].line);return false}}ops.lastBlock=null;
+    let n=0;mine.forEach(t=>{const ok=ops.assign(t.id,wid,teamId,null,actor);if(ok!==false)n++});
+    if(wid){const d=driver(wid);if(d){d.route=d.route||{};d.route.id=rid;if(d.route.stage==='closed'){d.route.stage='not_started';d.route.checkin='none'}}}
+    const who=wid?driver(wid).name:(teamId?(S.teams.find(x=>x.id===teamId)||{}).name:'Unassigned');
+    log(`Route ${rid} → ${who} · ${n} stops`,'desk',mine[0]&&mine[0].line);return n},
+
   optimize(wid){const d=driver(wid),cfg=lines[d.line]||{};if(cfg.optimize){cfg.optimize(S,wid,api,{applySeq,nn,route});log(`${cfg.optLabel||'Optimized'} · ${d.route.id} (${d.name})`,'desk',d.line);return}
     const act=route(wid).filter(t=>t.state==='active'),rem=route(wid).filter(t=>t.state!=='active');applySeq(wid,[...act,...nn(act.length?act[act.length-1].ll:d.loc,rem)]);log(`Optimized ${d.route.id} (${d.name})`,'desk',d.line)},
   autoAssign(line){const cfg=lines[line];if(cfg&&cfg.autoAssign){const before=S.tasks.filter(t=>t.line===line&&t.state==='unassigned').length;cfg.autoAssign(S,api,ops,{route,routeAll,applySeq,nn});const n=before-S.tasks.filter(t=>t.line===line&&t.state==='unassigned').length;log(`${cfg.autoLabel||'Auto-assign'}: ${n} ${cfg.stopWord||'stops'} placed`,'desk',line);return n}return 0},
@@ -129,8 +192,8 @@ const ops={
     ops.completeStep(t.id,next,data,d.name+' (sim)');return true},
 };
 window.CX={KEY,LINE_ORDER,lines,registerLine(cfg){lines[cfg.id]=cfg;if(cfg.ops)Object.assign(ops,cfg.ops(api,ops))},registerModule(m){modules.push(m);if(m.ops)Object.assign(ops,m.ops(api,ops))},fmt,T,load,save,update,subscribe:f=>subs.push(f),
-  reset(){seed();save();emit()},exportJSON:()=>JSON.stringify(S,null,1),importJSON(txt){const o=JSON.parse(txt);if(!o||o.version!==VERSION||!Array.isArray(o.tasks))throw new Error('Not a ChainEx pilot v4 state file');S=o;save();emit()},
-  get S(){return S},task,driver,route,routeAll,etas,dist,nn,ops,api,OPEN,
+  reset(){seed();save();emit()},exportJSON:()=>JSON.stringify(S,null,1),importJSON(txt){const o=JSON.parse(txt);if(!o||o.version!==VERSION||!Array.isArray(o.tasks))throw new Error('Not a ChainEx pilot state file');S=o;save();emit()},
+  get S(){return S},task,driver,route,routeAll,etas,dist,nn,nn2opt,pathKm,routeId,routeTasks,claimOn,capOf,loadOf,ops,api,OPEN,
   lineOf:t=>lines[t.line],stateLabel:(s,line)=>{const c=line&&lines[line];return (c&&c.stateLabels&&c.stateLabels[s])||({unassigned:'Unassigned',assigned:'Assigned',active:'En route',completed:'Completed',failed:'Exception'})[s]},
   toast(msg){let el=document.querySelector('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2400)},
   esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]),

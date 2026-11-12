@@ -21,7 +21,7 @@ function CXMap(el,opts={}){
 CXMap.prototype.set=function(data){this.data=data;this.render()};
 CXMap.prototype.render=function(){const d=this.data;if(!d)return;
   if(this.mode==='gl')return this.renderGL(d);if(this.mode==='fallback')return this.renderSVG(d)};
-CXMap.prototype.pinEl=function(p){const e=document.createElement('div');e.className=`pin st-${p.state}${p.sel?' sel':''}`;e.textContent=p.label;e.title=p.title||'';e.dataset.id=p.id;
+CXMap.prototype.pinEl=function(p){const e=document.createElement('div');e.className=`pin st-${p.state}${p.sel?' sel':''}${p.cls?' '+p.cls:''}`;e.textContent=p.label;e.title=p.title||'';e.dataset.id=p.id;if(p.delay)e.style.animationDelay=p.delay;
   e.addEventListener('click',ev=>{ev.stopPropagation();this.opts.onPin&&this.opts.onPin(p.id)});return e};
 CXMap.prototype.renderGL=function(d){this.markers.forEach(m=>m.remove());this.markers=[];
   d.pins.forEach(p=>{this.markers.push(new maplibregl.Marker({element:this.pinEl(p)}).setLngLat(p.ll).addTo(this.map))});

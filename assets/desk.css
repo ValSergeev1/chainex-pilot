@@ -165,3 +165,30 @@ body{min-height:100vh}
 .elig-note .en-act{margin-left:auto;display:inline-flex;gap:4px}.elig-note .mini{font-size:10.5px;padding:1px 7px}
 .chip.edit-chip{background:#e5edff;color:#1f4f9a;font-size:10px;padding:0 6px}
 .pin.st-skipped{background:#9aa6b6!important;opacity:.75}
+
+/* Built-route cards in the unassigned queue */
+.rgroup{margin:8px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:0 6px 18px -16px rgba(15,27,45,.5);cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.rgroup:hover{border-color:var(--navy-blue)}
+.rgroup.sel{border-color:var(--navy-blue);box-shadow:0 0 0 2px rgba(37,99,201,.22);background:var(--sel)}
+.rg-h{display:flex;gap:10px;align-items:center}
+.rg-h b{font-size:14.5px;letter-spacing:.02em}
+.rg-stats{margin-left:auto;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.3;flex:none}
+.rgroup .btn{flex:none}
+.rg-meta{margin-top:6px;font-size:11.5px;color:var(--muted)}
+:root.dark .rgroup,html.cx.dark .rgroup{background:#122036;border-color:#1e3a5a}
+:root.dark .rgroup.sel,html.cx.dark .rgroup.sel{background:#16324f;border-color:#4c95ff}
+
+/* Assign-route dialog */
+.apick{display:flex;gap:10px;align-items:flex-start;padding:10px 10px;border:1px solid var(--line);border-radius:10px;margin:0 0 8px;cursor:pointer;background:var(--card)}
+.apick.on{border-color:var(--navy-blue);box-shadow:0 0 0 2px rgba(37,99,201,.18);background:var(--sel)}
+.apick.blocked{opacity:.7;cursor:not-allowed}
+.apick input{margin-top:4px}
+.ap-body{flex:1;min-width:0}
+.asg-seg,.seg2{display:flex;gap:4px}
+.asg-seg button,.ed-tools .seg2 button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 8px;font-weight:700;font-size:12px;cursor:pointer;color:var(--ink)}
+.asg-seg button.on{background:var(--navy-blue);color:#fff;border-color:var(--navy-blue)}
+.set-tog{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:4px 2px 8px}
+.set-tog p{margin:4px 0 0}
+#walkBtn{white-space:nowrap}
+
+.drawer-foot{flex:none;padding:12px 18px 16px;border-top:1px solid var(--line);background:var(--card)}

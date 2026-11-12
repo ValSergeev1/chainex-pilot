@@ -10,7 +10,7 @@ function genRoute(S,api,geo,o){const r=geo.rng(o.seed);const stops=[];let units=
   const hub=S.hubs[o.hub];const ordered=C.nn(hub.ll,stops.map(s=>Object.assign(s,{ll:s.a.ll})));
   const zc=o.zones.length,per=Math.ceil(ordered.length/zc);const tasks=[];
   ordered.forEach((s,i)=>{const zone=o.zones[Math.min(zc-1,Math.floor(i/per))];const id=`${o.routeId}-${String(i+1).padStart(3,'0')}`;
-    const t=api.mk(o.line,id,s.a.line1,s.a.address,s.a.ll,{contract:o.contract(r,i),workerId:o.driver||null,teamId:o.team,seq:i,state:o.driver?'assigned':'unassigned',x:{zone,city:s.a.city}});
+    const t=api.mk(o.line,id,s.a.line1,s.a.address,s.a.ll,{contract:o.contract(r,i),workerId:o.driver||null,teamId:o.team,seq:i,state:o.driver?'assigned':'unassigned',x:{zone,city:s.a.city,routeId:o.routeId}});
     o.decorate(t,r,s.n,i,zone);t.timeline=[{at:T(5,40),text:`Sorted to ${zone} · ${t.items.length} ${o.unitWord}`,actor:'Hub sort'}];tasks.push(t)});
   return tasks}
 function pkgItems(api,t,n,r,zone,hubName){const items=[];for(let k=0;k<n;k++){const shelf='ABCD'[Math.floor(r()*4)]+String(1+Math.floor(r()*24)).padStart(2,'0');
@@ -41,7 +41,7 @@ const cfg={id:'pd',name:'P&D',long:'Parcel pickup & delivery',prefix:'PD',unit:'
   onCreate(t,f){t.x.zone=f.zone||t.items[0]?.sortCode?.split('-').slice(0,2).join('-');if(f.signature)t.tags.push('SIGNATURE');if(f.stopType==='Business'){t.tags.push('COMMERCIAL')}if(f.stopType==='Multi-unit building')t.tags.push('MULTI-UNIT')},
   onEdit(t,f){if(f.x&&f.x.zone)t.items.forEach(p=>{p.sortCode=f.x.zone+'-'+(p.sortCode||'').split('-').pop();p.tote=`TOTE-${f.x.zone}-A`})},
   autoAssign(S,api,ops,h){const m=S.meta.pd;let n=0;const load=wid=>h.route(wid).reduce((a,t)=>a+t.items.length,0);const touched=new Set();
-    S.tasks.filter(t=>t.line==='pd'&&t.state==='unassigned'&&!t.offerId).forEach(t=>{let wid=m.zoneMap[t.x.zone];const d=wid&&api.driver(wid);
+    S.tasks.filter(t=>t.line==='pd'&&t.state==='unassigned'&&!t.offerId&&!t.x.prebuilt).forEach(t=>{let wid=m.zoneMap[t.x.zone];const d=wid&&api.driver(wid);
       if(!d||d.route.stage==='closed'||!(!CX.eligibility||CX.eligibility(d.id,'pd').ok)||load(wid)+t.items.length>m.capacity){const alt=S.drivers.filter(x=>x.line==='pd'&&x.route.stage!=='closed'&&!x.dspSlot&&(!CX.eligibility||CX.eligibility(x.id,'pd').ok)&&(!d||x.team===d.team)).sort((a,b)=>load(a.id)-load(b.id))[0];wid=alt&&alt.id}
       if(wid){ops.assign(t.id,wid,null,null,'Route build');touched.add(wid);n++}});touched.forEach(w=>ops.optimize(w));return n},
   optimize(S,wid,api,h){const d=api.driver(wid);const r=h.route(wid);const act=r.filter(t=>t.state==='active');const rest=r.filter(t=>t.state!=='active');
@@ -65,7 +65,34 @@ const cfg={id:'pd',name:'P&D',long:'Parcel pickup & delivery',prefix:'PD',unit:'
       {routeId:'PD-SEA-02',driver:'drew',team:'pd-sea',hub:'SEA1',grid:'seaNE',area:{aves:[8,34],sts:[45,84]},target:84,seed:22,zones:['SEA1-Z05','SEA1-Z06','SEA1-Z07','SEA1-Z08'],contract:()=>'PD-OT',frac:.45,fail:6,reason:'No answer'},
       {routeId:'PD-SEA-03',driver:'maria',team:'pd-sea',hub:'SEA1',grid:'seaNW',area:{aves:[1,30],sts:[50,84]},target:76,seed:33,zones:['SEA1-Z09','SEA1-Z10','SEA1-Z11','SEA1-Z12'],contract:()=>'PD-RG',frac:.35,fail:4,reason:'Building access issue'}];
     routes.forEach(o=>{o.zones.forEach(z=>zoneMap[z]=o.driver);const ts=genRoute(S,api,geo,Object.assign({line:'pd',unitsPerStop,unitWord:'pkgs',decorate:deco(S.hubs[o.hub].name)},o));if(o.frac)progress(S,api,ts,o.frac,api.driver(o.driver).name,o.fail,o.reason);S.tasks.push(...ts)});
-    S.meta.pd={zoneMap,capacity:110};
+    S.meta.pd={zoneMap,capacity:110,routes:{'PD-BEL-01':{name:'Bellevue station · Z01–Z04',station:'BEL1'},'PD-BEL-02':{name:'Bellevue Crossroads · AM wave',station:'BEL1',prebuilt:true,wave:'AM'},'PD-SEA-02':{name:'Seattle NE · OnTrac injection',station:'SEA1'},'PD-SEA-03':{name:'Seattle NW · Ridgeline e-commerce',station:'SEA1'}}};
+    // Unassigned walkthrough route: 80 stops in a tight Bellevue delivery area (downtown + Crossroads). Dispatch assigns it; drivers do not claim.
+    (function(){
+      const r=geo.rng(20261112);const BIZ=['Bellevue Corporate Plaza','Crossroads Business Center','Overlake Office Park','112th Ave Medical Suites','Eastside Family Dental','Kelsey Creek Commons','NE 8th Street Pharmacy','Lake Bellevue Landing','Bellevue Way Studios','Factoria Workshop','Main Street Credit Union','Overlake Clinic Annex'];
+      const hub=S.hubs.BEL1;const zones=['BEL1-Z05','BEL1-Z06','BEL1-Z07','BEL1-Z08'];const tasks=[];
+      for(let i=0;i<80;i++){
+        const downtown=i<48;const g=downtown?'belNE':'belNE';
+        const area=downtown?{aves:[104,116],sts:[2,16]}:{aves:[140,156],sts:[4,16]};
+        const a=geo.addr(g,r,area);const zone=zones[Math.min(zones.length-1,Math.floor(i/20))];
+        const id='PD-BEL-02-'+String(i+1).padStart(3,'0');
+        let name=a.line1,address=a.address,tags=['RESIDENTIAL'],window=[T(8),T(20)];
+        const x=r();
+        if(x<.12){const biz=BIZ[Math.floor(r()*BIZ.length)];name=biz;address=a.line1+', '+a.address.split(', ').slice(1).join(', ');tags=['COMMERCIAL'];window=[T(9),T(17)]}
+        else if(x<.22){const unit=(1+Math.floor(r()*12))+['A','B','C','D'][Math.floor(r()*4)];name=a.line1+' · Apt '+unit;address=a.line1+' Apt '+unit+', '+a.address.split(', ').slice(1).join(', ');tags=['MULTI-UNIT','RESIDENTIAL']}
+        if(r()<.08){tags.push('SIGNATURE')}
+        if(r()<.07){tags.push('PRIORITY');window=[T(8),T(12)]}
+        else if(r()<.08){window=[T(16),T(20)]}
+        else if(r()<.08){window=[T(10),T(14)]}
+        const n=unitsPerStop(r);
+        const t=api.mk('pd',id,name,address,a.ll,{contract:'PD-COM',workerId:null,teamId:null,seq:i,state:'unassigned',tags,window,x:{zone,city:a.city,routeId:'PD-BEL-02',routeName:'Bellevue Crossroads · AM wave',prebuilt:true,loop:downtown?'A':'B'}});
+        t.items=pkgItems(api,t,n,r,zone,hub.name);
+        t.timeline=[{at:T(5,50),text:`Sorted to ${zone} · ${t.items.length} pkgs · built as ${t.x.routeId} (unassigned)`,actor:'Hub sort'}];
+        tasks.push(t);
+      }
+      S.tasks.push(...tasks);
+      S.manifests.push({id:'MF-105',line:'pd',name:'BEL1 · Bellevue Crossroads AM wave',contract:'PD-COM',importedAt:T(5,20),slaDue:T(20,0),source:'bel1_crossroads_am.csv',taskIds:tasks.map(t=>t.id)});
+      S.activity.push({at:T(6,5),text:'PD-BEL-02 built at BEL1 · 80 stops unassigned · ready for dispatch to assign',kind:'manifest',line:'pd'});
+    })();
     // late-sort packages (unassigned, carry sort codes)
     const r=geo.rng(44);const late=[['belNE',{aves:[104,150],sts:[2,26]},'BEL1-Z02'],['belNE',{aves:[104,150],sts:[2,26]},'BEL1-Z03'],['belNE',{aves:[104,150],sts:[2,26]},'BEL1-Z04'],['seaNE',{aves:[10,32],sts:[48,80]},'SEA1-Z06'],['seaNE',{aves:[10,32],sts:[48,80]},'SEA1-Z07'],['seaNW',{aves:[2,28],sts:[52,82]},'SEA1-Z10'],['seaNW',{aves:[2,28],sts:[52,82]},'SEA1-Z12'],['belNE',{aves:[104,150],sts:[2,26]},'BEL1-Z01']];
     late.forEach((l,i)=>{const a=geo.addr(l[0],r,l[1]);const id=`PD-LS-${String(i+1).padStart(2,'0')}`;const t=api.mk('pd',id,a.line1,a.address,a.ll,{contract:l[2].startsWith('SEA1-Z1')?'PD-RG':l[2].startsWith('SEA1')?'PD-OT':'PD-COM',tags:['LATE SORT','RESIDENTIAL'],x:{zone:l[2],city:a.city}});t.items=pkgItems(api,t,1+Math.floor(r()*2),r,l[2],l[2].startsWith('BEL')?S.hubs.BEL1.name:S.hubs.SEA1.name);t.timeline=[{at:T(9,55),text:`Late inbound trailer · sorted to ${l[2]}`,actor:'Hub sort'}];S.tasks.push(t)});

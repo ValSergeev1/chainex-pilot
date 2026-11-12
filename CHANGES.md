@@ -1,5 +1,22 @@
 # ChainEx Pilot: changes
 
+## v7 · P&D assign walkthrough, 80-stop sample route, route planner (Nov 12, 2026)
+
+**Sample route.** `PD-BEL-02` (Bellevue Crossroads · AM wave) is an 80-stop P&D route in a tight Bellevue area (downtown + Crossroads). Real-looking street addresses, sort codes BEL1-Z05–Z08, mixed package counts, plus businesses, apartments, signature stops and a set of time windows. It starts **Unassigned** on the dispatch desk so you can walk through assigning it. After assignment it appears for driver `CX-PILOT-001` (Avery Valdez). Avery still has the existing `PD-BEL-01` (60 stops) in the seed data.
+
+**No claiming by default.** ChainEx assigns P&D (and every other line) from the desk, the way an OnTrac-style operation does. Job offers and Claim are hidden in the driver app unless a dispatcher turns on **Allow drivers to claim open work** (desk Settings, per line, or Test tools). The claim feature stays fully built and behaves as before when the toggle is on.
+
+**Dispatch assign flow.** Built routes show as a route card in Unassigned. Select the card to zoom the map, then **Assign route**. The dialog lists eligible drivers (vehicle, current load, capacity, station, block reasons) or an approved DSP/carrier. Confirm sets the route to Assigned and pushes it to the driver app. **Walkthrough: assign a P&D route** on the P&D board (also in the command palette) highlights each step.
+
+**Driver app, on duty.** The assigned route stays locked until the driver goes on duty. On duty, the full route card opens immediately: route ID, stop and package counts, station, start time, first stop, map preview, **Review route** and **Start route**. Review and the route planner no longer wait on station check-in.
+
+**Route planner (P&D and Bulky).** Drivers pick a first and last stop (or start from the station / their location, and end at the last stop or return to the station), then **Optimize**. A nearest-neighbor + 2-opt heuristic, with time windows treated as a priority, reorders the remaining stops, keeps the endpoints fixed, shows before/after kilometers and estimated time saved, and animates the new numbers on the map. Accept or Undo. Drivers can also build their own sequence by tapping pins, lasso a block, drag-reorder the list, split stops into Loop A/B, lock stops, mark apartments or businesses, add notes, and save as **My route**. Stops can be grouped by street. Existing tools (move to start/end, skip, pin fix, road issue, submit changes) stay on the same screen.
+
+**Tests**: t1–t11, t12 (80-stop unassigned route; assign from the desk appears for CX-PILOT-001 on duty; claim UI hidden until the toggle is on; optimize keeps endpoints and does not increase distance; tap-to-sequence saves order) and the every-button sweep. 0 console errors.
+
+---
+
+
 ## v6 · Automatic day / night appearance (Nov 12, 2026)
 
 Every app now shares one appearance preference: **Auto** (the new default), **Day**, or **Night**. It is stored in `localStorage` as `cx.themePref` and carries across the dispatch board, driver app, Dashboards A and B, the DSP and shipper portals, the start page and classic dispatch.

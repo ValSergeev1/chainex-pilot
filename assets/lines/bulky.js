@@ -25,7 +25,7 @@ const cfg=Object.assign({},P,{id:'bulky',name:'Bulky',long:'Bulky delivery (thre
   onCreate(t,f){t.x.zone=f.zone||'KNT-B-Z01';t.x.placement=f.placement||'Threshold'},
   onEdit(t,f){if(f.x&&f.x.twoPerson!=null)t.items.forEach(p=>p.twoPerson=!!f.x.twoPerson)},
   autoAssign(S,api,ops,h){const m=S.meta.bulky;let n=0;const touched=new Set();const lb=wid=>h.route(wid).reduce((a,t)=>a+t.items.reduce((b,p)=>b+(p.weight||0),0),0);
-    S.tasks.filter(t=>t.line==='bulky'&&t.state==='unassigned').forEach(t=>{const w=t.items.reduce((b,p)=>b+(p.weight||0),0);let wid=m.zoneMap[t.x.zone];let d=wid&&api.driver(wid);
+    S.tasks.filter(t=>t.line==='bulky'&&t.state==='unassigned'&&!t.x.prebuilt).forEach(t=>{const w=t.items.reduce((b,p)=>b+(p.weight||0),0);let wid=m.zoneMap[t.x.zone];let d=wid&&api.driver(wid);
       const ok=x=>x&&x.route.stage!=='closed'&&!x.dspSlot&&(!CX.eligibility||CX.eligibility(x.id,'bulky').ok)&&crewOK(x,t)&&lb(x.id)+w<=cap(S,x).lb;if(!ok(d)){const alt=S.drivers.filter(x=>x.line==='bulky'&&ok(x)).sort((a,b)=>lb(a.id)-lb(b.id))[0];wid=alt&&alt.id}
       if(wid){ops.assign(t.id,wid,null,null,'Route build');touched.add(wid);n++}else t.tags.includes('NEEDS 2-PERSON')||t.tags.push('NEEDS 2-PERSON')});touched.forEach(w=>ops.optimize(w));return n},
   steps:(t)=>{const two=t.items.some(p=>p.twoPerson);return[{id:'omw',label:'On my way',kind:'confirm',effect:'active'},{id:'arrive',label:'Arrived',kind:'confirm',effect:'arrive'},{id:'scan',label:'Scan pieces',kind:'scan',itemEvent:'Piece scanned at stop'},

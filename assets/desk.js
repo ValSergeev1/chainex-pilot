@@ -32,9 +32,67 @@ function trow(t,label,eta){const c=contract(t),k=C.lines[t.line];const e=eta[t.i
   const right=t.state==='failed'?`<span class="status st-failed">${esc(k.exceptionLabel||'Exception')}</span>`:t.state==='completed'?`<span class="status st-completed">Done ${fmt(t.completedAt)}</span>`:e?`ETA ${fmt(e.eta)}<br>${e.risk?'<span class="risk">At risk</span>':'<span class="ontrack">On track</span>'}`:`by ${fmt(t.window[1])}`;
   return `<div class="trow st-${t.state}${selTask===t.id?' sel':''}" draggable="${t.state!=='completed'}" data-id="${t.id}"><span class="num">${label}</span><div class="nm">${esc(t.name)}</div><div class="rt">${right}</div>
    <div class="meta"><span>${t.id}</span>·<span>${t.line==='shuttle'?fmt(t.x.dep)+' → '+fmt(t.x.arr):fmt(t.window[0])+'–'+fmt(t.window[1])}</span>·<span>${unitsOf(t,k)}</span><span class="chip">${esc(shipperName(t))}</span>${t.tags.slice(0,2).map(x=>`<span class="chip${tagCls(x)}">${esc(x)}</span>`).join('')}${t.offerId?'<span class="chip blue">Offered</span>':''}${t.attempts?`<span class="chip orange">Attempt ${t.attempts}/${c.maxAttempts}</span>`:''}</div></div>`}
+
+function routeMeta(rid,line){const S=C.S;const bag=(S.meta[line||ui.line]&&S.meta[line||ui.line].routes)||{};return bag[rid]||{}}
+function groupUnassigned(un){const built={},loose=[];un.forEach(t=>{if(t.x&&t.x.prebuilt&&C.routeId(t)){(built[C.routeId(t)]=built[C.routeId(t)]||[]).push(t)}else loose.push(t)});return{built,loose}}
+function routeCard(rid,ts){const meta=routeMeta(rid,ts[0]&&ts[0].line),name=meta.name||(ts[0].x&&ts[0].x.routeName)||rid;
+  const pkgs=ts.reduce((a,t)=>a+t.items.length,0);
+  const zones=[...new Set(ts.map(t=>t.x.zone).filter(Boolean))].sort();
+  const sig=ts.filter(t=>t.tags.includes('SIGNATURE')).length,biz=ts.filter(t=>t.tags.includes('COMMERCIAL')).length,apt=ts.filter(t=>t.tags.includes('MULTI-UNIT')).length,win=ts.filter(t=>t.window&&(t.window[0]!==C.T(8)||t.window[1]!==C.T(20))).length;
+  const sel=ui.selRoute===rid;
+  return `<div class="rgroup${sel?' sel':''}" id="route-${rid}" data-selroute="${rid}">
+    <div class="rg-h"><div><div class="eyebrow">Built route · Unassigned</div><b>${esc(rid)}</b><div class="muted tiny">${esc(name)}${meta.station?' · '+esc(meta.station):''}</div></div>
+      <div class="rg-stats">${ts.length} stops<br>${pkgs} pkgs</div>
+      <button class="btn primary sm" data-assignroute="${rid}">Assign route</button></div>
+    <div class="rg-meta">${esc(zones[0]||'')}–${esc(zones[zones.length-1]||'')} · ${biz} businesses · ${apt} apartments · ${sig} signature${win?` · ${win} with time windows`:''}</div>
+  </div>`}
+
+function assignRouteDrawer(rid){ui.assignRid=rid;ui.assignKind=ui.assignKind||'driver';ui.assignPick=ui.assignPick||null;drawerMode='assign-route';drawAssignRoute();openDrawer()}
+function drawAssignRoute(){const S=C.S,rid=ui.assignRid,ts=C.routeTasks(rid).filter(t=>t.state==='unassigned'||!t.workerId);
+  if(!ts.length){C.toast('That route is no longer unassigned');closeDrawer();return}
+  const line=ts[0].line,pkgs=ts.reduce((a,t)=>a+t.items.length,0),km=C.pathKm(ts.map(t=>t.ll)),meta=routeMeta(rid,line),name=meta.name||(ts[0].x&&ts[0].x.routeName)||rid;
+  const ds=LD().filter(d=>!d.dspSlot&&d.line===line);
+  const station=meta.station;
+  const ranked=[...ds].sort((a,b)=>{const ea=C.eligibility(a.id,line).ok?0:1,eb=C.eligibility(b.id,line).ok?0:1;if(ea!==eb)return ea-eb;const sa=a.hub===station?-1:0,sb=b.hub===station?-1:0;if(sa!==sb)return sa-sb;return C.loadOf(a.id)-C.loadOf(b.id)});
+  if(ui.assignKind==='driver'&&(!ui.assignPick||!ds.some(d=>d.id===ui.assignPick))){const pref=ranked.find(d=>C.eligibility(d.id,line).ok);ui.assignPick=pref?pref.id:(ranked[0]&&ranked[0].id)}
+  const dsps=S.partners.filter(p=>(p.type==='DSP'||p.type==='Carrier')&&p.status==='Fully approved'&&(p.lines||[]).includes(line));
+  const pick=ui.assignKind==='driver'?C.driver(ui.assignPick):null;
+  const e=pick&&C.eligibility(pick.id,line);const load=pick?C.loadOf(pick.id):0;const cap=pick&&C.capOf(pick);const over=pick&&cap!=null&&(load+pkgs)>cap;
+  const ok=ui.assignKind==='driver'?!!(pick&&e&&e.ok):!!ui.assignPick;
+  const drvRows=ranked.map(d=>{const el=C.eligibility(d.id,line),ld=C.loadOf(d.id),c=C.capOf(d),open=C.route(d.id).length;
+    const warn=c!=null&&(ld+pkgs)>c;
+    return `<label class="apick${ui.assignPick===d.id?' on':''}${el.ok?'':' blocked'}" data-apick="${d.id}" data-akind="driver">
+      <input type="radio" name="apick" ${ui.assignPick===d.id?'checked':''} ${el.ok?'':'disabled'}>
+      <div class="ap-body"><b>${esc(d.name)}</b> <span class="muted tiny">${esc(d.driverId)}</span>
+        <div class="muted tiny">${el.ok?(d.duty?'On duty':'Off duty'):'Blocked'} · ${esc(d.vehicle||'No vehicle')} · ${open} open stops · ${ld} pkgs${c!=null?` / ${c} cap`:''}${d.hub===station?' · same station':''}</div>
+        ${el.ok?'':`<div class="elig-note bad">${esc(el.reasons.join(' · '))}</div>`}
+        ${el.ok&&(el.warnings||[]).length?`<div class="elig-note warn">${esc(el.warnings[0])}</div>`:''}
+        ${warn?'<div class="elig-note warn">This assignment would go over van package capacity. You can still confirm.</div>':''}
+      </div></label>`}).join('');
+  const dspRows=dsps.map(p=>`<label class="apick${ui.assignPick===p.id?' on':''}" data-apick="${p.id}" data-akind="dsp">
+    <input type="radio" name="apick" ${ui.assignPick===p.id?'checked':''}>
+    <div class="ap-body"><b>${esc(P.short(p))}</b> <span class="muted tiny">${esc(p.type)}</span>
+      <div class="muted tiny">${esc(p.status)} · approved for ${esc(C.lines[line].name)}</div></div></label>`).join('')||'<div class="muted tiny">No approved DSPs or carriers for this line.</div>';
+  $('#drawer').innerHTML=`<div class="drawer-head"><div><div class="eyebrow">Assign route</div><h3>${esc(rid)}</h3><div class="muted tiny">${esc(name)} · ${ts.length} stops · ${pkgs} pkgs · ${km.toFixed(1)} km in current sort order</div></div><button class="btn pill" data-close>Close</button></div>
+    <div class="drawer-body">
+      <div class="dsec" style="border-top:none"><h4>Who should take this route?</h4>
+        <div class="seg2 asg-seg" style="margin:8px 0"><button class="${ui.assignKind==='driver'?'on':''}" data-akindtab="driver">Driver</button><button class="${ui.assignKind==='dsp'?'on':''}" data-akindtab="dsp">DSP / carrier</button></div>
+        <div id="apList">${ui.assignKind==='driver'?drvRows:dspRows}</div>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <div class="muted tiny">${ui.assignKind==='driver'?(pick?`Assign <b>${esc(rid)}</b> to <b>${esc(pick.name)}</b> (${esc(pick.driverId)}). Status becomes Assigned and the route appears in the driver app when they go on duty.`:'Pick a driver.'):'Tender this built route to the DSP. Their dispatcher assigns one of their own drivers.'}</div>
+      ${over?'<div class="elig-note warn">Package count is over the listed van package capacity. You can still confirm.</div>':''}
+      <div class="drw-actions" style="margin-top:8px"><button class="btn primary" id="arGo" ${ok?'':'disabled'}>${ui.assignKind==='dsp'?'Tender route':'Assign route'}</button></div>
+    </div>`;
+}
+
+function startAssignWalk(){ui.line='pd';ui.view='map';ui.selRoute='PD-BEL-02';render();setTimeout(()=>{const ts=C.routeTasks('PD-BEL-02').filter(t=>t.state==='unassigned');if(ts.length&&map)map.fit(ts.map(t=>t.ll));const card=document.querySelector('#route-PD-BEL-02');if(card)card.scrollIntoView({block:'center',behavior:'smooth'});if(window.CXUI)CXUI.tour('assignPd',true)},80)}
+
 function renderQueue(eta){const S=C.S,k=cfg();let h='';const tasks=LT();
   const un=sorted(tasks.filter(t=>!t.workerId&&!t.teamId&&t.state==='unassigned'&&visible(t)));
-  h+=`<div class="sec"><div class="sec-h"><span class="dot st-unassigned"></span><span class="eyebrow">Unassigned (${un.length})</span></div><div class="dz" data-drop="un">${un.map(t=>trow(t,'·',eta)).join('')||'<div class="empty">Nothing waiting. Drag a task here to unassign.</div>'}</div></div>`;
+  const grouped=groupUnassigned(un),cards=Object.entries(grouped.built).map(([rid,ts])=>routeCard(rid,ts)).join('');
+  h+=`<div class="sec"><div class="sec-h"><span class="dot st-unassigned"></span><span class="eyebrow">Unassigned (${un.length})</span></div>${cards}<div class="dz" data-drop="un">${grouped.loose.map(t=>trow(t,'·',eta)).join('')||(cards?'':'<div class="empty">Nothing waiting. Drag a task here to unassign.</div>')}</div></div>`;
   const fu=tasks.filter(t=>!t.workerId&&t.state==='failed'&&visible(t));if(fu.length)h+=`<div class="sec"><div class="sec-h"><span class="dot st-failed"></span><span class="eyebrow">Exceptions, no route (${fu.length})</span></div>${fu.map(t=>trow(t,'!',eta)).join('')}</div>`;
   S.teams.filter(tm=>tm.line===ui.line).forEach(tm=>{const tt=sorted(tasks.filter(t=>!t.workerId&&t.teamId===tm.id&&visible(t)));const drs=S.drivers.filter(d=>d.team===tm.id&&d.line===ui.line);const col=collapsed[tm.id];
     h+=`<div class="sec"><div class="sec-h" data-team="${tm.id}" style="cursor:pointer"><span>${col?'▸':'▾'}</span><span class="eyebrow">${esc(tm.name)}</span><span class="muted tiny">${esc(tm.hub||'')} · ${drs.length} ${ui.line==='wg'?'teams':'drivers'}</span></div>`;
@@ -98,7 +156,9 @@ function renderSettings(){const S=C.S,k=cfg(),R=k.rules||{};const ds=LD().filter
   const lanes=ui.line==='shuttle'?`<div class="card wide"><div class="mc-head"><div><div class="eyebrow">Recurring work</div><h3>Lanes &amp; standing schedules</h3><div class="muted tiny">Lane templates generate today's trips automatically. Pause a schedule, change the standing driver, or add a lane.</div></div><div style="display:flex;gap:6px"><button class="btn sm" data-gentrips="1">Regenerate today</button><button class="btn sm primary" data-edit="lane:">+ Lane</button></div></div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Lane</th><th>Facilities · timing</th><th>Equipment · mode</th><th>Typical load</th><th>Schedule</th><th>Standing</th><th>Today</th><th>7-day</th><th></th></tr></thead><tbody>${S.lanes.map(l=>{const p=k.perfToday(S,l);return `<tr><td><b>${l.id}</b> ${esc(l.name)}</td><td class="tiny">${esc(l.a)} ${l.loop?'⇄':'→'} ${esc(l.b)} · ${l.transit}m transit · ${l.dwell}m dwell · docks ${esc(l.docks.a)}/${esc(l.docks.b)}</td><td class="tiny">${esc(l.equipment)} · ${esc(l.mode)}</td><td class="tiny">${l.typical.pallets} plt · ${l.typical.totes} totes · ${l.typical.empties} empties${l.backhaul?' · backhaul':''}</td><td class="tiny">${esc(k.scheduleText(l))}</td><td class="tiny">${l.standing.driver&&C.driver(l.standing.driver)?esc(C.driver(l.standing.driver).name):'—'} · ${esc(l.standing.tractor||'')}</td><td class="tiny">${p.done}/${p.scheduled} · ${p.onTime??'—'}% OT · ${p.dwell??'—'}m</td><td class="tiny">${l.perf7.onTime??'—'}% · ${l.perf7.dwell??'—'}m · ${l.perf7.tpd??'—'}/day</td><td style="white-space:nowrap"><button class="btn sm" data-edit="lane:${l.id}">Edit</button> <button class="btn sm" data-togglesched="${l.id}">${l.schedule.active===false?'Resume':'Pause'}</button> <button class="btn sm" data-runlane="${l.id}">Run again</button> <button class="btn sm danger" data-dellane="${l.id}">✕</button></td></tr>`}).join('')}</tbody></table></div></div>`:'';
   const sample=LT().find(t=>t.kind!=='pickup')||LT()[0];const pu=LT().find(t=>t.kind==='pickup');
-  $('#setView').innerHTML=`${lanes}<div class="card"><div class="mc-head"><div><div class="eyebrow">How ${esc(k.name)} works</div><h3>${esc(k.long)}</h3></div></div><ol class="how">${(k.howItWorks||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
+  const claimCard=`<div class="card" id="claimCard"><div class="mc-head"><div><div class="eyebrow">Driver work rules</div><h3>How routes get to drivers</h3><div class="muted tiny">ChainEx assigns P&amp;D and Bulky routes from the desk. Claiming stays built in if you need it later.</div></div></div>
+    <div class="set-tog"><div><b>Allow drivers to claim open work</b><p class="muted tiny">Off by default — dispatch assigns routes. When this is on, the driver app shows job offers so a driver can claim open add-on work for this line.</p></div><button class="toggle${C.claimOn(ui.line)?' on':''}" data-claimtog="${ui.line}" aria-label="Allow drivers to claim open work"></button></div></div>`;
+  $('#setView').innerHTML=`${lanes}${claimCard}<div class="card"><div class="mc-head"><div><div class="eyebrow">How ${esc(k.name)} works</div><h3>${esc(k.long)}</h3></div></div><ol class="how">${(k.howItWorks||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
     <div class="rules"><div><span class="eyebrow">${esc(k.autoLabel||'Auto-assign')}</span><p>${esc(k.autoHelp||'')}</p></div><div><span class="eyebrow">${esc(k.optLabel||'Optimize')}</span><p>${esc(k.optHelp||'')}</p></div>
     <div><span class="eyebrow">Driver steps</span><p>${sample&&k.steps?k.steps(sample,S).map(s=>esc(s.label)).join(' → '):''}${ui.line==='ltl'&&pu?`<br><span class="muted">Pickup: ${k.steps(pu,S).map(s=>esc(s.label)).join(' → ')}</span>`:''}</p></div>
     <div><span class="eyebrow">${esc(k.exceptionLabel||'Exceptions')}</span><p>${(k.reasons||[]).length} reasons · next actions: ${(k.nextActions||[]).map(esc).join(', ')}<br><span class="muted">Requeue: ${esc(R.requeue==='__none__'?'none (trips are not re-queued)':R.requeue||'—')} · Return: ${esc(R.rts||'—')} · Station: ${esc(R.station||'—')}</span></p></div></div></div>
@@ -140,7 +200,7 @@ function render(){C.load();const k=cfg();if(ui.line!=='all'&&!C.lines[ui.line])u
   $('#phEyebrow').textContent=ui.line==='all'?'Operations / All service lines':k.eyebrow;$('#phTitle').textContent=ui.line==='all'?'All lines':k.long;
   $('#phSub').textContent=ui.line==='all'?'One control view for P&D, Bulky, White glove, LTL and Shuttle. Open a line to dispatch it.':k.mainView==='board'?'Trips come from standing lane schedules. Slot, re-run and track them by lane.':`Drag a ${k.stopWord1||'task'} onto a ${ui.line==='wg'?'team':'driver'} to assign it. ${k.autoLabel} applies ${k.name} rules.`;
   $('#viewSeg').innerHTML=views().map(v=>`<button data-view="${v[0]}" class="${ui.view===v[0]?'on':''}">${v[1]}</button>`).join('');
-  const lineMode=ui.line!=='all';$('#lineActions').hidden=!lineMode||['partners','settings'].includes(ui.view);
+  const lineMode=ui.line!=='all';$('#lineActions').hidden=!lineMode||['partners','settings'].includes(ui.view);const wb=$('#walkBtn');if(wb)wb.hidden=ui.line!=='pd'||['partners','settings'].includes(ui.view);
   if(lineMode){$('#autoBtn').textContent=k.autoLabel||'Auto-assign';$('#optAllBtn').textContent=k.optLabel||'Optimize routes';$('#fitBtn').hidden=ui.view!=='map'}
   renderKpis();
   const showBoard=lineMode&&['map','table','board'].includes(ui.view);$('#board').hidden=!showBoard;$('#mfView').hidden=ui.view!=='manifests';$('#setView').hidden=ui.view!=='settings';$('#ptView').hidden=ui.view!=='partners';$('#ovView').hidden=ui.view!=='overview';
@@ -219,9 +279,11 @@ function toolsDrawer(){drawerMode='tools';const l=ui.line;const D=l==='all'?null
    <div class="dsec"><h4>Appearance</h4><div class="muted tiny">Auto follows Seattle sunrise and sunset (fallback 6:30 AM–7:00 PM). Lock Day or Night, or override with <code>?theme=day|night|auto</code> and <code>?now=13:00</code> / <code>?now=22:00</code> to fake the Auto clock.</div>
     <div class="drw-actions" style="margin-top:8px">${(window.CXUI&&CXUI.switcherHTML)?`<div class="cx-theme-sw">${CXUI.switcherHTML()}</div>`:''}
       <button class="btn" data-theme-now="13:00">Fake 1:00 PM</button><button class="btn" data-theme-now="22:00">Fake 10:00 PM</button><button class="btn" data-theme-now="clear">Use real clock</button></div></div>
+   <div class="dsec"><h4>Driver claiming</h4><div class="muted tiny">Job offers stay hidden in the driver app unless a line is turned on. Default is off for every line.</div>
+      <div class="drw-actions" style="margin-top:8px">${C.LINE_ORDER.map(l=>`<button class="btn" data-claimtog="${l}">${esc(C.lines[l].name)} · ${C.claimOn(l)?'ON':'off'}</button>`).join('')}</div></div>
    <div class="dsec"><h4>Data</h4><div class="drw-actions"><button class="btn" id="expJ">Export state (JSON)</button><label class="btn">Import state<input type="file" id="impJ" accept="application/json" hidden></label>${l!=='all'?`<button class="btn" data-resetline="${l}">Reset ${esc(cfg().name)}</button>`:''}<button class="btn danger" id="resetAll2">Reset everything</button></div></div></div>`;openDrawer()}
 const blockedToast=()=>C.toast('Blocked · '+(C.ops.lastBlock||['Not eligible']).join(' · '));
-const SEL='[data-id],[data-driver],[data-team],[data-f],[data-opt],[data-import],[data-showmf],[data-track],[data-close],[data-do],[data-open],[data-view],[data-clearsos],[data-locate],[data-line],[data-gol],[data-ptab],[data-edit],[data-bulk],[data-chk],[data-exportcsv],[data-runlane],[data-gentrips],[data-togglesched],[data-dellane],[data-simulate],[data-reopen],[data-reverse],[data-rt],[data-delvehicle],[data-delteam],[data-dspassign],[data-recall],[data-redit],[data-roadfix],[data-tender],[data-scen],[data-tick],[data-days],[data-resetline],#ffGo,#ntGo,#etGo,#imGo,#edGo,#edDel,#simGo,#simGo5,#expJ,#resetAll2,#actAll';
+const SEL='[data-id],[data-driver],[data-team],[data-f],[data-opt],[data-import],[data-showmf],[data-track],[data-close],[data-do],[data-open],[data-view],[data-clearsos],[data-locate],[data-line],[data-gol],[data-ptab],[data-edit],[data-bulk],[data-chk],[data-exportcsv],[data-runlane],[data-gentrips],[data-togglesched],[data-dellane],[data-simulate],[data-reopen],[data-reverse],[data-rt],[data-delvehicle],[data-delteam],[data-dspassign],[data-recall],[data-redit],[data-roadfix],[data-tender],[data-scen],[data-tick],[data-days],[data-resetline],[data-assignroute],[data-selroute],[data-claimtog],[data-apick],[data-akindtab],#ffGo,#ntGo,#etGo,#imGo,#edGo,#edDel,#simGo,#simGo5,#expJ,#resetAll2,#actAll,#arGo,#walkBtn';
 document.addEventListener('click',ev=>{const el=ev.target.closest(SEL);if(!el)return;const ds=el.dataset;
   if(ds.chk){ev.stopPropagation();if(el.checked)checked.add(ds.chk);else checked.delete(ds.chk);render();return}
   if(ds.line){ui.line=ds.line;selTask=null;selDriver=null;checked.clear();contractF='all';ui.view=views()[0][0];render();setTimeout(()=>{map.resize();ui.view==='map'&&fitAll()},60);return}
@@ -235,6 +297,11 @@ document.addEventListener('click',ev=>{const el=ev.target.closest(SEL);if(!el)re
   if(ds.team){collapsed[ds.team]=!collapsed[ds.team];render();return}
   if(ds.f){filters[ds.f]=!filters[ds.f];render();return}
   if(ds.import){importDrawer();return}
+  if(ds.assignroute){ev.stopPropagation();assignRouteDrawer(ds.assignroute);return}
+  if(ds.selroute){ui.selRoute=ui.selRoute===ds.selroute?null:ds.selroute;selTask=null;render();const ts=C.routeTasks(ds.selroute);if(ui.selRoute&&ts.length&&ui.view==='map')map.fit(ts.map(t=>t.ll));return}
+  if(ds.claimtog){C.update(()=>C.ops.setClaim(ds.claimtog,!C.claimOn(ds.claimtog)));C.toast(`Driver claiming ${C.claimOn(ds.claimtog)?'on':'off'} for ${C.lines[ds.claimtog].name}`);if(drawerMode==='tools')toolsDrawer();else if(ui.view==='settings')renderSettings();return}
+  if(ds.akindtab){ui.assignKind=ds.akindtab;ui.assignPick=null;drawAssignRoute();return}
+  if(ds.apick){ui.assignPick=ds.apick;ui.assignKind=ds.akind||ui.assignKind;drawAssignRoute();return}
   if(ds.showmf){const m=C.S.manifests.find(x=>x.id===ds.showmf);ui.view=views()[0][0];search=m.id;$('#search').value=m.id;render();setTimeout(()=>{map.resize();map.fit(m.taskIds.map(C.task).filter(Boolean).map(t=>t.ll))},50);return}
   if(ds.track){C.update(()=>C.ops.tracking(ds.track));return}
   if(ds.clearsos){C.update(()=>C.ops.sos(ds.clearsos,false));return}
@@ -266,6 +333,11 @@ document.addEventListener('click',ev=>{const el=ev.target.closest(SEL);if(!el)re
   if(ds.resetline){C.update(()=>C.ops.resetLine(ds.resetline));C.toast('Line reset');return}
   if(el.id==='actAll'){drawerMode='activity';drawActivity();openDrawer();return}
   if(el.id==='simGo'||el.id==='simGo5'){const w=$('#simD').value;let n=0;C.update(()=>{for(let i=0;i<(el.id==='simGo5'?5:1);i++)if(C.ops.simulate(w))n++});C.toast(n?`${C.driver(w).name} advanced ${n} step(s)`:'Nothing left to simulate');return}
+  if(el.id==='arGo'){const rid=ui.assignRid;if(!rid||!ui.assignPick){C.toast('Pick someone to assign');return}
+    if(ui.assignKind==='dsp'){let slot;C.update(()=>{slot=C.ops.tenderRoute(ui.line,ui.assignPick,C.routeTasks(rid).filter(t=>t.state==='unassigned').map(t=>t.id))});closeDrawer();C.toast(slot?`Tendered ${rid} to ${P.short(P.partner(ui.assignPick))} · ${slot.route.id}`:'Could not tender');return}
+    let n;C.update(()=>{n=C.ops.assignRoute(rid,ui.assignPick,null,'Dispatcher')});if(n===false){blockedToast();drawAssignRoute();return}
+    const d=C.driver(ui.assignPick);closeDrawer();ui.selRoute=null;selDriver=ui.assignPick;render();if(ui.view==='map')setTimeout(()=>fitDriver(ui.assignPick),60);C.toast(`Assigned ${rid} · ${n} stops → ${d.name} · visible in the driver app`);return}
+  if(el.id==='walkBtn'){startAssignWalk();return}
   if(el.id==='expJ'){C.download('chainex-pilot-state.json',C.exportJSON(),'application/json');return}
   if(el.id==='resetAll2'){if(confirm('Reset all sample data (desk, driver app, dashboard)?')){C.reset();closeDrawer();C.toast('Sample data reset')}return}
   if(ds.do){const id=selTask,d=ds.do;if(d==='fail'){failForm();return}if(d==='edit'){taskFormDrawer(id);return}if(d==='delete'){if(!confirm('Delete this task?'))return;C.update(()=>C.ops.deleteTask(id));closeDrawer();C.toast('Deleted');return}
@@ -305,7 +377,7 @@ document.addEventListener('drop',e=>{const z=target(e);if(!z||!dragId)return;e.p
 C.subscribe(()=>render());C.init();
 $('#lineSwitch').innerHTML=`<button class="ls" data-line="all">All lines</button>${C.LINE_ORDER.map(l=>`<button class="ls" data-line="${l}">${esc(C.lines[l].name)}</button>`).join('')}`;
 render();setTimeout(()=>map.resize(),100);window.addEventListener('resize',()=>map.resize());if(params.get('task'))setTimeout(()=>openTask(params.get('task')),300);
-window.__desk={openTask,render,ui,setLine(l,v){ui.line=l;ui.view=v||views()[0][0];render();setTimeout(()=>map.resize(),30)},setView(v){ui.view=v;render()},setPtab(t){ui.ptab=t;ui.view='partners';render()},toolsDrawer,importDrawer,editDrawer,newTask:()=>taskFormDrawer(null),activity:()=>{drawerMode='activity';drawActivity();openDrawer()}};
+window.__desk={openTask,render,ui,assignRouteDrawer,startAssignWalk,setLine(l,v){ui.line=l;ui.view=v||views()[0][0];render();setTimeout(()=>map.resize(),30)},setView(v){ui.view=v;render()},setPtab(t){ui.ptab=t;ui.view='partners';render()},toolsDrawer,importDrawer,editDrawer,newTask:()=>taskFormDrawer(null),activity:()=>{drawerMode='activity';drawActivity();openDrawer()}};
 })();
 /* Desk ↔ Mission Control UI kit: palette commands, shortcuts, first-run tour */
 (function(){if(!window.CXUI||!window.__desk)return;const C=CX,D=window.__desk,U=window.CXUI;
@@ -315,7 +387,7 @@ U.register([...lines.map((l,i)=>({id:'line-'+l,group:'Service lines',label:l==='
  {id:'auto',group:'Actions',label:'Auto-assign unassigned work',icon:'⚡',hint:'A',run:()=>click('#autoBtn')},{id:'opt',group:'Actions',label:'Optimize all routes',icon:'↻',run:()=>click('#optAllBtn')},
  {id:'new',group:'Actions',label:'New task',icon:'+',hint:'N',run:()=>D.newTask()},{id:'imp',group:'Actions',label:'Import orders / manifest',icon:'⇪',run:()=>D.importDrawer()},
  {id:'fit',group:'Actions',label:'Zoom map to fit',icon:'⤢',hint:'Z',run:()=>click('#fitBtn')},{id:'tick',group:'Actions',label:'Advance sample clock 15 min',icon:'⏱',run:()=>click('#tick')},
- {id:'tools',group:'Actions',label:'Test tools · scenarios & simulation',icon:'⚙',run:()=>D.toolsDrawer()},{id:'act',group:'Actions',label:'Activity feed',icon:'≡',run:()=>D.activity()},
+ {id:'tools',group:'Actions',label:'Test tools · scenarios & simulation',icon:'⚙',run:()=>D.toolsDrawer()},{id:'walk-pd',group:'Actions',label:'Walkthrough: assign a P&D route',icon:'▸',run:()=>D.startAssignWalk()},{id:'claim',group:'Actions',label:'Toggle driver claiming for this line',icon:'⚑',run:()=>{if(ui.line!=='all'){C.update(()=>C.ops.setClaim(ui.line,!C.claimOn(ui.line)));C.toast(`Driver claiming ${C.claimOn(ui.line)?'on':'off'}`)}}},{id:'act',group:'Actions',label:'Activity feed',icon:'≡',run:()=>D.activity()},
  {id:'v-map',group:'Views',label:'Map view',icon:'◎',hint:'M',run:()=>D.setView('map')},{id:'v-table',group:'Views',label:'Table view',icon:'▤',hint:'T',run:()=>D.setView('table')},{id:'v-mf',group:'Views',label:'Manifests',icon:'☰',run:()=>D.setView('manifests')},{id:'v-pt',group:'Views',label:'Partners · eligibility, DSP tenders, settlements',icon:'⇄',run:()=>D.setView('partners')},{id:'v-set',group:'Views',label:'Settings · rules & roster',icon:'⚙',run:()=>D.setView('settings')}]);
 U.dynamic=s=>{const out=[];C.S.tasks.filter(t=>(t.id+' '+t.name+' '+t.address).toLowerCase().includes(s)).slice(0,8).forEach(t=>out.push({group:'Tasks',label:`${t.id} · ${t.name}`,hint:C.stateLabel(t.state,t.line),icon:'•',run:()=>{D.setLine(t.line);setTimeout(()=>D.openTask(t.id),60)}}));
   C.S.drivers.filter(d=>!d.dspSlot&&(d.name+' '+d.driverId).toLowerCase().includes(s)).slice(0,6).forEach(d=>out.push({group:'Drivers',label:`${d.name} · ${d.driverId}`,hint:C.lines[d.line].name,icon:'◉',run:()=>{D.setLine(d.line,'map');setTimeout(()=>{const e=document.querySelector(`.drv[data-driver="${d.id}"]`);e&&e.click();e&&e.scrollIntoView({block:'center'})},80)}}));return out};
@@ -326,4 +398,12 @@ U.tours.index=[{sel:'#lineSwitch',title:'One board, five service lines',text:'Sw
  {sel:'.side',title:'Dispatch queue',text:'Unassigned work on top, then teams and drivers. Drag a stop onto a driver to assign it. Blocked drivers show the reason.'},
  {sel:'#autoBtn',title:'Let the rules do it',text:'Auto-assign applies this line\'s rules: zones, windows, eligibility and capacity.'},
  {sel:'.cxk-launch',title:'Jump anywhere',text:'Press Ctrl/⌘ K to find a task, driver or command. Press ? for all shortcuts.'}];
+U.tours.assignPd=[
+  {sel:'#walkBtn',title:'Walk through a P&D assignment',text:'This short tour shows how dispatch assigns a built route. ChainEx assigns the work — drivers do not claim it.'},
+  {sel:'#route-PD-BEL-02',title:'An 80-stop route is waiting',text:'PD-BEL-02 is a built Bellevue Crossroads AM wave: 80 stops, already sorted, still Unassigned. Click the card to select it and zoom the map.',run:()=>{ui.selRoute='PD-BEL-02';const el=document.querySelector('#route-PD-BEL-02');if(el)el.classList.add('sel')}},
+  {sel:'#route-PD-BEL-02 [data-assignroute]',title:'Assign the whole route',text:'One click opens the assign dialog. You can still drag individual stops, or use Auto-assign to build routes from leftover sort codes.'},
+  {sel:'#apList',title:'Pick a driver or DSP',text:'Eligible drivers show vehicle, current load and capacity. Blocked contractors stay visible with the reason. Avery Valdez (CX-PILOT-001) is the sample P&D driver.',when:()=>true,run:()=>{if(drawerMode!=='assign-route')assignRouteDrawer('PD-BEL-02')}},
+  {sel:'#arGo',title:'Confirm, and it is Assigned',text:'Confirm pushes the route to the driver app. Sign in as CX-PILOT-001, go on duty, and the route card and map open immediately.',run:()=>{if(drawerMode!=='assign-route')assignRouteDrawer('PD-BEL-02')}}
+];
+
 })();
