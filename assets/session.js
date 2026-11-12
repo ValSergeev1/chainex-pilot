@@ -43,8 +43,8 @@ function set(a,extra){const s=Object.assign({kind:a.kind,id:a.id,name:a.name,rol
   window.dispatchEvent(new CustomEvent('cx-session',{detail:s}));return s}
 function clear(){localStorage.removeItem(SK);window.dispatchEvent(new CustomEvent('cx-session',{detail:null}))}
 function routeFor(a){if(!a)return base+'auth/signin.html';switch(a.kind){
-  case 'staff':return base+'workspaces.html';case 'dsp':case 'carrier':return base+'dsp.html?login='+encodeURIComponent(a.id);
-  case 'driver':return base+'driver.html?id='+encodeURIComponent(a.id);case 'warehouse':return base+'warehouse.html';
+  case 'staff':return base+'workspaces.html';case 'dsp':return base+'portal-dsp.html?login='+encodeURIComponent(a.id);case 'carrier':return base+'portal-carrier.html?login='+encodeURIComponent(a.id);
+  case 'driver':return base+'portal-driver.html?id='+encodeURIComponent(a.id);case 'warehouse':return base+'warehouse.html';
   case 'shipper':return base+'shipper.html?login='+encodeURIComponent(a.id);default:return base+'start.html'}}
 /* Pilot default for the staff apps when nobody has signed in: Ops manager (sample). */
 const DEFAULT_STAFF=STAFF[1];

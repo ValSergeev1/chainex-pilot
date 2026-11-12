@@ -9,11 +9,14 @@ A clickable copy of the whole ChainEx system: public website → unified sign-in
 | Website | `site/index.html`, services, shippers, carriers, drivers, careers, coverage, technology, about, contact, track, `site/recommendations.html` |
 | Sign-in & applications | `auth/signin.html`, `auth/apply.html?type=driver|dsp|carrier|warehouse`, `auth/status.html` |
 | Staff | `workspaces.html`, `index.html` (dispatch), `dashboard.html`, `onboarding.html`, `compliance.html`, `scorecards.html`, `payments.html`, `admin.html`, `sales.html`, `bids.html`, `architecture.html` |
-| Field & partners | `driver.html`, `warehouse.html`, `dsp.html`, `shipper.html` |
+| Partner portals (self-service) | `portal-driver.html`, `portal-dsp.html`, `portal-carrier.html` (sign-in routes here; `?pid=` opens an applicant's portal) |
+| Field & partners | `driver.html`, `warehouse.html`, `dsp.html` (DSP/carrier dispatch board), `shipper.html` |
 | Kept from V01 | `classic.html`, `dashboard-alt.html` |
 
-Sample sign-ins: staff `admin@`, `ops.manager@`, `pd.dispatch@`, `bulky.dispatch@`, `wg.dispatch@`, `ltl.dispatch@`, `shuttle.dispatch@`, `onboarding@`, `finance@`, `sales@`, `viewer@chainex.example`. Drivers `CX-PILOT-001`…`005`, DSP `DSP-EEX-01`, carrier `CAR-CFR-01`, warehouse `WH-KNT-014`, shippers `SPN-PNW`, `HPL-SEA`, `SHP-NORTHLINE`. The sign-in page shows the pilot one-time code (and the MFA code for staff).
+Sample sign-ins: staff `admin@`, `ops.manager@`, `pd.dispatch@`, `bulky.dispatch@`, `wg.dispatch@`, `ltl.dispatch@`, `shuttle.dispatch@`, `onboarding@`, `finance@`, `sales@`, `viewer@chainex.example`. Drivers `CX-PILOT-001`…`005` (→ driver portal), DSP `DSP-EEX-01` (→ DSP portal), carrier `CAR-CFR-01` (→ carrier portal), warehouse `WH-KNT-014`, shippers `SPN-PNW`, `HPL-SEA`, `SHP-NORTHLINE`. The sign-in page shows the pilot one-time code (and the MFA code for staff).
 
-Tests: `test/t1.js` … `test/t15.js` (Playwright, file:// URLs). Screenshots: `shots/v02/`.
+Tests: `test/t1.js` … `test/t17.js` (Playwright, file:// URLs). t16 = partner portals, t17 = responsive (no horizontal overflow at 390px and 768px on every non-driver page and view). Screenshots: `shots/v02/` (`m*` files are phone/tablet).
+
+Responsive: every page except the driver app adapts to phone (~390px), tablet (~768px) and desktop (1280px+) through `assets/rwd.css` + `assets/rwd.js`.
 
 Data rule: everything is sample data. No real partner or person names, phones, emails, addresses or documents. Money and messages are simulated.

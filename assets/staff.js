@@ -12,9 +12,10 @@ function top(app){const s=CXS.staff();const imp=s&&s.implicit;return `<header cl
 function shell(o){document.body.classList.add('sx');const s=CXS.staff();
   const nav=(o.nav||[]).map(n=>n[0]==='h'?`<h4>${esc(n[1])}</h4>`:`<button class="sx-nav${o.active===n[0]?' on':''}" data-nav="${n[0]}"><span class="ic">${n[2]||'•'}</span>${esc(n[1])}${n[3]!=null&&n[3]!==''?`<span class="n">${n[3]}</span>`:''}</button>`).join('');
   const ws=WS.filter(w=>w[0]!=='workspaces.html').map(w=>`<a class="sx-nav" href="${B}${w[0]}"${location.pathname.endsWith('/'+w[0])?' style="color:var(--accent);font-weight:700"':''}><span class="ic">${w[2]}</span>${w[1]}</a>`).join('');
-  document.body.innerHTML=top(o.app)+`<div class="sx-app"><nav class="sx-side">${nav?`<h4>${esc(o.app)}</h4>${nav}`:''}<h4>Workspaces</h4>${ws}</nav><main class="sx-main" id="sxMain"></main></div>`;
-  const sel=document.getElementById('sxRole');if(sel)sel.onchange=()=>{CXS.actAs(sel.value);location.reload()};
-  const out=document.getElementById('sxOut');if(out)out.onclick=e=>{if(s&&!s.implicit){CXS.clear()}};
+  const mob=`<div class="sx-mob">${s?`<div class="sx-row" style="margin-bottom:8px"><span class="sx-av">${initials(s.name)}</span><span style="font-size:12px"><b>${esc(s.name)}</b><br><span class="sx-mini">${esc(s.role)}</span></span></div><select class="sx-sel" id="sxRole2" title="Pilot: act as another staff role" style="width:100%;margin-bottom:8px">${Object.keys(CXS.ROLES).map(r=>`<option${r===s.role?' selected':''}>${esc(r)}</option>`).join('')}</select>`:''}<div class="sx-row"><a class="sx-btn sm" href="${B}workspaces.html">▦ Switch workspace</a><a class="sx-btn sm" href="${B}auth/signin.html" id="sxOut2">${s&&!s.implicit?'Sign out':'Sign in'}</a></div><div class="sx-mini" style="margin-top:6px">Pilot · sample data</div></div>`;
+  document.body.innerHTML=top(o.app)+`<div class="sx-app"><nav class="sx-side">${o.mob===false?'':mob}${nav?`<h4>${esc(o.app)}</h4>${nav}`:''}<h4>Workspaces</h4>${ws}</nav><main class="sx-main" id="sxMain"></main></div>`;
+  ['sxRole','sxRole2'].forEach(id=>{const sel=document.getElementById(id);if(sel)sel.onchange=()=>{CXS.actAs(sel.value);location.reload()}});
+  ['sxOut','sxOut2'].forEach(id=>{const out=document.getElementById(id);if(out)out.onclick=e=>{if(s&&!s.implicit){CXS.clear()}}});
   document.querySelector('.sx-side').addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(b&&o.onNav){o.onNav(b.dataset.nav);document.querySelectorAll('.sx-nav[data-nav]').forEach(x=>x.classList.toggle('on',x===b))}});
   if(window.CXUI&&CXUI.mountTheme)CXUI.mountTheme();
   return document.getElementById('sxMain')}

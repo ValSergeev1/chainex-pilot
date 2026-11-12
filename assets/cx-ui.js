@@ -262,3 +262,9 @@ new MutationObserver(()=>{document.querySelectorAll('.rail-tg').forEach(t=>t.inn
 if(!sessionStorage.getItem('cx.splash')&&document.readyState==='loading'){sessionStorage.setItem('cx.splash','1');document.addEventListener('DOMContentLoaded',()=>{const s=document.createElement('div');s.className='cx-splash';s.innerHTML='<div><div class="wm">Chain<span>Ex</span></div><div class="ln"></div><small>Syncing live operations</small></div>';document.body.appendChild(s)},{once:true})}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',()=>setTimeout(wire,0)):wire();window.addEventListener('load',()=>{wire();setTimeout(()=>startTour(page),900)});
 })();
+
+/* V02 responsive layer: load rwd.css + rwd.js on every page except the driver app (which is mobile-first already). */
+(function(){try{const me=document.currentScript&&document.currentScript.getAttribute('src')||'';const base=me.replace(/cx-ui\.js.*$/,'');
+  if(/(^|\/)driver\.html$/.test(location.pathname)||window.__noRwd)return;
+  const l=document.createElement('link');l.rel='stylesheet';l.href=base+'rwd.css';document.head.appendChild(l);
+  const s=document.createElement('script');s.src=base+'rwd.js';document.head.appendChild(s)}catch(e){}})();

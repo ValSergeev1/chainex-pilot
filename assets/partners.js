@@ -17,7 +17,7 @@ const LINE_NAMES={pd:'P&D',bulky:'Bulky',wg:'White glove',ltl:'LTL',shuttle:'Shu
 const VEHICLE_TYPES=['Cargo van','Sprinter','Box truck','26\' box truck','Padded box truck',"28' pup","53' dry van",'Day cab tractor'];
 // required documents per partner type (check = simulated auto-verification source)
 function reqDocs(p){const indep=p.type==='Driver'&&!p.parent;switch(p.type){
-  case 'Driver':return[{type:"Driver's license",exp:true,check:'background'},{type:'Background check',exp:true,check:'background'},{type:'Motor vehicle record (MVR)',exp:true,check:'background'},...(indep?[{type:'Auto insurance (COI)',exp:true,check:'insurance'},{type:'W-9',exp:false}]:[])];
+  case 'Driver':return[{type:"Driver's license",exp:true,check:'background'},{type:'Background check',exp:true,check:'background'},{type:'Motor vehicle record (MVR)',exp:true,check:'background'},...((p.lines||[]).some(l=>l==='ltl'||l==='shuttle')?[{type:'DOT medical card',exp:true}]:[]),...(indep?[{type:'Auto insurance (COI)',exp:true,check:'insurance'},{type:'W-9',exp:false}]:[])];
   case 'DSP':return[{type:'Commercial auto insurance (COI)',exp:true,check:'insurance'},{type:'General liability insurance',exp:true,check:'insurance'},{type:'W-9',exp:false},{type:'Business license',exp:true}];
   case 'Carrier':return[{type:'Auto liability insurance (COI)',exp:true,check:'insurance'},{type:'Cargo insurance',exp:true,check:'insurance'},{type:'Operating authority (USDOT / MC)',exp:false,check:'fmcsa'},{type:'W-9',exp:false}];
   case 'Warehouse worker':return[{type:'Photo ID',exp:true},{type:'Work authorization (I-9)',exp:false},{type:'Background check',exp:true,check:'background'}];
