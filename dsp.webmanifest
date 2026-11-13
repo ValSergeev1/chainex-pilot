@@ -1,0 +1,43 @@
+{
+  "id": "./dsp-fleet.html",
+  "name": "ChainEx DSP",
+  "short_name": "CX DSP",
+  "description": "ChainEx DSP app (pilot, sample data): live driver map, availability and time off.",
+  "start_url": "./dsp-fleet.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#14213d",
+  "background_color": "#14213d",
+  "lang": "en-US",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "assets/pwa/dsp-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/dsp-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/dsp-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/pwa/dsp-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

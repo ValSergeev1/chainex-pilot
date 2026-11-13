@@ -44,7 +44,7 @@ function set(a,extra){const s=Object.assign({kind:a.kind,id:a.id,name:a.name,rol
 function clear(){localStorage.removeItem(SK);window.dispatchEvent(new CustomEvent('cx-session',{detail:null}))}
 function routeFor(a){if(!a)return base+'auth/signin.html';switch(a.kind){
   case 'staff':return base+'workspaces.html';case 'dsp':return base+'portal-dsp.html?login='+encodeURIComponent(a.id);case 'carrier':return base+'portal-carrier.html?login='+encodeURIComponent(a.id);
-  case 'driver':return base+'portal-driver.html?id='+encodeURIComponent(a.id);case 'warehouse':return base+'warehouse.html';
+  case 'driver':return base+'portal-driver.html?id='+encodeURIComponent(a.id);case 'warehouse':return base+'portal-warehouse.html';
   case 'shipper':return base+'shipper.html?login='+encodeURIComponent(a.id);default:return base+'start.html'}}
 /* Pilot default for the staff apps when nobody has signed in: Ops manager (sample). */
 const DEFAULT_STAFF=STAFF[1];

@@ -1,7 +1,7 @@
 /* ChainEx V03 service worker: installable driver + dispatch apps, offline app shell, map-tile cache.
    Scope = the folder this file lives in (works at / and at the GitHub Pages subpath /chainex-pilot/).
    Frozen copies under v01/ and v02/ are left alone (network only). */
-const VER='cx-v03-2026-11-12a';
+const VER='cx-v03-2026-11-12b';
 const SHELL='shell-'+VER, TILES='tiles-v1', TILE_MAX=1500;
 const SCOPE=new URL('./',self.location).href;
 const A=p=>new URL(p,SCOPE).href;
@@ -9,7 +9,7 @@ const PRE=['driver.html','board.html','start.html','driver.webmanifest','board.w
  'assets/vendor/maplibre-gl.css','assets/vendor/maplibre-gl.js','assets/brand.css','assets/theme.css','assets/driver.css','assets/drv3.css','assets/v03.css','assets/board3.css','assets/rwd.css','assets/rwd.js',
  'assets/cx-ui.js','assets/pwa.js','assets/store.js','assets/geo.js','assets/lines/pd.js','assets/lines/bulky.js','assets/lines/wg.js','assets/lines/ltl.js','assets/lines/shuttle.js',
  'assets/partners.js','assets/fieldops.js','assets/session.js','assets/v02.js','assets/dlink.js','assets/map.js','assets/nav.js','assets/drv3.js','assets/driver.js','assets/driver-chat.js','assets/board3.js',
- 'assets/pwa/driver-192.png','assets/pwa/driver-512.png','assets/pwa/driver-apple-180.png','assets/pwa/board-192.png','assets/pwa/board-512.png'].map(A);
+ 'assets/pwa/driver-192.png','assets/pwa/driver-512.png','assets/pwa/driver-apple-180.png','assets/pwa/board-192.png','assets/pwa/board-512.png','portal-warehouse.html','wh-supervisor.html','warehouse.webmanifest','assets/whp.css','assets/whp.js','assets/whp-data.js','assets/portal-self.js','assets/pwa/warehouse-192.png'].map(A);
 self.addEventListener('install',e=>{e.waitUntil(caches.open(SHELL).then(c=>Promise.all(PRE.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>null)))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('shell-')&&k!==SHELL).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('message',e=>{if(e.data==='skipWaiting')self.skipWaiting();if(e.data==='version'&&e.source)e.source.postMessage({sw:VER})});

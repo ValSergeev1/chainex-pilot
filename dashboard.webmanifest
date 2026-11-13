@@ -1,0 +1,43 @@
+{
+  "id": "./dashboard.html",
+  "name": "ChainEx Dashboard",
+  "short_name": "CX Dashboard",
+  "description": "ChainEx staff dashboard (pilot, sample data): exceptions first, partners, onboarding, payments.",
+  "start_url": "./dashboard.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#14213d",
+  "background_color": "#14213d",
+  "lang": "en-US",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "assets/pwa/dash-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/dash-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/dash-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/pwa/dash-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

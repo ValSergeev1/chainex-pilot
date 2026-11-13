@@ -1,0 +1,43 @@
+{
+  "id": "./portal-warehouse.html",
+  "name": "ChainEx Warehouse",
+  "short_name": "CX Warehouse",
+  "description": "ChainEx warehouse worker portal (pilot, sample data): tasks, safety checks, handoff, KPIs.",
+  "start_url": "./portal-warehouse.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#14213d",
+  "background_color": "#14213d",
+  "lang": "en-US",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "assets/pwa/warehouse-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/warehouse-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa/warehouse-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/pwa/warehouse-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
