@@ -14,6 +14,8 @@ V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03
 
 **Dispatch board, `board.html` (new; the classic desk stays at `index.html`).** One map plus one sidebar: **Attention** (SOS, driver tickets, driver-built sequences, at-risk routes, exceptions), **Unassigned** (search, multi-select, assign with eligibility) and **Drivers** (filters; a driver panel with KPIs, Re-optimize (staff only), messages, driver view and ordered stops). Map / List / Timeline views. On a phone it becomes a full-screen map with a swipe-up sheet, a bottom tab bar and cards instead of tables. Every action is reachable there.
 
+**DSP fleet app, `dsp-fleet.html` (installable as ChainEx DSP).** Live map of the DSP's drivers with simulated GPS pings (speed, breadcrumbs, at-stop / driving / idle), plus Availability (today's status and shift, weekly grid drivers set) and Time-off requests the DSP can approve or decline. Drivers can open a driver view of the same app to set weekly availability and request time off. Linked from the DSP portal and from `start.html`. The older routes board stays at `dsp.html`.
+
 **Colors.** The new V03 palette (ink #14213d, indigo #5a6be0, periwinkle #7b8cf0, green #18a957, amber, red) is applied to the board, classic desk and dashboards A/B (`assets/v03.css`). Status is never shown by color alone.
 
 **Tests.** t18 (driver app V03), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
