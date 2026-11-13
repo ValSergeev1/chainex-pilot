@@ -52,3 +52,6 @@
  .d5-it{padding:12px 14px}.d5-it .acts .btn{height:36px}
 }
 @media (max-width:899px){.d5-lines{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.d5-lines::-webkit-scrollbar{display:none}.d5-ln{flex:none}}
+.d5-mapw.tv .d5-hud{display:none}.d5-mapw.tv .d5-tools{flex-direction:row;top:8px}.d5-mapw.tv .d5-table{top:52px;border-top:1px solid var(--line)}
+.d5-mapw.tv::before{content:'All stops';position:absolute;left:16px;top:16px;font-weight:600;font-size:14px}
+.d5-ib>*,.x-pb>*{flex:none}

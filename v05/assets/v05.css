@@ -11,7 +11,7 @@ html[data-v5=night]{--bg:#0B0C0E;--bg-2:#08090A;--s1:#111316;--s2:#171A1E;--s3:#
 --sh:0 16px 48px -12px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.06);--glass:rgba(17,19,22,.72);color-scheme:dark}
 *{box-sizing:border-box}html,body{margin:0}
 body.v5{background:var(--bg);color:var(--t1);font:400 14px/22px var(--f);-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01";min-height:100vh}
-.v5 button,.v5 input,.v5 select,.v5 textarea{font:inherit;color:inherit}
+:where(.v5) :is(button,input,select,textarea){font:inherit;color:inherit}
 .v5 button{cursor:pointer}.v5 a{color:inherit}
 .v5 :focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
 .v5 ::selection{background:var(--acc-2)}
@@ -156,3 +156,6 @@ textarea.in{height:auto;padding:8px 10px}
 .mk.u{width:9px;height:9px;border:1.5px solid var(--s1);box-shadow:none;opacity:.85}
 .mk.drv{width:16px;height:16px}
 .x-tab span:not(.bdg){white-space:nowrap}
+.v5 .x-tab{font:550 10.5px/1.2 var(--f)}
+@media (max-width:899px){.db5-ch .db5-leg{display:none}}
+.x-pb>*{flex:none}

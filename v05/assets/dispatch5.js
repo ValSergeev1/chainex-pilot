@@ -90,7 +90,7 @@ function draw(){C.load();const app=document.getElementById('app');
  $$('.x-tab[data-tab]').forEach(t=>t.classList.toggle('on',t.dataset.tab===ui.seg));
  $('#d5hud').innerHTML=hud();$('#d5bulk').innerHTML=bulkHTML();
  const ins=$('#d5insp');const show=!!ui.sel&&!mob();ins.hidden=!show;$('#d5').classList.toggle('insp',show);ins.innerHTML=show?inspHTML():'';
- const tb=$('#d5table');tb.hidden=ui.view!=='table'||mob();if(!tb.hidden)tb.innerHTML=tableHTML();$('#d5vt').innerHTML=ic(ui.view==='map'?'table':'map',16);$('#d5vt').dataset.v=ui.view==='map'?'table':'map';
+ const tb=$('#d5table');tb.hidden=ui.view!=='table'||mob();tb.parentNode.classList.toggle('tv',!tb.hidden);if(!tb.hidden)tb.innerHTML=tableHTML();$('#d5vt').innerHTML=ic(ui.view==='map'?'table':'map',16);$('#d5vt').dataset.v=ui.view==='map'?'table':'map';
  const key=ui.line+'|'+(ui.sel?ui.sel.t+ui.sel.id:'');map.set(mapData(),fitted!==key);if(fitted!==key){fitted=key;setTimeout(()=>map.resize(),50)}
  const q=$('#d5q');if(q)q.oninput=()=>{ui.q=q.value;clearTimeout(q._t);q._t=setTimeout(()=>{const pos=q.selectionStart;draw();const n=$('#d5q');n.focus();n.setSelectionRange(pos,pos)},160)};
  kbPaint()}

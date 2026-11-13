@@ -34,7 +34,7 @@ function cmdEl(){let c=document.getElementById('x-cmd');if(c)return c;c=document
 function score(x,q){const s=(x.label+' '+(x.hint||'')).toLowerCase();if(s.startsWith(q))return 3;if(s.includes(' '+q))return 2;if(s.includes(q))return 1;let i=0;for(const ch of s){if(ch===q[i])i++;if(i===q.length)return .5}return 0}
 function draw(){const c=cmdEl(),q=c.querySelector('input').value.trim().toLowerCase();const all=[...src(),...base];list=q?all.map(x=>[x,score(x,q)]).filter(a=>a[1]>0).sort((a,b)=>b[1]-a[1]).map(a=>a[0]).slice(0,50):all.filter(x=>x.top!==false).slice(0,40);
  if(q)list.sort((a,b)=>0);let g='';c.querySelector('#x-cmdl').innerHTML=list.length?list.map((x,i)=>{const h=!q&&x.group!==g?`<div class="x-cg micro">${esc(g=x.group)}</div>`:'';return h+`<button class="x-ci${i===sel?' on':''}" data-i="${i}">${ic(x.icon||'chev',16)}<span>${esc(x.label)}</span><small>${x.key?`<kbd>${esc(x.key)}</kbd> `:''}${esc(x.hint||'')}</small></button>`}).join(''):`<div class="empty">No results for “${esc(q)}”</div>`;const on=c.querySelector('.x-ci.on');on&&on.scrollIntoView({block:'nearest'})}
-function openCmd(){const c=cmdEl();c.classList.add('on');const q=c.querySelector('input');q.value='';sel=0;draw();setTimeout(()=>q.focus(),10)}
+function openCmd(){const c=cmdEl();c.classList.add('on');const q=c.querySelector('input');q.value='';sel=0;draw();q.focus();setTimeout(()=>q.focus(),10)}
 function closeCmd(){const c=document.getElementById('x-cmd');c&&c.classList.remove('on')}
 function run(i){const x=list[i];if(!x)return;closeCmd();setTimeout(()=>x.run(),10)}
 /* ---------- keys ---------- */
