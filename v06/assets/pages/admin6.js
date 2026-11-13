@@ -45,8 +45,9 @@ function accessHubs(){if(!window.CXA)return '<div class="empty">Access module no
       return `<tr><td><b>${esc(u.name)}</b><div class="small t3">${esc(u.email)}</div></td><td>${esc(u.role)}</td>
       <td><select class="in" data-ahub="${esc(u.email)}" ${CXS.staff()&&CXS.staff().role!=='Admin'&&!CXS.can('security')?'disabled':''}><option value="sea"${r.hub==='sea'?' selected':''}>Seattle / Kent</option><option value="tac"${r.hub==='tac'?' selected':''}>Tacoma</option><option value="evt"${r.hub==='evt'?' selected':''}>Everett</option><option value="pdx"${r.hub==='pdx'?' selected':''}>Portland</option><option value="all"${r.hub==='all'?' selected':''}>All</option></select></td>
       <td><input type="checkbox" data-aall="${esc(u.email)}" ${r.allHubs?'checked':''}></td></tr>`}).join('')}</tbody></table>
-    <div class="small t2" style="margin-top:12px">Dispatch map / route actions (toggle per member). Click a name in Users to change their role. Changes here apply immediately in the pilot.</div>
-    <div id="aperm"></div>
+    <div class="small t2" style="margin-top:12px">Pick a teammate, then allow or deny each dispatch and dashboard action. They still see every control; a denied action stays dimmed and says Access restricted, ask an admin.</div>
+    <label class="x-field" style="margin-top:8px;display:block"><span class="micro">Member</span><select class="in" id="apermWho">${staff.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} · ${esc(u.role)}</option>`).join("")}</select></label>
+    <div id="aperm" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px"></div>
   </div>`}
 
 W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',searchPh:'Search users, audit entries',
@@ -87,4 +88,22 @@ document.addEventListener('change',e=>{
   const h=e.target.closest('[data-ahub]');if(h&&window.CXA){CXA.setMember(h.dataset.ahub,{hub:h.value},(CXS.staff()||{}).name);H.toast('Hub saved')}
   const a=e.target.closest('[data-aall]');if(a&&window.CXA){CXA.setMember(a.dataset.aall,{allHubs:a.checked},(CXS.staff()||{}).name);H.toast('All-hubs flag saved')}
 });
+
+function paintPerms(){const box=document.getElementById("aperm"),who=document.getElementById("apermWho");if(!box||!who||!window.CXA)return;
+  const st=(CXS.STAFF||[]).find(u=>u.email===who.value||u.id===who.value);if(!st){box.innerHTML="";return}
+  const r=CXA.rec(Object.assign({},st,{kind:"staff"}));
+  box.innerHTML=CXA.ACTIONS.map(([id,label])=>{const on=r.base.includes("*")||r.perms[id]===true||(r.perms[id]!==false&&r.base.includes(id));
+    const locked=r.base.includes("*");
+    return "<label class=\"small\" style=\"display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid var(--line);border-radius:8px\"><input type=\"checkbox\" data-aperm=\""+esc(id)+"\" "+(on?"checked":"")+" "+(locked?"disabled":"")+"><span><b>"+esc(label)+"</b><div class=\"t3\">"+esc(id)+"</div></span></label>"}).join("");
+}
+document.addEventListener("change",e=>{
+  const w=e.target.closest("#apermWho");if(w){paintPerms();return}
+  const c=e.target.closest("[data-aperm]");if(!c||!window.CXA)return;
+  const who=document.getElementById("apermWho");if(!who)return;
+  const st=(CXS.STAFF||[]).find(u=>u.email===who.value||u.id===who.value);if(!st)return;
+  const r=CXA.rec(Object.assign({},st,{kind:"staff"}));const perms=Object.assign({},r.perms||{});perms[c.dataset.aperm]=!!c.checked;CXA.setMember(who.value,{perms},(CXS.staff()||{}).name);H.toast("Permission saved");
+});
+document.addEventListener("click",e=>{if(e.target.closest("[data-wv=\"access\"]"))setTimeout(paintPerms,50)});
+setTimeout(paintPerms,400);
+
 })();
