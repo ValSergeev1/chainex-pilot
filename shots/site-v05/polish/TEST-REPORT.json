@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "fail": [],
+  "notes": [
+    "pages 30; link-check 2356 hrefs/srcs, 0 missing",
+    "overflow fails 0; button clicks 2054; console 0; pageerrors 0; map misses 0",
+    "after screenshots 14"
+  ],
+  "pages": 30,
+  "clicks": 2054,
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "overflowFails": 0,
+  "badLinks": 0,
+  "missingCanvas": 0
+}
