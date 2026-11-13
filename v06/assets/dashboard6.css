@@ -37,3 +37,12 @@
 @media (max-width:1200px){.db5-strip{grid-template-columns:repeat(3,1fr)}.db5-k:nth-child(4){border-left:0}.db5-k:nth-child(n+4){border-top:1px solid var(--line)}.db5-f2{grid-template-columns:1fr 1fr}}
 @media (max-width:899px){.db5{padding:12px 12px 90px;gap:12px}.db5-h h1{font-size:19px}.db5-strip{grid-template-columns:1fr 1fr}.db5-k{border-left:0;border-top:1px solid var(--line)}.db5-k:nth-child(even){border-left:1px solid var(--line)}.db5-k:nth-child(-n+2){border-top:0}.db5-k:nth-child(5){grid-column:span 2}.db5-k .v{font-size:22px}
  .db5-g,.db5-f2{grid-template-columns:1fr}.db5-map{height:240px}.db5-lt .hm{display:none}.db5-lt td,.db5-lt th{padding:10px}}
+
+.db5-pw{display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-decoration:none;color:inherit}
+.db5-pw div{padding:14px 12px;border-left:1px solid var(--line);text-align:left}
+.db5-pw div:first-child{border-left:0}
+.db5-pw b{display:block;font:600 22px/1.1 var(--fm);letter-spacing:-.03em}
+.db5-pw span{font-size:11.5px;color:var(--t3)}
+.db5-pw:hover{background:var(--s2)}
+.db5-pw .warn{color:var(--warn)}
+@media (max-width:899px){.db5-pw b{font-size:18px}}

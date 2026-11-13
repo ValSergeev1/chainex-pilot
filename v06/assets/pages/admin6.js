@@ -16,6 +16,39 @@ function backups(){const b=S().backups;return `<div class="w6-two"><div class="w
  <div class="w6-c"><h3>Schedule</h3><div class="w6-form">${H.field('Frequency',`<select class="in" id="bkS">${['hourly','daily','weekly'].map(x=>`<option${x===b.schedule?' selected':''}>${x}</option>`).join('')}</select>`)}${H.field('Time',`<input class="in" id="bkT" value="${esc(b.time)}">`)}${H.field('Keep (days)',`<input class="in" id="bkR" type="number" value="${b.retention}">`)}</div><div>${btn('Save schedule','bkset','')}</div>${H.note('Restores are done by an Admin from the off-site copy. The pilot simulates the backup files.')}</div></div>`}
 function roles(){const R=CXS.ROLES,PM=CXS.PERMS;return H.table(['Role','Lines','What they can do'],Object.entries(R).map(([n,r])=>`<tr><td><b>${esc(n)}</b><div class="small t3">${esc(r.desc||'')}</div></td><td>${r.lines.map(l=>chip(V2.LN[l]||l)).join(' ')}</td><td>${r.perms.includes('*')?chip('Everything','vio'):r.perms.map(p=>chip((PM.find(x=>x[0]===p)||[p,p])[1],'acc')).join(' ')}</td></tr>`))}
 function tools(){return `<div class="w6-cards"><div class="w6-c"><h3>Advance the pilot date</h3><div class="small t2">Moves the sample calendar forward to test expiry reminders, SLAs and blocking.</div><div class="w6-da">${btn('+1 day','adv',1)}${btn('+7 days','adv',7)}${btn('+30 days','adv',30)}</div></div><div class="w6-c"><h3>Reset sample data</h3><div class="small t2">Puts every app back to the start of the sample day. Affects all versions in this browser.</div><div>${btn('Reset sample day','reset','','danger')}</div></div><div class="w6-c"><h3>Export state</h3><div class="small t2">Download the whole pilot state as JSON for a bug report.</div><div>${btn('Download JSON','export','')}</div></div></div>`}
+
+function intake(){const v=(window.CXO&&CXO.desk())||{settings:{}};v.intake=v.intake||{history:[]};
+  return `<div class="w6-c"><h3>Contractor & driver intake imports</h3>
+    <div class="small t2">Import a ChainEx intake CSV into the partner directory. Existing emails are skipped (deduped). Imported rows start as Submitted. Tax, license, background and medical fields stay in a restricted archive and are not copied into general partner notes.</div>
+    <div class="small t3" style="margin:8px 0">ChainEx intake CSV · below 1 MB</div>
+    <input class="in" type="file" id="intFile" accept=".csv,text/csv">
+    <textarea class="in" id="intCsv" style="width:100%;min-height:120px;margin-top:8px;font-family:var(--fm)" placeholder="email,name,type,city"></textarea>
+    <div class="w6-da" style="margin-top:10px">${btn('Preview import','intprev','','pri')}${btn('Commit import','intgo','')}</div>
+    <div id="intPrev"></div>
+    <h3 style="margin-top:18px">Import history</h3>${(v.intake.history||[]).length?H.items(v.intake.history.map(x=>H.it(esc(x.at),esc(x.detail),chip(x.status,x.status==='Completed'?'ok':'warn')))):'<div class="small t3">No completed imports yet.</div>'}</div>`}
+function emailTpl(){const v=(window.CXO&&CXO.desk())||{};v.settings=v.settings||{};v.settings.emails=v.settings.emails||[
+  {id:'e1',name:'Application confirmation',subject:'We received your ChainEx application',body:'Thank you for applying. We will review your file and follow up with next steps.',on:true},
+  {id:'e2',name:'Setup reminder',subject:'Please finish your ChainEx setup',body:'You still have setup items open. Sign in to complete them.',on:true},
+  {id:'e3',name:'Document expiry (30 / 15 / 7 days)',subject:'A document on your ChainEx file is expiring',body:'Please upload a current copy before the expiry date.',on:false}
+];
+  return `<div class="w6-c"><h3>Email notification templates</h3><div class="small t2">Templates only. Sending stays with a teammate for approval.</div>${v.settings.emails.map(e=>`<div class="card pad" style="margin-top:10px"><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">${esc(e.name)}</b>${H.toggle(e.on,'eml',e.id)}</div><div class="small t3">Subject: ${esc(e.subject)}</div><div class="small" style="margin-top:6px">${esc(e.body)}</div></div>`).join('')}</div>`}
+function snapshots(){const v=(window.CXO&&CXO.desk())||{};v.snaps=v.snaps||[];
+  return `<div class="w6-two"><div class="w6-c"><h3>Record snapshots</h3><div class="small t2">Manual JSON export of operating records (bank and tax payloads stay excluded). This is not disaster recovery.</div><div class="w6-da" style="margin-top:10px">${btn('Export snapshot','snapex','','pri')}${btn('Restore last snapshot','snapre','')}</div>
+    ${v.snaps.length?H.items(v.snaps.map(s=>H.it(esc(s.at),esc(s.size)+' · '+s.records+' records',chip('Saved','ok')))):'<div class="small t3" style="margin-top:8px">No snapshots yet.</div>'}</div>
+    <div class="w6-c"><h3>What a snapshot includes</h3><div class="small t2">Partners, work queue, agreements (status only), recruiting, dispatch settings. Encrypted bank and tax payloads are left out, the same way the live portal describes it.</div></div></div>`}
+function accessHubs(){if(!window.CXA)return '<div class="empty">Access module not loaded.</div>';
+  const staff=(window.CXS.STAFF||[]);
+  return `<div class="w6-c"><h3>Hubs and per-member permissions</h3>
+    <div class="small t2">Each member is tied to a hub and sees only that hub\'s work, unless they are Admin or Middle mile (or you grant All hubs). They still see every control; locked actions show “Access restricted, ask an admin.”</div>
+    <table class="tbl" style="margin-top:12px"><thead><tr><th>Name</th><th>Role</th><th>Hub</th><th>All hubs</th></tr></thead><tbody>
+    ${staff.map(u=>{const r=CXA.rec({...u,kind:'staff'});
+      return `<tr><td><b>${esc(u.name)}</b><div class="small t3">${esc(u.email)}</div></td><td>${esc(u.role)}</td>
+      <td><select class="in" data-ahub="${esc(u.email)}" ${CXS.staff()&&CXS.staff().role!=='Admin'&&!CXS.can('security')?'disabled':''}><option value="sea"${r.hub==='sea'?' selected':''}>Seattle / Kent</option><option value="tac"${r.hub==='tac'?' selected':''}>Tacoma</option><option value="evt"${r.hub==='evt'?' selected':''}>Everett</option><option value="pdx"${r.hub==='pdx'?' selected':''}>Portland</option><option value="all"${r.hub==='all'?' selected':''}>All</option></select></td>
+      <td><input type="checkbox" data-aall="${esc(u.email)}" ${r.allHubs?'checked':''}></td></tr>`}).join('')}</tbody></table>
+    <div class="small t2" style="margin-top:12px">Dispatch map / route actions (toggle per member). Click a name in Users to change their role. Changes here apply immediately in the pilot.</div>
+    <div id="aperm"></div>
+  </div>`}
+
 W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',searchPh:'Search users, audit entries',
  gate:()=>window.CXS&&!CXS.can('security')&&!CXS.can('audit.view')?'Admin is for the Admin role. Switch role at the top.':null,
  header:()=>{const s=S().sec;const off=Object.values(s.staffMfa).filter(x=>!x).length;return{eyebrow:'System · Admin',title:'Admin',sub:`${off?`<b class="warn">${off}</b> staff accounts without 2-step sign-in. `:''}${s.ownerReview.status==='Open'?'<b>Owner account review</b> is open. ':''}Last backup ${esc(S().backups.list[0]?S().backups.list[0].at:'—')}.`,actions:[btn('Back up now','bk','','','refresh')]}},
@@ -29,6 +62,10 @@ W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',sear
   {id:'teams',label:'Dispatch teams',list:()=>S().dispatchTeams,row:t=>({id:t.id,t:t.name,s:'Lead '+t.lead,tone:'acc',r:t.lines.map(l=>chip(V2.LN[l]||l)).join(' ')}),detail:t=>`<div class="w6-dh">${H.lead(H.ini(t.name),'acc')}<div><h2>${esc(t.name)}</h2><p>Lead ${esc(t.lead)}</p></div></div>${H.kv([['Lines',esc(t.lines.map(l=>V2.LN[l]||l).join(', '))],['Drivers',C.S.drivers.filter(d=>t.lines.includes(d.line)).length]])}${H.link('Open their board','dispatch.html','','dispatch')}`,find:id=>S().dispatchTeams.find(t=>t.id===id)},
   {id:'audit',label:'Audit log',list:()=>S().audit.slice(0,300),group:a=>String(a.at).split(' ')[0],row:(a,i)=>({id:a.at+'|'+a.action+'|'+a.target,t:a.action,s:`${a.actor} · ${a.target}${a.detail?' · '+a.detail:''}`,ini:(a.area||'·').slice(0,2).toUpperCase(),r:`<span>${esc(String(a.at).split(' ').slice(1).join(' '))}</span>`}),detail:a=>`<div class="w6-dh">${H.lead((a.area||'·').slice(0,2).toUpperCase(),'')}<div><h2>${esc(a.action)}</h2><p>${esc(a.at)} · ${esc(a.area||'')}</p></div></div>${H.kv([['Who',esc(a.actor)],['Target',esc(a.target)],['Detail',esc(a.detail||'—')]])}`,find:id=>S().audit.find(a=>a.at+'|'+a.action+'|'+a.target===id)},
   {id:'backups',label:'Backups',render:backups},
+  {id:'intake',label:'Intake imports',render:intake},
+  {id:'email',label:'Email templates',render:emailTpl},
+  {id:'snapshots',label:'Record snapshots',render:snapshots},
+  {id:'access',label:'Hubs & permissions',render:accessHubs},
   {id:'tools',label:'Test tools',render:tools}],
  acts:{
   role:(v,el)=>{O.setUserRole(el.dataset.uid,v,A());H.toast('Role changed')},
@@ -39,5 +76,15 @@ W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',sear
   bk:()=>{O.backupNow(A());H.toast('Backup completed (simulated)')},bkset:()=>{O.backupSet({schedule:H.val('bkS'),time:H.val('bkT'),retention:+H.val('bkR')||30},A());H.toast('Schedule saved')},
   adv:n=>{O.advanceDays(+n,A());H.toast(`Pilot date +${n} day(s)`)},
   reset:()=>{if(!confirm('Reset all sample data in this browser?'))return false;C.reset();H.toast('Sample day reset')},
-  export:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([C.exportJSON()],{type:'application/json'}));a.download='chainex-pilot-state.json';a.click();return false}}
-});})();
+  export:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([C.exportJSON()],{type:'application/json'}));a.download='chainex-pilot-state.json';a.click();return false},
+  intprev:()=>{const txt=(document.getElementById('intCsv')||{}).value||'';const parse=s=>s.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(',').map(x=>x.trim().replace(/^"|"$/g,''));return {email:(p[0]||'').toLowerCase(),name:p[1]||p[0],type:p[2]||'Driver',city:p[3]||'Seattle'}}).filter(r=>r.email&&!/^email$/i.test(r.email));const rows=parse(txt);const emails=new Set((C.S.partners||[]).map(p=>((p.contact&&p.contact.email)||'').toLowerCase()).filter(Boolean));const dup=rows.filter(r=>emails.has(r.email)),fresh=rows.filter(r=>!emails.has(r.email));const box=document.getElementById('intPrev');if(box)box.innerHTML='<div class="small" style="margin-top:10px"><b>'+fresh.length+'</b> new · <b>'+dup.length+'</b> skipped (email already on file). Tax, license, background and medical fields would stay in the restricted archive.</div>'+fresh.slice(0,8).map(r=>'<div class="small t2">'+esc(r.name)+' · '+esc(r.email)+' · '+esc(r.type)+'</div>').join('');H.toast('Preview ready');return false},
+  intgo:()=>{const txt=(document.getElementById('intCsv')||{}).value||'';const rows=txt.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(',').map(x=>x.trim());return {email:(p[0]||'').toLowerCase(),name:p[1]||p[0],type:p[2]||'Driver',city:p[3]||'Seattle'}}).filter(r=>r.email&&!/^email$/i.test(r.email));const emails=new Set((C.S.partners||[]).map(p=>((p.contact&&p.contact.email)||'').toLowerCase()).filter(Boolean));let n=0;C.update(S=>{rows.forEach(r=>{if(emails.has(r.email))return;if(C.ops.pApply)C.ops.pApply(r.type,{name:r.name,email:r.email,city:r.city,source:'Intake import'});emails.add(r.email);n++});const vv=S.v06=S.v06||{};vv.intake=vv.intake||{history:[]};vv.intake.history.unshift({at:'Sample day',detail:n+' imported, '+(rows.length-n)+' skipped',status:'Completed',records:n})});H.toast(n?n+' partners imported (duplicates skipped)':'No new rows')},
+  eml:id=>{const v=window.CXO&&CXO.desk();const e=v&&v.settings.emails&&v.settings.emails.find(x=>x.id===id);if(e)e.on=!e.on;H.toast('Template updated')},
+  snapex:()=>{const v=window.CXO&&CXO.desk()||{};const body={partners:C.S.partners,queue:C.S.queue,recruits:C.S.recruits};const blob=new Blob([JSON.stringify(body)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='chainex-snapshot.json';a.click();C.update(S=>{S.v06=S.v06||{};(S.v06.snaps=S.v06.snaps||[]).unshift({at:'Sample day',size:Math.round(blob.size/1024)+' KB',records:(C.S.partners||[]).length})});H.toast('Snapshot exported (bank and tax payloads excluded)')},
+  snapre:()=>{H.toast('Restore is simulated in the pilot. Use a real backup in production.')}
+}});
+document.addEventListener('change',e=>{
+  const h=e.target.closest('[data-ahub]');if(h&&window.CXA){CXA.setMember(h.dataset.ahub,{hub:h.value},(CXS.staff()||{}).name);H.toast('Hub saved')}
+  const a=e.target.closest('[data-aall]');if(a&&window.CXA){CXA.setMember(a.dataset.aall,{allHubs:a.checked},(CXS.staff()||{}).name);H.toast('All-hubs flag saved')}
+});
+})();
