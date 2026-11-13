@@ -75,3 +75,6 @@ html.cx.dark .mp-b{background:#0a1220;border-color:#24364f;color:#dbe7fb}html.cx
 .ct-form .st-fnote{color:var(--muted,#5b6b82);font-size:12.5px}html.cx.dark .ct-form .st-fnote{color:#9fb3cf}
 .st-cards.mini{margin-top:0}.st-card2.big{padding:28px}.st-card2.big h3{font-size:24px}.st-card2.big .st-btn{align-self:flex-start;margin-top:auto}
 @media(max-width:700px){.st-bar>span:first-child{display:none}.st-bar{padding:7px 16px;gap:12px}}
+/* V03 illustrations: captions sit under the art so they never cover it */.st-hero-fig:has(.v3art) figcaption{position:static;margin-top:12px}.st-hero-fig:has(.v3art){background:none}.v3art{display:block;width:100%;height:auto;border-radius:26px;box-shadow:0 24px 60px rgba(10,20,50,.28)}.v3art-wrap{margin-top:28px}.v3art-wrap .v3art{max-width:440px}
+.st-hero:has(.v3art-wrap){position:relative}@media(min-width:1000px){.v3art-wrap{position:absolute;right:max(24px,calc((100% - 1200px)/2));top:50%;transform:translateY(-50%);margin:0!important;width:min(380px,34vw);padding:0}}@media(max-width:999px){.v3art-wrap .v3art{max-height:220px;width:auto;max-width:100%}}
+.v3art-inline{margin-top:22px;max-width:420px}@media(max-width:700px){.v3art-inline{display:none}}
