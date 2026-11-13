@@ -11,57 +11,29 @@ Every app screen and its navigation options, desktop (1440×900) and phone (390�
 | [218-start-phone-home.png](218-start-phone-home.png) | ChainEx Pilot V03 · Start here — landing screen (phone) |
 | [219-workspaces-phone-home.png](219-workspaces-phone-home.png) | Workspaces — landing screen (phone) |
 
-## Driver app (V03)
+## Driver app (V03 · built on V02)
+
+The V02 driver app with the route map, three plan modes, load-out gate and one-screen driving added for P&D and Bulky. White glove, LTL and Shuttle are unchanged from V02. Screens from test t18 (phone).
 
 | File | What it shows |
 |---|---|
-| [003-driver-desktop-home.png](003-driver-desktop-home.png) | ChainEx Driver · V03 Pilot — landing screen (desktop) |
-| [004-driver-desktop-night.png](004-driver-desktop-night.png) | ChainEx Driver · V03 Pilot — night mode (desktop) |
-| [005-driver-desktop-stops.png](005-driver-desktop-stops.png) | ChainEx Driver · V03 Pilot — Stops (desktop) |
-| [006-driver-desktop-today.png](006-driver-desktop-today.png) | ChainEx Driver · V03 Pilot — Today (desktop) |
-| [007-driver-desktop-me.png](007-driver-desktop-me.png) | ChainEx Driver · V03 Pilot — Me (desktop) |
-| [008-driver-desktop-settings.png](008-driver-desktop-settings.png) | ChainEx Driver · V03 Pilot — Settings (desktop) |
+| [01-welcome.png](../driver-v2base/01-welcome.png) | Sign in: clean ChainEx sign-in, no service-line picker (phone) |
+| [02-today.png](../driver-v2base/02-today.png) | Today: greeting with the driver's name, today's summary, big Go on duty (phone) |
+| [03-plan-options.png](../driver-v2base/03-plan-options.png) | Route map right after Go on duty: Best route for me / I'll set the order / Pick my first and last stop (phone) |
+| [04-plan-tap-order.png](../driver-v2base/04-plan-tap-order.png) | I'll set the order: tap stops one by one, numbers fill in (tap again to take out, Undo, Clear, Pick from list) (phone) |
+| [05-plan-overlap.png](../driver-v2base/05-plan-overlap.png) | Two stops at the same spot: chooser to pick the exact stop (phone) |
+| [06-plan-first-last.png](../driver-v2base/06-plan-first-last.png) | Pick my first and last stop, then Plan the middle (phone) |
+| [07-load-scan.png](../driver-v2base/07-load-scan.png) | Load-out scan: Stop N of M + shelf and vehicle position after each scan; Start route locked (phone) |
+| [08-load-ready.png](../driver-v2base/08-load-ready.png) | Load-out complete (one package flagged damaged → Dispatch ticket): Start route unlocked (phone) |
+| [09-drive.png](../driver-v2base/09-drive.png) | One-screen driving: turn banner, map, route line, bottom sheet with ETA and stop (phone) |
+| [10-arrive-scan-sheet.png](../driver-v2base/10-arrive-scan-sheet.png) | Arrival: scan step slides up over the map (no page change) (phone) |
+| [11-next-stop.png](../driver-v2base/11-next-stop.png) | Delivered ✓ → next stop, auto-drives in 3 s (Go now / Pause) (phone) |
+| [12-settings-demo.png](../driver-v2base/12-settings-demo.png) | Settings › Demo mode (pilot only): switch service line / pilot driver (phone) |
+| [13-night.png](../driver-v2base/13-night.png) | Night theme (phone) |
 | [009-driver-checklist-desktop-home.png](009-driver-checklist-desktop-home.png) | Driver app checklist — landing screen (desktop) |
-| [198-driver-flow-desktop-1-plan.png](198-driver-flow-desktop-1-plan.png) | Driver · route sheet: Today counts, Let ChainEx order it / Plan my route (desktop) |
-| [199-driver-flow-desktop-2-tap-order.png](199-driver-flow-desktop-2-tap-order.png) | Driver · Plan my route: tap stops in your order, Set order · 3 of N (desktop) |
-| [200-driver-flow-desktop-3-load-scan.png](200-driver-flow-desktop-3-load-scan.png) | Driver · load-scan your vehicle after Set order (desktop) |
-| [201-driver-flow-desktop-4-on-road.png](201-driver-flow-desktop-4-on-road.png) | Driver · on the road: status strip, map tools row, Up next card with Start driving (desktop) |
-| [202-driver-flow-desktop-5-driving.png](202-driver-flow-desktop-5-driving.png) | Driver · in-app navigation to stop 1 of your order (desktop) |
-| [203-driver-flow-desktop-6-auto-arrive-scan.png](203-driver-flow-desktop-6-auto-arrive-scan.png) | Driver · auto-arrival opens the stop scan sheet (desktop) |
-| [204-driver-flow-desktop-7-proof-of-delivery.png](204-driver-flow-desktop-7-proof-of-delivery.png) | Driver · proof-of-delivery step (desktop) |
-| [205-driver-flow-desktop-8-next-stop-banner.png](205-driver-flow-desktop-8-next-stop-banner.png) | Driver · stop done, next-stop banner before auto-advance (desktop) |
-| [206-driver-flow-desktop-9-auto-advance-nav.png](206-driver-flow-desktop-9-auto-advance-nav.png) | Driver · navigation auto-advances to the next stop (desktop) |
-| [207-driver-flow-desktop-10-filters.png](207-driver-flow-desktop-10-filters.png) | Driver · stop filters (desktop) |
-| [208-driver-flow-desktop-11-cant-deliver.png](208-driver-flow-desktop-11-cant-deliver.png) | Driver · can't-deliver reasons (desktop) |
-| [209-driver-flow-desktop-12-offline.png](209-driver-flow-desktop-12-offline.png) | Driver · Offline, saving your work (non-blocking) (desktop) |
-| [210-driver-flow-desktop-13-offline-bar.png](210-driver-flow-desktop-13-offline-bar.png) | Driver · offline bar with updates waiting to send (desktop) |
-| [211-driver-flow-desktop-14-stop-card.png](211-driver-flow-desktop-14-stop-card.png) | Driver · stop card from a map pin (desktop) |
-| [212-driver-flow-desktop-16-today.png](212-driver-flow-desktop-16-today.png) | Driver · Today: duty, eligibility, route card, check-in, offers (desktop) |
-| [213-driver-flow-desktop-17-me.png](213-driver-flow-desktop-17-me.png) | Driver · Me: pay, scorecard, documents, notifications, help (desktop) |
-| [214-driver-flow-desktop-15-bulky-driver.png](214-driver-flow-desktop-15-bulky-driver.png) | Driver · bulky line on the V03 app (desktop) |
-| [220-driver-phone-home.png](220-driver-phone-home.png) | ChainEx Driver · V03 Pilot — landing screen (phone) |
-| [221-driver-phone-stops.png](221-driver-phone-stops.png) | ChainEx Driver · V03 Pilot — Stops (phone) |
-| [222-driver-phone-today.png](222-driver-phone-today.png) | ChainEx Driver · V03 Pilot — Today (phone) |
-| [223-driver-phone-me.png](223-driver-phone-me.png) | ChainEx Driver · V03 Pilot — Me (phone) |
-| [224-driver-phone-settings.png](224-driver-phone-settings.png) | ChainEx Driver · V03 Pilot — Settings (phone) |
 | [225-driver-checklist-phone-home.png](225-driver-checklist-phone-home.png) | Driver app checklist — landing screen (phone) |
-| [404-driver-flow-phone-1-plan.png](404-driver-flow-phone-1-plan.png) | Driver · route sheet: Today counts, Let ChainEx order it / Plan my route (phone) |
-| [405-driver-flow-phone-2-tap-order.png](405-driver-flow-phone-2-tap-order.png) | Driver · Plan my route: tap stops in your order, Set order · 3 of N (phone) |
-| [406-driver-flow-phone-3-load-scan.png](406-driver-flow-phone-3-load-scan.png) | Driver · load-scan your vehicle after Set order (phone) |
-| [407-driver-flow-phone-4-on-road.png](407-driver-flow-phone-4-on-road.png) | Driver · on the road: status strip, map tools row, Up next card with Start driving (phone) |
-| [408-driver-flow-phone-5-driving.png](408-driver-flow-phone-5-driving.png) | Driver · in-app navigation to stop 1 of your order (phone) |
-| [409-driver-flow-phone-6-auto-arrive-scan.png](409-driver-flow-phone-6-auto-arrive-scan.png) | Driver · auto-arrival opens the stop scan sheet (phone) |
-| [410-driver-flow-phone-7-proof-of-delivery.png](410-driver-flow-phone-7-proof-of-delivery.png) | Driver · proof-of-delivery step (phone) |
-| [411-driver-flow-phone-8-next-stop-banner.png](411-driver-flow-phone-8-next-stop-banner.png) | Driver · stop done, next-stop banner before auto-advance (phone) |
-| [412-driver-flow-phone-9-auto-advance-nav.png](412-driver-flow-phone-9-auto-advance-nav.png) | Driver · navigation auto-advances to the next stop (phone) |
-| [413-driver-flow-phone-10-filters.png](413-driver-flow-phone-10-filters.png) | Driver · stop filters (phone) |
-| [414-driver-flow-phone-11-cant-deliver.png](414-driver-flow-phone-11-cant-deliver.png) | Driver · can't-deliver reasons (phone) |
-| [415-driver-flow-phone-12-offline.png](415-driver-flow-phone-12-offline.png) | Driver · Offline, saving your work (non-blocking) (phone) |
-| [416-driver-flow-phone-13-offline-bar.png](416-driver-flow-phone-13-offline-bar.png) | Driver · offline bar with updates waiting to send (phone) |
-| [417-driver-flow-phone-14-stop-card.png](417-driver-flow-phone-14-stop-card.png) | Driver · stop card from a map pin (phone) |
-| [418-driver-flow-phone-16-today.png](418-driver-flow-phone-16-today.png) | Driver · Today: duty, eligibility, route card, check-in, offers (phone) |
-| [419-driver-flow-phone-17-me.png](419-driver-flow-phone-17-me.png) | Driver · Me: pay, scorecard, documents, notifications, help (phone) |
-| [420-driver-flow-phone-15-bulky-driver.png](420-driver-flow-phone-15-bulky-driver.png) | Driver · bulky line on the V03 app (phone) |
+
+The earlier map-first V03 driver (now `driver-v03-alt.html`, kept for comparison) is in [driver-v03-alt/](driver-v03-alt/).
 
 ## Dispatch board
 

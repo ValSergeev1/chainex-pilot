@@ -54,5 +54,5 @@ html.dark .cxnav .nv-sheet{background:#0f1b2d;color:#e7eefa}
 .cxnav .nv-dest{margin-top:8px;display:flex;flex-direction:column;font-size:13px}.cxnav .nv-dest span{opacity:.7;font-size:12px}.cxnav .nv-src{font-size:10.5px;opacity:.55;margin-top:6px}
 .cxnav .nv-acts{margin-top:10px}.cxnav .nv-arrive{width:100%;border:0;border-radius:12px;padding:13px;font:750 15px/1 Inter,system-ui,sans-serif;background:#e8eef7;color:#172b45;cursor:pointer}.cxnav.near .nv-arrive{background:#16a34a;color:#fff;animation:pulse 1.6s infinite}`;
 const s=document.createElement('style');s.textContent=css;document.head.appendChild(s);
-window.CXNav={open,close,get current(){return cur},hav,_paint:()=>paint(false),jumpEnd(){if(cur&&cur.path){cur.i=cur.path.length-1;paint(false)}}};
+window.CXNav={route:async(a,b)=>(await osrm(a,b))||straight(a,b),densify,bearing,fmtD,open,close,get current(){return cur},hav,_paint:()=>paint(false),jumpEnd(){if(cur&&cur.path){cur.i=cur.path.length-1;paint(false)}}};
 })();
