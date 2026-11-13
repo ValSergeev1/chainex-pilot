@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111C"><meta name="color-scheme" content="dark light"><title>Sign in · ChainEx V06</title>
-<link rel="stylesheet" href="assets/v06.css"><link rel="stylesheet" href="assets/w6.css"><script src="assets/v06.js"></script>
+<link rel="stylesheet" href="assets/v06.css"><link rel="stylesheet" href="assets/w6.css"><link rel="stylesheet" href="assets/integ6.css"><script src="assets/v06.js"></script>
 <style>
 body.si{min-height:100vh;margin:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:var(--bg)}
 .si-l{padding:40px 48px;display:flex;flex-direction:column;gap:22px;border-right:1px solid var(--line);background:radial-gradient(900px 500px at -10% 110%,var(--acc-2),transparent 60%)}
@@ -18,7 +18,7 @@ body.si{min-height:100vh;margin:0;display:grid;grid-template-columns:minmax(0,1f
 <div id="cur"></div>
 <p class="small t3">Pilot only: no passwords, sample accounts and sample data. In production, sign-in runs on ChainEx's own identity service with 2-step verification. <a href="../auth/signin.html">V03 sign-in</a></p></section>
 <section class="si-r"><div id="list"></div></section>
-<script src="../assets/session.js"></script>
+<script src="../assets/session.js"></script><script src="assets/storeguard6.js"></script><script src="../assets/store.js"></script><script src="assets/integ6.js"></script>
 <script>(function(){const V=window.V5,ic=V.ic,esc=V.esc;
 const ROLE_HOME={'Admin':'dashboard.html','Ops manager':'dashboard.html','Viewer':'dashboard.html','Onboarding':'onboarding.html','Finance':'payments.html','Sales':'sales.html'};
 function route(a){const e=encodeURIComponent(a.id);switch(a.kind){case 'staff':return ROLE_HOME[a.role]||'dispatch.html';case 'driver':return 'portal-driver.html?id='+e;case 'dsp':return 'portal-dsp.html?login='+e;case 'carrier':return 'portal-carrier.html?login='+e;case 'warehouse':return 'portal-warehouse.html';case 'shipper':return 'shipper.html?login='+e;default:return 'start.html'}}
@@ -28,7 +28,7 @@ const ini=n=>String(n).replace(/\(.*?\)/g,'').split(/\s+/).filter(Boolean).slice
 document.getElementById('list').innerHTML=G.map(([l,k,i])=>{const A=CXS.ACCOUNTS.filter(a=>a.kind===k);return `<div class="micro">${l}</div><div class="si-g">${A.map(a=>`<button class="si-a" data-id="${esc(a.id)}"><span class="w6-lead">${ini(a.name)}</span><span><b>${esc(a.name)}</b><small>${esc(a.role||a.label)} · goes to ${esc(route(a).split('?')[0].replace('.html',''))}</small></span></button>`).join('')}</div>`}).join('');
 function cur(){const s=CXS.get();document.getElementById('cur').innerHTML=s?`<div class="si-cur"><span class="w6-lead">${ini(s.name)}</span><div style="flex:1"><b>${esc(s.name)}</b><div class="small t3">${esc(s.role||'')}</div></div><a class="btn pri" href="${route(s)}">Open</a><button class="btn" id="out">Sign out</button></div>`:''}
 cur();
-function go(a){if(!a){V.toast('No account with that ID or email');return}CXS.set(a);location.href=route(a)}
+function go(a){if(!a){V.toast('No account with that ID or email');return}CXS.set(a);const kind=window.CXI&&CXI.termsKindFromAccount(a);if(kind&&CXI.needsTerms(kind,a.id||a.email)){CXI.showTermsOverlay(kind,a.id||a.email,a.name,()=>location.href=route(a));return}location.href=route(a)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b){go(CXS.find(b.dataset.id));return}if(e.target.id==='go')go(CXS.find(document.getElementById('q').value));if(e.target.id==='out'){CXS.clear();cur();V.toast('Signed out')}});
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')go(CXS.find(e.target.value))});
 })();</script></body></html>

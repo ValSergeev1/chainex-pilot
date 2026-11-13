@@ -24,6 +24,10 @@ function draw(){
     <div class="d5-kv" style="grid-template-columns:repeat(5,1fr);display:grid;gap:8px">${[['stops','Avg stops'],['packages','Packages'],['miles','Miles'],['hours','Hours'],['capacity','Vehicle capacity']].map(([k,l])=>`<label class="x-field"><span class="micro">${l}</span><input class="in" data-lim="${k}" type="number" value="${s.limits[k]}"></label>`).join('')}</div>
     ${can?`<button class="btn pri" data-a="savelim" style="margin-top:10px">Save limits</button>`:A.actBtn('settings.edit','Save limits','btn pri','')}
   </div>
+  <div class="pg-c" style="padding:16px"><h3 style="margin:0 0 8px">Driver notifications</h3>
+    <div class="small t2" style="margin-bottom:8px">Thresholds for in-app (and Web Push-ready) reminders. Real push to a closed app needs a ChainEx push server; this pilot handles the client side.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${[['idleMin','Minutes stopped, not at a stop'],['inactiveMin','Minutes since the app was last opened'],['silentMin','Minutes with no GPS before a silent-device alert']].map(([k,l])=>`<label class="x-field"><span class="micro">${l}</span><input class="in" data-nth="${k}" type="number" value="${((window.CXI&&CXI.desk().settings)||{idleMin:15,inactiveMin:30,silentMin:20})[k]}"></label>`).join('')}</div>
+    ${can?`<button class="btn pri" data-a="savenote" style="margin-top:10px">Save notification settings</button>`:A.actBtn('settings.edit','Save notification settings','btn pri','')}</div>
   <div class="pg-c" style="padding:16px"><h3 style="margin:0 0 8px">Demo · role and hub</h3>
     <div class="small t2" style="margin-bottom:8px">Hidden from everyday use. Switch sample roles and hubs to try access and scoping. Not real people.</div>
     ${A?A.demoHTML():''}</div>`;
@@ -36,6 +40,8 @@ document.addEventListener('click',e=>{
     C.update(()=>{});V.toast('Customer access saved') ;return}
   if(e.target.closest('[data-a=savelim]')){if(A&&!A.can('settings.edit'))return A.deny('settings.edit');
     document.querySelectorAll('[data-lim]').forEach(el=>O.desk().settings.limits[el.dataset.lim]=+el.value);C.update(()=>{});V.toast('Route limits saved')}
+  if(e.target.closest('[data-a=savenote]')){if(A&&!A.can('settings.edit'))return A.deny('settings.edit');
+    C.update(()=>{const I=window.CXI&&CXI.desk();if(!I)return;document.querySelectorAll('[data-nth]').forEach(el=>I.settings[el.dataset.nth]=+el.value)});V.toast('Notification thresholds saved')}
 });
 draw();
 window.__v6dset={draw};

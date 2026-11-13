@@ -36,6 +36,24 @@ function snapshots(){const v=(window.CXO&&CXO.desk())||{};v.snaps=v.snaps||[];
   return `<div class="w6-two"><div class="w6-c"><h3>Record snapshots</h3><div class="small t2">Manual JSON export of operating records (bank and tax payloads stay excluded). This is not disaster recovery.</div><div class="w6-da" style="margin-top:10px">${btn('Export snapshot','snapex','','pri')}${btn('Restore last snapshot','snapre','')}</div>
     ${v.snaps.length?H.items(v.snaps.map(s=>H.it(esc(s.at),esc(s.size)+' · '+s.records+' records',chip('Saved','ok')))):'<div class="small t3" style="margin-top:8px">No snapshots yet.</div>'}</div>
     <div class="w6-c"><h3>What a snapshot includes</h3><div class="small t2">Partners, work queue, agreements (status only), recruiting, dispatch settings. Encrypted bank and tax payloads are left out, the same way the live portal describes it.</div></div></div>`}
+function termsAdmin(){return window.CXI?termsAdminGo():'<div class="empty">Integrations module not loaded.</div>'}
+
+function termsAdminGo(){const I=window.CXI;const esc=H.esc;
+  const kinds=['driver','dsp','carrier','shipper','warehouse'];
+  const acc=I.desk().accept||[];
+  return `<style>.ahub{max-width:100%;min-width:0}</style><div class="w6-c"><h3>Partner terms and conditions</h3>
+    <div class="chip warn">Placeholder for legal review</div>
+    <p class="small t2">These are sample terms only. They must be rewritten by counsel before a real partner is asked to accept them. Publishing a new version re-prompts every partner of that type on their next sign-in.</p>
+    ${kinds.map(k=>{const c=I.termsFor(k);return `<div class="card pad" style="margin:10px 0" data-tk="${k}"><b>${k} · v${(c&&c.ver)||'—'}</b><div class="small t3">${c?esc(c.changelog||''):''}</div>
+      <div class="small t2" style="margin:6px 0;white-space:pre-wrap">${c?esc((c.body||'').slice(0,280))+(c.body&&c.body.length>280?'…':''):''}</div>
+      <input class="in" data-tver placeholder="New version, e.g. 1.1" style="margin:6px 0">
+      <input class="in" data-tch placeholder="What changed (shown to partners)" style="margin:6px 0">
+      <button class="btn sm pri" data-w="tpub" data-v="${k}">Publish new version</button></div>`}).join('')}
+    </div>
+    <div class="w6-c"><h3>Acceptance status</h3>
+    <table class="tbl"><thead><tr><th>Partner</th><th>Type</th><th>Version</th><th>When</th></tr></thead><tbody>
+    ${acc.slice().reverse().slice(0,80).map(a=>`<tr><td>${esc(a.name||a.who)}</td><td>${esc(a.kind)}</td><td class="mono">${esc(a.ver)}</td><td class="mono">${esc(a.at)}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty">No acceptances yet.</div></td></tr>'}
+    </tbody></table></div>`}
 function accessHubs(){if(!window.CXA)return '<div class="empty">Access module not loaded.</div>';
   const staff=(window.CXS.STAFF||[]);
   return `<style>
@@ -83,6 +101,7 @@ W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',sear
   {id:'email',label:'Email templates',render:emailTpl},
   {id:'snapshots',label:'Record snapshots',render:snapshots},
   {id:'access',label:'Hubs & permissions',render:accessHubs},
+  {id:'terms',label:'Terms & acceptance',render:termsAdmin},
   {id:'tools',label:'Test tools',render:tools}],
  acts:{
   role:(v,el)=>{O.setUserRole(el.dataset.uid,v,A());H.toast('Role changed')},
@@ -98,7 +117,8 @@ W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',sear
   intgo:()=>{const txt=(document.getElementById('intCsv')||{}).value||'';const rows=txt.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(',').map(x=>x.trim());return {email:(p[0]||'').toLowerCase(),name:p[1]||p[0],type:p[2]||'Driver',city:p[3]||'Seattle'}}).filter(r=>r.email&&!/^email$/i.test(r.email));const emails=new Set((C.S.partners||[]).map(p=>((p.contact&&p.contact.email)||'').toLowerCase()).filter(Boolean));let n=0;C.update(S=>{rows.forEach(r=>{if(emails.has(r.email))return;if(C.ops.pApply)C.ops.pApply(r.type,{name:r.name,email:r.email,city:r.city,source:'Intake import'});emails.add(r.email);n++});const vv=S.v06=S.v06||{};vv.intake=vv.intake||{history:[]};vv.intake.history.unshift({at:'Sample day',detail:n+' imported, '+(rows.length-n)+' skipped',status:'Completed',records:n})});H.toast(n?n+' partners imported (duplicates skipped)':'No new rows')},
   eml:id=>{const v=window.CXO&&CXO.desk();const e=v&&v.settings.emails&&v.settings.emails.find(x=>x.id===id);if(e)e.on=!e.on;H.toast('Template updated')},
   snapex:()=>{const v=window.CXO&&CXO.desk()||{};const body={partners:C.S.partners,queue:C.S.queue,recruits:C.S.recruits};const blob=new Blob([JSON.stringify(body)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='chainex-snapshot.json';a.click();C.update(S=>{S.v06=S.v06||{};(S.v06.snaps=S.v06.snaps||[]).unshift({at:'Sample day',size:Math.round(blob.size/1024)+' KB',records:(C.S.partners||[]).length})});H.toast('Snapshot exported (bank and tax payloads excluded)')},
-  snapre:()=>{H.toast('Restore is simulated in the pilot. Use a real backup in production.')}
+  snapre:()=>{H.toast('Restore is simulated in the pilot. Use a real backup in production.')},
+  tpub:k=>{const box=document.querySelector('[data-tk="'+k+'"]');const ver=box&&box.querySelector('[data-tver]');const ch=box&&box.querySelector('[data-tch]');if(!ver||!ver.value)return H.toast('Enter a version number'),false;if(!window.CXI)return;CXI.publishTerms(k,ver.value,ch&&ch.value||'Updated terms. PLACEHOLDER FOR LEGAL REVIEW.');H.toast('Published '+k+' v'+ver.value+' (partners will be asked to accept on next sign-in)')}
 }});
 document.addEventListener('change',e=>{
   const h=e.target.closest('[data-ahub]');if(h&&window.CXA){CXA.setMember(h.dataset.ahub,{hub:h.value},(CXS.staff()||{}).name);H.toast('Hub saved')}

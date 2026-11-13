@@ -183,7 +183,7 @@ function coEvOk(all){if(!needEv()||!all.length)return true;const v=coVeh();retur
 function coPic(label){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180"><rect width="240" height="180" fill="#2A3B55"/><text x="120" y="86" text-anchor="middle" fill="#fff" font-size="13" font-family="sans-serif">${esc(label)}</text><text x="120" y="108" text-anchor="middle" fill="#9FB3CF" font-size="11" font-family="monospace">${esc(fmt(C.S.clock))} · close-out</text></svg>`)}
 function coSet(list,patch){C.update(()=>{[].concat(list).forEach(([tid,pid])=>{const T=C.task(tid),q=T&&T.items.find(p=>p.id===pid);if(q)q.co=Object.assign({},q.co||{},patch)})})}
 function coSum(all){const a=R(),by=k=>all.filter(x=>co(x.p).out===k).length;return{delivered:a.filter(t=>t.state==='completed').length,failed:a.filter(t=>t.state==='failed'||C.OPEN(t)).length,returned:by('return')+by('retry')+by('damaged')+by('refused'),missing:by('missing'),handed:by('handoff'),left:all.length}}
-function coBtn(all){const done=all.filter(coDone).length,ready=done===all.length&&coEvOk(all);return `<button class="dv-slide${ready?'':' off'}" data-a="closeroute" id="dvclose">${ready?ic('check',20)+(D().line==='shuttle'?'Close out shift':'Close route'):ic('lock',19)+' '+(done<all.length?`Resolve ${all.length-done} more to close`:'Add a photo or note to close')}</button>`}
+function coBtn(all){const done=all.filter(coDone).length,pend=(window.CXI&&CXI.pendingCount&&CXI.pendingCount())||0,ready=done===all.length&&coEvOk(all)&&pend===0;return `<button class="dv-slide${ready?'':' off'}" data-a="closeroute" id="dvclose">${ready?ic('check',20)+(D().line==='shuttle'?'Close out shift':'Close route'):ic('lock',19)+' '+(pend?`Sync ${pend} pending scan${pend>1?'s':''} to close`:done<all.length?`Resolve ${all.length-done} more to close`:'Add a photo or note to close')}</button>`}
 function coRefresh(){const b=$('#dvclose');if(b)b.outerHTML=coBtn(retItems())}
 function retScreen(){mapScreen(false);const all=retItems(),done=all.filter(coDone).length,s=coSum(all),v=coVeh(),open=ui.coOpen;
  const scanned=all.filter(x=>co(x.p).scan&&!co(x.p).out),d=D(),others=C.S.drivers.filter(o=>!o.dspSlot&&o.id!==d.id&&o.line===d.line);
@@ -209,6 +209,7 @@ function closedScreen(){mapScreen(false);const a=R(),done=a.filter(t=>t.state===
 /* ---------- inbox ---------- */
 function inbox(){const th=(C.S.msgs||[]).filter(m=>m.wid===W()).slice(-60),tk=(C.S.tickets||[]).filter(t=>t.wid===W()).slice(0,6);const IS=[['late','Running late','clock'],['address','Address problem','pin'],['access',"Can't get in",'lock'],['damaged','Damaged item','box'],['vehicle','Vehicle problem','truck'],['toomany','Too many stops','list'],['break','Need a break','clock'],['other','Something else','chat']];
  return `<div><div class="dv-eyebrow">Inbox</div><h1 class="dv-h1" style="margin-top:8px">Dispatch</h1></div>
+ ${notifBlock()}
  <div class="dv-card"><div class="dv-eyebrow">Report a problem</div><div class="dv-reasons">${IS.map(([k,l,i])=>`<button data-a="issue" data-v="${k}">${ic(i,14)} ${l}</button>`).join('')}</div></div>
  ${tk.length?`<div class="dv-card" style="padding:4px 14px">${tk.map(t=>`<div class="dv-row"><div class="grow"><div style="font-weight:550">${esc(t.label)}</div><div class="sub">${esc((t.fixes||[]).map(f=>f.desc).join('; ')||t.text||'')}</div></div><span class="chip ${t.status==='pending'?'warn':t.status==='approved'?'ok':''}">${esc(t.status)}</span></div>`).join('')}</div>`:''}
  <div class="dv-chat" id="dvchat">${th.length?th.map(m=>`<div class="dv-bub ${m.from==='driver'?'me':''}"><small>${m.from==='driver'?'You':m.from==='bot'?'ChainEx bot':esc(m.actor||'Dispatch')} · ${fmt(m.at)}</small>${esc(m.text)}</div>`).join(''):'<div class="t3" style="text-align:center;font-size:13px;padding:20px">No messages yet today.</div>'}</div>
@@ -222,6 +223,7 @@ function settings(){const d=D(),e=elig();
  <div class="dv-card" style="padding:4px 14px"><div class="dv-row"><div class="grow">Start navigation to the next stop automatically</div>${sw(ui.autoNav,'autonav')}</div><div class="dv-row"><div class="grow">Voice guidance</div>${sw(ui.set.voice,'set','voice')}</div><div class="dv-row"><div class="grow">Vibrate on scan</div>${sw(ui.set.haptics,'set','haptics')}</div></div>
  <div class="dv-card"><div class="dv-eyebrow">Install</div><div class="t2" style="font-size:12.5px">Add ChainEx Driver to your home screen. It opens full screen and keeps working on weak signal.</div><button class="btn" data-a="install" style="align-self:flex-start">${ic('plus',15)}Install app</button></div>
  <div class="dv-card"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>
+ ${integSettings()}
  <button class="btn block" data-a="signout">${ic('logout',15)}Sign out</button><div class="t3" style="text-align:center;font-size:11px">ChainEx Driver · V06</div>`}
 /* ---------- modals ---------- */
 function openModal(type,id){modal={type,id};cap={photos:{},sig:false,reason:null};drawModal();$('#dvmodal').classList.add('on')}
@@ -269,7 +271,7 @@ function doStep(){const t=C.task(modal.id),s=nextStep(t),d=D();if(!s)return;let 
  else if(s.kind==='sign'){if(!cap.sig){toast('Signature required');return}if(s.survey&&!cap.survey){toast('Ask for a 1–5 rating');return}data={signature:true,receivedBy:$('#dvpodname').value,survey:cap.survey,notes:$('#dvpodnotes').value}}
  else if(s.kind==='form'){const r=readF(s.fields);if(r.miss){toast(r.miss+' is required');return}data=r.o}
  if(s.summary)try{data.summary=s.summary(data,t)}catch(e){}
- const id=t.id;C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2);if(s.kind==='pod'||s.kind==='sign'||s.kind==='photo')enrichPod(C.task(id),s.kind,data,d)});haptic();const T=C.task(id);
+ const id=t.id;C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2);if(s.kind==='pod'||s.kind==='sign'||s.kind==='photo')enrichPod(C.task(id),s.kind,data,d)});if(window.CXI)cxEmitScan(C.task(id),s,d);haptic();const T=C.task(id);
  if(!C.OPEN(T)||!nextStep(T)){afterStop(id);return}
  if(special()&&stage()==='on_road'){runNext(id);return}
  closeModal();toast(`✓ ${s.label}`,'check');render()}
@@ -278,11 +280,11 @@ function keepInputs(fn){const keep={};$$('#dvmb input.in,#dvmb select.in').forEa
 function act(a,v){const d=D(),w=W();switch(a){
  case 'tab':ui.tab=v;save();fitKey='';render();break;
  case 'fillid':$('#dvid').value=v;$('#dvterms').checked=true;break;
- case 'signin':{const id=($('#dvid').value||'').trim();if(!$('#dvterms').checked){toast('Please accept the driver terms');break}const h=byId(id);if(!h.length){toast('Driver ID not found · check with your DSP or ChainEx','alert');break}ui.wid=h[0].id;ui.tab=h[0].duty&&h[0].route.stage!=='closed'?'route':'today';ui.plan={mode:null,seq:[],ends:[]};save();fitKey='';leg=null;render();toast('Signed in · '+h[0].name,'check');break}
+ case 'signin':{const id=($('#dvid').value||'').trim();if(!$('#dvterms').checked){toast('Please accept the driver terms');break}const h=byId(id);if(!h.length){toast('Driver ID not found · check with your DSP or ChainEx','alert');break}ui.wid=h[0].id;ui.tab=h[0].duty&&h[0].route.stage!=='closed'?'route':'today';ui.plan={mode:null,seq:[],ends:[]};save();fitKey='';leg=null;render();if(window.CXI&&CXI.needsTerms('driver',h[0].id))CXI.showTermsOverlay('driver',h[0].id,h[0].name);toast('Signed in · '+h[0].name,'check');break}
  case 'demo':{const h=byId(DEMO[v]);if(!h.length)break;ui.wid=h[0].id;ui.tab='today';ui.plan={mode:null,seq:[],ends:[]};ui.last=null;openLoad=false;save();leg=null;fitKey='';render();toast('Demo · '+h[0].name+' · '+LN[v],'user');break}
  case 'signout':ui.wid=null;save();stopNav();render();break;
  case 'reset':if(confirm('Reset the shared sample day for every version?')){C.reset();ui.plan={mode:null,seq:[],ends:[]};ui.last=null;save();leg=null;render();toast('Sample day reset')}break;
- case 'duty':{if(!d.duty&&!elig().ok){toast('Blocked · '+elig().reasons.join(' · '),'lock');break}const was=!!d.duty;C.update(()=>C.ops.duty(w,!was));C.load();const on=!!(D()&&D().duty);if(on===was){render();toast("Couldn't save on this phone (browser storage is full). Settings → Reset sample day, then try again.",'alert');break}if(on){ui.tab='route';ui.planOpen=false}save();fitKey='';render();toast(on?(special()&&pre()?'On duty · plan your route now':'You are on duty'):'You are off duty',on?'check':'power');break}
+ case 'duty':{if(!d.duty&&!elig().ok){toast('Blocked · '+elig().reasons.join(' · '),'lock');break}const was=!!d.duty;C.update(()=>C.ops.duty(w,!was));C.load();const on=!!(D()&&D().duty);if(on===was){render();toast("Couldn't save on this phone (browser storage is full). Settings → Reset sample day, then try again.",'alert');break}if(on){ui.tab='route';ui.planOpen=false;if(window.CXI){startGps();CXI.emit('out_for_delivery',{actor:(D()||d).name,payload:{route:(D()||d).route&&(D()||d).route.id,wid:w},ll:(D()||d).loc});CXI.offerOnDemand(w)}}save();fitKey='';render();toast(on?(special()&&pre()?'On duty · plan your route now':'You are on duty'):'You are off duty',on?'check':'power');break}
  case 'claim':{let ok;C.update(()=>{ok=C.ops.claim(w,v)});toast(ok===false?'Blocked · '+elig().reasons.join(' · '):'Claimed · added to your route',ok===false?'lock':'check');render();break}
  case 'noticeok':C.update(()=>C.ops.noticeSeen(w));render();break;
  case 'pmode':ui.plan.mode=v||null;ui.plan.seq=[];ui.plan.ends=[];save();planScreen();break;
@@ -322,7 +324,7 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'sigclr':{const cv=$('#dvsig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cap.sig=false;break}
  case 'sigdemo':$('#dvsig')._demo();break;
  case 'cant':openModal('cant',v);break;
- case 'dofail':{const id=modal.id,r=cap.reason,n=$('#dvna').value,nt=$('#dvcn').value;if(!r){toast('Choose what happened');break}C.update(()=>{C.ops.fail(id,r,n,nt,d.name);C.ops.tick(3);enrichPod(C.task(id),'fail',{notes:nt,placement:r,receivedBy:r},d)});afterStop(id,true);break}
+ case 'dofail':{const id=modal.id,r=cap.reason,n=$('#dvna').value,nt=$('#dvcn').value;if(!r){toast('Choose what happened');break}C.update(()=>{C.ops.fail(id,r,n,nt,d.name);C.ops.tick(3);enrichPod(C.task(id),'fail',{notes:nt,placement:r,receivedBy:r},d)});if(window.CXI)CXI.emit({type:'attempted',taskId:id,actor:d.name,extra:{reason:r,notes:nt},ll:d.loc});afterStop(id,true);break}
  case 'stop':openModal('stop',v);break;
  case 'mclose':closeModal();break;
  case 'call':toast('Calling through a masked number (pilot)','phone');break;
@@ -349,13 +351,16 @@ function act(a,v){const d=D(),w=W();switch(a){
    if(miss.length&&C.ops.botIssue)C.ops.botIssue(w,'other',null,`Close-out: ${miss.length} missing (${miss.join(', ')})`);
    if(dmg.length&&C.ops.botIssue)C.ops.botIssue(w,'damaged',null,`Close-out: ${dmg.length} damaged (${dmg.join(', ')})`);
    C.ops.closeRoute(w)});
-  ui.coOpen=null;save();render();toast(d.line==='shuttle'?'Shift closed out':'Route closed · close-out sent to Dispatch','check');break}
+  ui.coOpen=null;save();if(window.CXI&&rec){CXI.emit({type:'closed_out',actor:d.name,extra:{route:d.route.id,id:rec.id,summary:rec.summary}});(rec.items||[]).forEach(it=>{if(['return','retry','refused'].includes(it.outcome))CXI.emit({type:'returned',taskId:it.tid,pkg:it.pid,actor:d.name,extra:{outcome:it.outcome}})})}render();toast(d.line==='shuttle'?'Shift closed out':'Route closed · close-out sent to Dispatch','check');break}
  case 'repeat':{let id;C.update(()=>{id=DC().repeat(D(),C.S,v)});const t=id&&C.task(id);toast(t?`Repeat trip added · departs ${fmt(t.x.dep)}`:'Could not add trip',t?'check':'alert');render();break}
  case 'issue':C.update(()=>C.ops.botIssue(w,v,cur()&&cur().id,''));render();toast('Sent to Dispatch','check');break;
  case 'send':{const i=$('#dvmsg'),txt=i&&i.value.trim();if(!txt)break;C.update(()=>C.ops.msgSend(w,'driver',txt,d.name));render();break}
  case 'set':ui.set[v]=!ui.set[v];save();render();break;
  case 'autonav':ui.autoNav=!ui.autoNav;save();render();break;
  case 'install':if(window.__bip){__bip.prompt();window.__bip=null}else toast(/iPhone|iPad/.test(navigator.userAgent)?'Tap Share, then Add to Home Screen':'Use the browser menu: Install app / Add to Home Screen','plus');break;
+ case 'nact':{if(!window.CXI)break;const [id,act]=(v||'').split('|');const n=CXI.notesFor(W()).find(x=>x.id===id);if(n&&n.kind==='ondemand'){const a=CXI.answerOnDemand(id,act||'accept');toast(a==='accepted'?'Offer accepted':'Offer declined',a==='accepted'?'check':'power')}else CXI.markRead(id);render();break}
+ case 'pushask':if(window.CXI)CXI.requestPush().then(s=>toast(s==='granted'?'Notifications allowed':'Notifications '+s,'bell')).then(()=>render());break
+ case 'flushout':if(window.CXI){const r=CXI.flushOutbox(),n=r&&r.flushed;toast(n?'Synced '+n+' scan'+(n>1?'s':''):'No pending scans','check');render()}break
 }}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled||b.tagName==='A')return;e.preventDefault();act(b.dataset.a,b.dataset.v)});
 let coT=null;document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||t.dataset.cono==null)return;const k=t.dataset.cono,val=t.value.slice(0,280);clearTimeout(coT);coT=setTimeout(()=>{if(k==='veh')C.update(()=>{const dd=C.driver(W());dd.route.coVeh=Object.assign({},dd.route.coVeh||{},{note:val})});else{const [tid,pid]=k.split('|');coSet([[tid,pid]],{note:val})}coRefresh()},350)});
@@ -367,5 +372,29 @@ C.subscribe(()=>{if(modal||navTimer)return;const ae=document.activeElement;if(ae
 addEventListener('v5-theme',()=>{if(D())render()});
 let fullT=0;addEventListener('cx-storage-full',()=>{if(Date.now()-fullT<8000)return;fullT=Date.now();toast("This phone's browser storage is full, so changes may not save. Settings → Reset sample day.",'alert')});
 mount();C.init();render();addEventListener('resize',()=>map&&map.resize());
+
+function cxEmitScan(T,s,d){if(!window.CXI||!T)return;const type=s.kind==='pod'||s.kind==='sign'?'delivered':s.kind==='scan'&&(s.id==='arrive'||s.effect==='arrive'||/arriv/i.test(s.label||''))?'arrived':s.kind==='scan'?'loaded':s.kind==='photo'?'exception':null;if(!type)return;const ev={type,taskId:T.id,actor:d&&d.name,ll:d&&d.loc,payload:{step:s.kind,label:s.label},idem:'scan:'+T.id+':'+s.kind+':'+((s.label||'')+'')};
+  if(typeof navigator!=='undefined'&&navigator.onLine===false){CXI.enqueueScan(ev);if(typeof toast==='function')toast('Saved offline · will sync when you are back online','scan');return}
+  CXI.emit(type,ev)}
+function notifBlock(){if(!window.CXI)return '';const notes=CXI.notesFor(W()).slice(-12).reverse();if(!notes.length)return '';
+  return `<div class="dv-card" id="dvnotes"><div class="dv-eyebrow">Notifications</div>${notes.map(n=>`<div class="cx-note ${n.offerStatus||n.read&&'read'||''}" data-nid="${n.id}"><div><b>${esc(n.title)}</b><div class="t3" style="font-size:12px;margin-top:2px">${esc(n.body||'')}</div></div>${n.kind==='ondemand'&&n.offerId&&!n.offerStatus?`<div style="display:flex;gap:6px;margin-top:8px"><button class="btn sm pri" data-a="nact" data-v="${n.id}|accept">Accept</button><button class="btn sm" data-a="nact" data-v="${n.id}|decline">Decline</button></div>`:n.offerStatus?`<div class="t3" style="margin-top:6px">${esc(n.offerStatus)}</div>`:''}</div>`).join('')}</div>`}
+function integSettings(){if(!window.CXI)return '';const p=CXI.pendingCount(),perm=(typeof Notification!=='undefined'&&Notification.permission)||'default';
+  return `<div class="dv-card"><div class="dv-eyebrow">Notifications</div><div class="t2" style="font-size:13px">In-app alerts are on. Real push when the app is closed needs a ChainEx push server (not on this public pilot).</div><button class="btn sm" data-a="pushask" style="margin-top:8px">${perm==='granted'?'Notifications allowed':'Allow notifications'}</button></div>
+  <div class="dv-card"><div class="dv-eyebrow">Offline scans</div><div class="t2" style="font-size:13px">${p?p+' pending · they will sync when you are back online.':'None pending.'}</div>${p?`<button class="btn sm" data-a="flushout" style="margin-top:8px">Sync now</button>`:''}</div>`}
+let gpsWatch=null,gpsTimer=null;
+function startGps(){if(!navigator.geolocation)return;const apply=pos=>{const fix={ll:[pos.coords.longitude,pos.coords.latitude],acc:pos.coords.accuracy,at:new Date().toISOString(),source:'live'};if(window.CXI&&W())CXI.setGps(W(),fix);try{const buf=JSON.parse(sessionStorage.getItem('cx.v06.gpsbuf')||'[]');buf.push(fix);sessionStorage.setItem('cx.v06.gpsbuf',JSON.stringify(buf.slice(-40)))}catch(e){}};
+  const fail=()=>{};
+  const interval=async()=>{try{if(navigator.getBattery){const b=await navigator.getBattery();return b.charging?10000:b.level<0.2?60000:30000}}catch(e){}return 30000};
+  const arm=ms=>{if(gpsWatch!=null)try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=navigator.geolocation.watchPosition(apply,fail,{enableHighAccuracy:true,maximumAge:ms,timeout:20000})};
+  arm(15000);interval().then(arm)}
+function tickDriverNotes(){if(!window.CXI||!D()||!D().duty)return;CXI.checkDriverNotes(D())}
+if(!window.__cxDrvInteg){window.__cxDrvInteg=1;
+  if(C.ops&&C.ops.msgSend&&!C.ops._cxiMsg){const _ms=C.ops.msgSend;C.ops._cxiMsg=1;C.ops.msgSend=function(wid,from,txt,who){const r=_ms.apply(this,arguments);try{if(window.CXI&&from&&from!=='driver')CXI.addNote({wid,kind:'dispatch',tag:'msg:'+Date.now(),title:'Message from dispatch',body:txt||''})}catch(e){}return r}}
+  addEventListener('online',()=>{if(window.CXI){const r=CXI.flushOutbox(),n=r&&r.flushed;if(n)toast('Synced '+n+' offline scan'+(n>1?'s':''),'check')}});
+  addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')try{localStorage.setItem('cx.v06.lastOpen',String(Date.now()))}catch(e){}});
+  setInterval(tickDriverNotes,60000);
+  C.init&&null;
+  setTimeout(()=>{const d=D();if(d&&d.duty)startGps();if(d&&window.CXI){if(CXI.needsTerms('driver',d.id))CXI.showTermsOverlay('driver',d.id,d.name);CXI.offerOnDemand(d.id);if(navigator.onLine!==false)CXI.flushOutbox()}},400)}
+
 window.__v5drv={act,get ui(){return ui},render,cur,pk,R,D,get modal(){return modal}};
 })();
