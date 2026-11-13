@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "fail": [],
+  "notes": [
+    "link-check 2156 hrefs/srcs, 0 missing",
+    "overflow fails 0; button clicks 1889; console 0; pageerrors 0",
+    "screenshots 18"
+  ],
+  "pages": 27,
+  "clicks": 1889,
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "overflowFails": 0,
+  "badLinks": 0
+}
