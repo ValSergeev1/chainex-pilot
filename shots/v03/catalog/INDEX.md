@@ -480,3 +480,18 @@ Every app screen and its navigation options, desktop (1440×900) and phone (390�
 | [402-site-technology-phone-page.png](402-site-technology-phone-page.png) | Website · Technology & delivery visibility — hero with V03 illustration (phone) |
 | [403-site-track-phone-page.png](403-site-track-phone-page.png) | Website · Track a delivery — hero with V03 illustration (phone) |
 
+
+## Website · mobile menu and footer (V03 polish)
+
+| Screenshot | What it shows |
+|---|---|
+| website-menu/phone-01-header.png | Phone header with the new ☰ menu button |
+| website-menu/phone-02-menu-open.png | Menu panel open: Get a quote, Sign in / Apply, main links with icons |
+| website-menu/phone-03-menu-services.png | Services accordion open: All services, Delivery solutions, Network solutions |
+| website-menu/phone-04-menu-bottom.png | Work with ChainEx / Company / Partner portals accordions, phone and email quick actions, day/night switch |
+| website-menu/phone-05-menu-day.png | Menu panel in day mode |
+| website-menu/phone-06-footer.png | Phone footer: logo, tagline, contact block, collapsible link groups, legal row |
+| website-menu/phone-07-signin-menu.png | Same menu on the sign-in page |
+| website-menu/tablet-menu-open.png | Tablet with the menu panel open |
+| website-menu/desktop-header.png | Desktop header (full nav, no menu button) |
+| website-menu/desktop-footer.png | Desktop footer: five columns, contact block, legal row |
