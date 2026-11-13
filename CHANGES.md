@@ -54,5 +54,15 @@ Integration: sign-in now routes drivers, DSPs and carriers to their portal (the 
 
 ---
 
+### Website rebuilt from chainexglobal.com
+- 27 site pages. They keep the live site's page set, nav, and wording, page titles and meta descriptions: home, services plus 12 service pages, coverage, about, shippers, carriers (live /partners), Driver / DSP portal (live /contractors), careers, technology, contact, delivery help and privacy.
+- New **How it works** page (`site/how-it-works.html`). Its copy is taken from the live site: the delivery flow with an animated handoff diagram, the shipper, carrier, driver/DSP and careers paths, and the growth steps.
+- The pages are generated from the crawled text (`build/site2.py` reads `live/content/*.txt`) in the V02 look. They use our own SVG graphics: icons, hero scenes and an interactive dot-grid US market map with city chips (`build/gfx.py`, `assets/site2.css`, `assets/site2.js`).
+- The header and footer follow the live site (`build/chrome.py`). How it works is added to the nav, and partner portal links are in the footer and on the carriers and drivers pages.
+- The contact form uses the live labels and service options, with `?service=` preselect. It is simulated and saved to localStorage.
+- Live links are mapped into the pilot: register/apply → `auth/apply.html?type=…`, status → `auth/status.html`, portal → `auth/signin.html`, admin → `workspaces.html`.
+- Sign-in, apply and status use the same header and footer, so the site and the account flow look like one site.
+- Track (`site/track.html`) and the V02 design notes are kept.
+
 ## V01 (frozen)
 Dispatch desk for five service lines, driver app, DSP & carrier portal, shipper portal, partner dashboard (two designs), route planner, claim toggle, automatic day/night. See `v01/` for the frozen build.

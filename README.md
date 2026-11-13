@@ -6,7 +6,7 @@ A clickable copy of the whole ChainEx system: public website → unified sign-in
 
 | Area | Pages |
 |---|---|
-| Website | `site/index.html`, services, shippers, carriers, drivers, careers, coverage, technology, about, contact, track, `site/recommendations.html` |
+| Website (rebuilt from chainexglobal.com wording) | `site/index.html`, `site/how-it-works.html` (new), services + 12 `services-*.html`, coverage, about, shippers, carriers, drivers, careers, technology, contact, delivery-help, privacy, track, `site/recommendations.html` |
 | Sign-in & applications | `auth/signin.html`, `auth/apply.html?type=driver|dsp|carrier|warehouse`, `auth/status.html` |
 | Staff | `workspaces.html`, `index.html` (dispatch), `dashboard.html`, `onboarding.html`, `compliance.html`, `scorecards.html`, `payments.html`, `admin.html`, `sales.html`, `bids.html`, `architecture.html` |
 | Partner portals (self-service) | `portal-driver.html`, `portal-dsp.html`, `portal-carrier.html` (sign-in routes here; `?pid=` opens an applicant's portal) |
@@ -20,3 +20,7 @@ Tests: `test/t1.js` … `test/t17.js` (Playwright, file:// URLs). t16 = partner 
 Responsive: every page except the driver app adapts to phone (~390px), tablet (~768px) and desktop (1280px+) through `assets/rwd.css` + `assets/rwd.js`.
 
 Data rule: everything is sample data. No real partner or person names, phones, emails, addresses or documents. Money and messages are simulated.
+
+
+### Website build
+`python3 build/site2.py` renders `live/content/*.txt` (text crawled from chainexglobal.com by `live/ext.py`) into `site/`; `build/site.py` writes only track.html and recommendations.html. Screenshots 47–53 and m15–m18 cover the website on desktop and phone/tablet.
