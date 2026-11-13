@@ -97,7 +97,7 @@ body.w6p-b{margin:0;background:var(--bg);color:var(--t1);font-family:var(--f)}
 .w6p-ni .n.q{background:var(--s3);color:var(--t2)}
 .w6p-foot{margin-top:auto;padding:10px;font-size:12px;color:var(--t3);line-height:1.5}
 .w6p-tabs{display:none}
-@media (max-width:1100px){.w6-body{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}.w6-two{grid-template-columns:1fr}}
+@media (max-width:1100px){.w6-body{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}.w6-two{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:899px){
  .w6{padding:14px 12px 100px;gap:12px}
  .w6-h{align-items:flex-start}.w6-h h1{font-size:22px;line-height:28px}.w6-sub{font-size:13.5px}
@@ -129,3 +129,17 @@ body.w6p-b{margin:0;background:var(--bg);color:var(--t1);font-family:var(--f)}
 @media(max-width:899px){.w6p-wrap{grid-template-columns:minmax(0,1fr)!important}.w6p-who .l{display:none!important}.w6p-top{overflow:hidden}}
 
 .w6-two.w6-wide{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}@media(max-width:1099px){.w6-two.w6-wide{grid-template-columns:minmax(0,1fr)}}
+/* reading layout for long-form pages (architecture) */
+.w6-doc{max-width:1100px;display:flex;flex-direction:column;gap:14px}
+.w6-doc .sx-head{display:none}
+.w6-doc .sx-card{border:1px solid var(--line);border-radius:14px;background:var(--s1);padding:16px 18px}
+.w6-doc .sx-card h3{margin:0 0 8px;font-size:15px;font-weight:600;color:var(--t1)}
+.w6-doc .sx-card p,.w6-doc .sx-card li{color:var(--t2);font-size:13.5px;line-height:1.55}
+.w6-doc .sx-ai{border-left:3px solid var(--acc)}
+.w6-doc .sx-grid{display:grid;gap:14px}.w6-doc .sx-grid.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.w6-doc .sx-grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.w6-doc .sx-mini{font-size:12px;color:var(--t3)}.w6-doc .sx-mono{font-family:var(--fm)}
+.w6-doc .sx-btn{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;color:var(--t1);text-decoration:none;font-size:13px;margin:4px 6px 0 0}
+@media(max-width:899px){.w6-doc .sx-grid.g2,.w6-doc .sx-grid.g3{grid-template-columns:minmax(0,1fr)}}
+.w6-tile{text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}.w6-tile:hover{border-color:var(--acc)}
+.w6-lock{opacity:.5;filter:saturate(.2);cursor:not-allowed}.w6-lock:hover{border-color:var(--line)}
+.acc-t{color:var(--acc)}

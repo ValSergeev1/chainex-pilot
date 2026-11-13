@@ -8,7 +8,7 @@ const ME={id:(ses&&ses.kind==='warehouse'&&ses.id)||'WH-KNT-014',name:(ses&&ses.
 const STF=SUP&&window.CXS?CXS.staff():null;const ACT=()=>STF?(STF.name&&STF.name!==STF.role?STF.name+' ('+STF.role+')':STF.role):'Supervisor';
 if(!C.S.whp)C.update(S=>{WH.ensure(S)});
 const D=()=>WH.ensure(C.S);const me=()=>D().workers[ME.id]||{clock:'off',punches:[],ppe:null};
-const x=(fn,...a)=>{let r;C.update(S=>{WH.ensure(S);if(!SUP)X.W(S,ME.id,ME.name);r=X[fn](S,...a)});return r};
+const x=(fn,...a)=>{let r;C.update(S=>{WH.ensure(S);if(!SUP)WH.W(S,ME.id,ME.name);r=X[fn](S,...a)});return r};
 const TT=WH.TASKTYPES;const TS={todo:['To do',''],doing:['In progress','acc'],paused:['Paused','warn'],done:['Done','ok'],exception:['Exception','bad']};
 const sel=(id,opts,cur)=>`<select class="in" id="${id}">${opts.map(([v,l])=>`<option value="${v}"${cur===v?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
 const mins=ps=>{let m=0,st=null;(ps||[]).forEach(p=>{if(p.k==='in'||p.k==='back')st=p.at;if((p.k==='out'||p.k==='break')&&st!=null){m+=p.at-st;st=null}});if(st!=null)m+=C.S.clock-st;return m};
