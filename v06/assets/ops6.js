@@ -30,7 +30,11 @@ const FIRST=['Avery','Blake','Casey','Drew','Eden','Finley','Gray','Harper','Ind
 const LAST=['Adler','Brooks','Cheng','Diaz','Ellis','Frost','Green','Hayes','Iverson','Jones','Klein','Lang','Moss','Ng','Ortiz','Patel','Reed','Santos','Tran','Vega','Walsh','Young','Zimmerman'];
 const STREETS=['Pine','Cedar','Maple','Alder','Union','Yesler','Pacific','Columbia','Division','Burnside','Killingsworth','Everett','Prospect','St Helens'];
 
-function seed(){C.init();C.update(S=>{const v=desk(S);if(v.seeded)return;
+function fullStack(){return !!(C.v2||C.portal)}
+function storeComplete(S){S=S||C.S;return !!(S&&S.company&&S.sec&&Array.isArray(S.tickets))}
+function recover(){C.init();if(storeComplete())return true;try{localStorage.removeItem('chainex.pilot.v03')}catch(e){}
+  if(typeof C.reset==='function')C.reset();else C.init();return storeComplete()}
+function seed(){C.init();if(!fullStack())return;if(!storeComplete()&&!recover())return;C.update(S=>{if(!storeComplete(S))return;const v=desk(S);if(v.seeded)return;
   /* tag existing drivers/tasks with an operating hub */
   (S.drivers||[]).forEach(d=>{d.opHub=d.opHub||(window.CXA?CXA.opHub(d):'sea')});
   (S.tasks||[]).forEach(t=>{if(t.workerId){const d=S.drivers.find(x=>x.id===t.workerId);t.opHub=t.opHub||(d&&d.opHub)||'sea'}else t.opHub=t.opHub||'sea'});
@@ -251,7 +255,57 @@ function llForAddress(addr,hub){const h=(A&&A.HUBS.find(x=>x.id===hub))||{ll:[-1
   const j=((hash%1000)/1000-.5);
   return [h.ll[0]+j*.08,h.ll[1]+((hash%700)/700-.5)*.06]}
 
-try{seed()}catch(e){console.warn('ops6 seed',e)}
+function _seedPods(){if(!fullStack())return;C.init();if(!storeComplete()&&!recover())return;C.update(S=>{if(!storeComplete(S))return;const v=desk(S);seedPods(S,v)})}
 
-window.CXO={desk,ui,saveUi,seed,allTasks,materialize,pushUndo,undoLast,undo,routeTasks,routeStats,createStop,deleteStop,moveStop,newRoute,splitRoute,mergeRoutes,optimize,autoBuild,lassoToRoute,createOrder,createShipment,importCsv,needsCoverage,counts,partnerWork,serviceDate,setDate,todayStr,dateOk,pkgs,milesOf,haversine,llForAddress,LIMITS_DEF};
+function svgEsc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function svgPic(label,bg){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240"><rect width="320" height="240" fill="'+bg+'"/><rect x="16" y="16" width="288" height="208" rx="14" fill="rgba(255,255,255,.1)"/><circle cx="70" cy="70" r="24" fill="rgba(255,255,255,.22)"/><text x="160" y="128" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="15" font-weight="600">'+svgEsc(label)+'</text><text x="160" y="152" text-anchor="middle" fill="rgba(255,255,255,.7)" font-family="system-ui,sans-serif" font-size="11">Sample POD · not a real photo</text></svg>')}
+function svgSig(name){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120"><rect width="320" height="120" fill="#f4efe6"/><path d="M18 72 C48 18,90 104,130 58 S190 18,230 76 S280 96,304 46" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/><text x="18" y="108" fill="#555" font-family="Georgia,serif" font-size="11">'+name+'</text></svg>')}
+const PLACES=['Front door','Side gate','Porch','Reception','Handed to recipient','Garage','Mailroom'];
+const SIGNERS=['Jordan Hale','Sam Ortiz','Riley Chen','Casey Nguyen','Avery Brooks','Quinn Patel'];
+function podAsset(v,id,src){v.podAssets=v.podAssets||{};if(src)v.podAssets[id]=src;return id}
+function resolvePodSrc(src,v){if(!src)return '';if(String(src).slice(0,5)==='data:')return src;v=v||(C.S&&C.S.v06)||{};return (v.podAssets&&v.podAssets[src])||src}
+function seedPods(S,v){if(v.podSeeded)return;if(!storeComplete(S))return;const done=(S.tasks||[]).filter(t=>t.state==='completed'||t.state==='failed');
+  const clock=(S.clock||(C.S&&C.S.clock)||'');v.podAssets=v.podAssets||{};
+  done.forEach((t,i)=>{
+    const far=i%9===0, missP=i%7===0&&t.state==='completed', missS=i%5===0, place=PLACES[i%PLACES.length];
+    const signer=SIGNERS[i%SIGNERS.length];
+    const jitter=(ll,ft)=>{const d=ft/364000;return [ll[0]+d*((i%3)-1),ll[1]+d*((i%2)?1:-1)]}
+    const dropLL=t.ll?jitter(t.ll,far?280:40+(i%8)*8):null;
+    const dist=t.ll&&dropLL?Math.round(haversine(t.ll,dropLL)*3280.84):0;
+    const rich=i<16||t.state==='failed'||far||missP||missS||i%6===2;
+    const photos=[];
+    if(rich&&!missP&&t.state==='completed')photos.push({src:podAsset(v,'pic:'+place,svgPic(place,'#1E3860')),kind:'pod',label:'Delivery photo',at:t.completedAt||clock});
+    if(rich&&i%4===1&&t.state==='completed')photos.push({src:podAsset(v,'pic:closeup',svgPic('Package close-up','#2E5A8C')),kind:'pod',label:'Package close-up',at:t.completedAt||clock});
+    if(rich&&(t.state==='failed'||t.attempts)){const lab=t.failReason||'Attempt photo';photos.push({src:podAsset(v,'pic:fail:'+lab,svgPic(lab,'#6B3A2A')),kind:'fail',label:'Attempt / exception',at:t.completedAt||clock})}
+    if(rich&&i%6===2)photos.push({src:podAsset(v,'pic:scan',svgPic('Arrival scan','#2A4A3A')),kind:'scan',label:'Arrival scan',at:t.arrivedAt||t.completedAt||clock});
+    const pod=Object.assign({},t.pod||{},{
+      placement:place, signer:missS?'':signer, notes:t.pod&&t.pod.notes||(i%3===0?'Customer asked to leave at the '+place.toLowerCase()+'.':'Gate code used. All clear.'),
+      photo:photos.some(x=>x.kind==='pod'), signature:!missS&&t.state==='completed',
+      receivedBy:place+(missS?'':' · '+signer), photos, signatureImg:(rich&&!missS&&t.state==='completed')?podAsset(v,'sig:'+signer,svgSig(signer)):'',
+      scan:(t.items&&t.items[0]&&t.items[0].id)||('9400 '+t.id.replace(/\D/g,'').slice(-8)),
+      dropLL, addressLL:t.ll, distanceFt:dist, far:dist>150, at:t.completedAt||clock
+    });
+    if(!pod.summary)pod.summary=pod.receivedBy;
+    t.pod=pod;
+  });
+  v.podSeeded=1}
+
+function podOf(t){if(!t)return null;const p=t.pod;if(!p&&t.state!=='completed'&&t.state!=='failed')return null;
+  if(!p)return null;
+  const assets=(C.S&&C.S.v06)||{};const photos=(p.photos||(p.photo||p.photoUrl?[{src:p.photoUrl||p.photoSrc||'',kind:'pod',label:'Delivery photo',at:p.at}]:[])).map(x=>Object.assign({},x,{src:resolvePodSrc(x.src,assets)}));
+  const dropLL=p.dropLL||null, addressLL=p.addressLL||t.ll;
+  const dist=p.distanceFt!=null?p.distanceFt:(dropLL&&addressLL?Math.round(haversine(addressLL,dropLL)*3280.84):0);
+  let placement=p.placement||'';
+  const rb=p.receivedBy||'';
+  if(!placement&&rb)placement=rb.split('·')[0].trim();
+  const signer=p.signer||(rb.includes('·')?rb.split('·').slice(1).join('·').trim():'');
+  return {summary:p.summary||rb,notes:p.notes||t.notes||'',placement,signer,photos:photos.filter(x=>x&&x.src),signatureImg:resolvePodSrc(p.signatureImg||p.sigImg||'',assets),signature:!!(p.signature||p.signatureImg),photo:!!(p.photo||(photos.length&&photos.some(x=>x.kind!=='fail'))),scan:p.scan||'',dropLL,addressLL,distanceFt:dist,far:dist>150,at:p.at||t.completedAt,receivedBy:rb}}
+function podIssues(t,kind){const p=podOf(t);if(!p)return kind?false:['missing'];
+  const issues=[];if(!p.photo||!p.photos.some(x=>x.kind==='pod'||x.kind==='scan'))issues.push('photo');
+  if(!p.signature&&!p.signatureImg)issues.push('signature');if(p.far)issues.push('far');
+  if(!kind||kind==='all')return kind?true:issues;return issues.includes(kind)}
+
+try{if(fullStack()){seed();_seedPods()}}catch(e){console.warn('ops6 seed',e)}
+
+window.CXO={desk,ui,saveUi,seed,allTasks,materialize,pushUndo,undoLast,undo,routeTasks,routeStats,createStop,deleteStop,moveStop,newRoute,splitRoute,mergeRoutes,optimize,autoBuild,lassoToRoute,createOrder,createShipment,importCsv,needsCoverage,counts,partnerWork,serviceDate,setDate,todayStr,dateOk,pkgs,milesOf,haversine,llForAddress,LIMITS_DEF,podOf,podIssues,svgPic,svgSig,seedPods,resolvePodSrc,storeComplete};
 })();

@@ -38,7 +38,23 @@ function snapshots(){const v=(window.CXO&&CXO.desk())||{};v.snaps=v.snaps||[];
     <div class="w6-c"><h3>What a snapshot includes</h3><div class="small t2">Partners, work queue, agreements (status only), recruiting, dispatch settings. Encrypted bank and tax payloads are left out, the same way the live portal describes it.</div></div></div>`}
 function accessHubs(){if(!window.CXA)return '<div class="empty">Access module not loaded.</div>';
   const staff=(window.CXS.STAFF||[]);
-  return `<div class="w6-c"><h3>Hubs and per-member permissions</h3>
+  return `<style>
+.ahub{max-width:100%;min-width:0;overflow-x:auto}
+.ahub table{width:100%;max-width:100%}
+.ahub .in{max-width:100%;min-width:0}
+#aperm{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))!important;max-width:100%;min-width:0}
+@media(max-width:640px){
+  .ahub table,.ahub thead,.ahub tbody,.ahub th,.ahub td,.ahub tr{display:block;width:100%;max-width:100%;box-sizing:border-box}
+  .ahub thead{display:none}
+  .ahub tr{border:1px solid var(--line);border-radius:10px;padding:10px;margin:0 0 8px;background:var(--s1)}
+  .ahub td{padding:4px 0;border:0;min-width:0}
+  .ahub td:nth-child(2)::before{content:'Role · ';color:var(--t3);font-size:11px}
+  .ahub td:nth-child(3)::before{content:'Hub';display:block;font-size:11px;color:var(--t3);margin-bottom:4px}
+  .ahub td:nth-child(4){display:flex;align-items:center;gap:8px}
+  .ahub td:nth-child(4)::before{content:'All hubs'}
+  .ahub select.in{width:100%}
+}
+</style><div class="w6-c ahub" style="max-width:100%;min-width:0;overflow-x:auto"><h3>Hubs and per-member permissions</h3>
     <div class="small t2">Each member is tied to a hub and sees only that hub\'s work, unless they are Admin or Middle mile (or you grant All hubs). They still see every control; locked actions show “Access restricted, ask an admin.”</div>
     <table class="tbl" style="margin-top:12px"><thead><tr><th>Name</th><th>Role</th><th>Hub</th><th>All hubs</th></tr></thead><tbody>
     ${staff.map(u=>{const r=CXA.rec({...u,kind:'staff'});
@@ -47,7 +63,7 @@ function accessHubs(){if(!window.CXA)return '<div class="empty">Access module no
       <td><input type="checkbox" data-aall="${esc(u.email)}" ${r.allHubs?'checked':''}></td></tr>`}).join('')}</tbody></table>
     <div class="small t2" style="margin-top:12px">Pick a teammate, then allow or deny each dispatch and dashboard action. They still see every control; a denied action stays dimmed and says Access restricted, ask an admin.</div>
     <label class="x-field" style="margin-top:8px;display:block"><span class="micro">Member</span><select class="in" id="apermWho">${staff.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} · ${esc(u.role)}</option>`).join("")}</select></label>
-    <div id="aperm" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px"></div>
+    <div id="aperm" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:6px"></div>
   </div>`}
 
 W6.app({key:'admin',app:'Admin',active:'admin.html',classic:'../admin.html',searchPh:'Search users, audit entries',

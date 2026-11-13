@@ -252,6 +252,16 @@ function drawModal(){if(!modal)return;const t=modal.id&&C.task(modal.id),k=K();l
 function bindSig(){const cv=$('#dvsig');if(!cv)return;const x=cv.getContext('2d');x.lineWidth=4;x.lineCap='round';x.strokeStyle=getComputedStyle(document.body).color;let dn=false;const P=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
  cv.addEventListener('pointerdown',e=>{dn=true;x.beginPath();x.moveTo(...P(e));e.preventDefault()});cv.addEventListener('pointermove',e=>{if(!dn)return;x.lineTo(...P(e));x.stroke();cap.sig=true});addEventListener('pointerup',()=>dn=false);
  cv._demo=()=>{x.beginPath();x.moveTo(60,180);for(let i=0;i<14;i++)x.quadraticCurveTo(80+i*40,40+(i%2)*200,100+i*40,150);x.stroke();cap.sig=true}}
+function stampPic(label,bg){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="'+(bg||'#1E3860')+'"/><text x="160" y="118" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui,sans-serif">'+String(label||'POD').replace(/[<&>]/g,s=>({ '<':'&lt;','&':'&amp;','>':'&gt;'}[s]))+'</text><text x="160" y="142" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui,sans-serif">Sample POD · not a real photo</text></svg>')}
+function sigImg(name){const cv=document.getElementById('dvsig');if(window.CXO&&CXO.svgSig)return CXO.svgSig(name||'Signed');if(cv&&cap.sig){try{return cv.toDataURL('image/jpeg',.5)}catch(e){return ''}}return ''}
+function enrichPod(T,kind,data,d){if(!T)return;const photos=[];const put=(k,kind,label)=>{const src=cap.photos[k];if(!src)return;photos.push({src:src===true?stampPic(label):src,kind,label,at:C.S.clock})};
+  put('pod','pod','Delivery photo');put('exc','fail','Attempt / exception');Object.keys(cap.photos||{}).forEach(k=>{if(k[0]==='p'&&k!=='pod')put(k,'pod','Photo')});
+  const pl=data&&data.placement||cap.place||((data&&data.receivedBy)||'').split('·')[0].trim();
+  const signer=(data&&data.signer)||(((data&&data.receivedBy)||'').includes('·')?(data.receivedBy||'').split('·').slice(1).join('·').trim():'')||'';
+  const dropLL=(d&&d.loc)||T.ll;const toRad=x=>x*Math.PI/180;
+  const dist=(T.ll&&dropLL)?Math.round((()=>{const R=6371,dLat=toRad(dropLL[1]-T.ll[1]),dLon=toRad(dropLL[0]-T.ll[0]),h=Math.sin(dLat/2)**2+Math.cos(toRad(T.ll[1]))*Math.cos(toRad(dropLL[1]))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))})()*3280.84):0;
+  T.pod=Object.assign({},T.pod||{},data||{},{placement:pl,signer,photos,signatureImg:sigImg(signer)||(T.pod&&T.pod.signatureImg)||'',photo:photos.some(x=>x.kind==='pod'),signature:!!(cap.sig||(data&&data.signature)),dropLL,addressLL:T.ll,distanceFt:dist,far:dist>150,at:C.S.clock,scan:(T.items&&T.items[0]&&T.items[0].id)||T.id,notes:(data&&data.notes)||(T.pod&&T.pod.notes)||''});
+  if(!T.pod.summary)T.pod.summary=T.pod.receivedBy||pl}
 function doStep(){const t=C.task(modal.id),s=nextStep(t),d=D();if(!s)return;let data={};
  if(s.kind==='scan'){if(t.items.some(p=>!p.stopScanned)){toast('Scan every one first');return}data={summary:`${t.items.length} scanned`}}
  else if(s.kind==='pod'){if(s.photoReq&&!cap.photos.pod){toast('Photo required','camera');return}if(s.sigReq&&!cap.sig){toast('Signature required');return}const pl=cap.place||(s.placements||['Front door'])[0],nm=$('#dvpodname').value;data={photos:cap.photos.pod?1:0,signature:cap.sig,receivedBy:pl+(nm?` · ${nm}`:''),notes:$('#dvpodnotes').value};data.summary=data.receivedBy}
@@ -259,7 +269,7 @@ function doStep(){const t=C.task(modal.id),s=nextStep(t),d=D();if(!s)return;let 
  else if(s.kind==='sign'){if(!cap.sig){toast('Signature required');return}if(s.survey&&!cap.survey){toast('Ask for a 1–5 rating');return}data={signature:true,receivedBy:$('#dvpodname').value,survey:cap.survey,notes:$('#dvpodnotes').value}}
  else if(s.kind==='form'){const r=readF(s.fields);if(r.miss){toast(r.miss+' is required');return}data=r.o}
  if(s.summary)try{data.summary=s.summary(data,t)}catch(e){}
- const id=t.id;C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2)});haptic();const T=C.task(id);
+ const id=t.id;C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2);if(s.kind==='pod'||s.kind==='sign'||s.kind==='photo')enrichPod(C.task(id),s.kind,data,d)});haptic();const T=C.task(id);
  if(!C.OPEN(T)||!nextStep(T)){afterStop(id);return}
  if(special()&&stage()==='on_road'){runNext(id);return}
  closeModal();toast(`✓ ${s.label}`,'check');render()}
@@ -305,14 +315,14 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'dostep':doStep();break;
  case 'sscan':C.update(S=>{const T=C.task(modal.id),p=T.items.find(p=>!p.stopScanned);if(p){p.stopScanned=true;p.events.push({type:'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name})}});haptic();drawModal();break;
  case 'sscanall':C.update(S=>{C.task(modal.id).items.forEach(p=>{if(!p.stopScanned){p.stopScanned=true;p.events.push({type:'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name})}})});drawModal();break;
- case 'cap':cap.photos[v]=true;keepInputs(drawModal);break;
+ case 'cap':cap.photos[v]=stampPic(v==='exc'?'Attempt photo':(v==='pod'?'Delivery photo':'Photo'),v==='exc'?'#6B3A2A':'#1E3860');keepInputs(drawModal);break;
  case 'place':cap.place=v;keepInputs(drawModal);break;
  case 'rate':cap.survey=+v;keepInputs(drawModal);break;
  case 'reason':cap.reason=v;keepInputs(drawModal);break;
  case 'sigclr':{const cv=$('#dvsig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cap.sig=false;break}
  case 'sigdemo':$('#dvsig')._demo();break;
  case 'cant':openModal('cant',v);break;
- case 'dofail':{const id=modal.id,r=cap.reason,n=$('#dvna').value,nt=$('#dvcn').value;if(!r){toast('Choose what happened');break}C.update(()=>{C.ops.fail(id,r,n,nt,d.name);C.ops.tick(3)});afterStop(id,true);break}
+ case 'dofail':{const id=modal.id,r=cap.reason,n=$('#dvna').value,nt=$('#dvcn').value;if(!r){toast('Choose what happened');break}C.update(()=>{C.ops.fail(id,r,n,nt,d.name);C.ops.tick(3);enrichPod(C.task(id),'fail',{notes:nt,placement:r,receivedBy:r},d)});afterStop(id,true);break}
  case 'stop':openModal('stop',v);break;
  case 'mclose':closeModal();break;
  case 'call':toast('Calling through a masked number (pilot)','phone');break;

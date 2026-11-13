@@ -184,3 +184,20 @@ html[data-v5=night] .x-mark{background:linear-gradient(135deg,#25486F,#3B82F6)}
 .x-ctx .sep{height:1px;background:var(--line);margin:4px 6px}
 .x-ctx .x-locked{opacity:.45}
 @media (max-width:899px){.x-hub{max-width:110px}.x-topx .x-hide-m{display:none}}
+
+/* aligned shell top */
+.x-top{align-items:center}
+.x-top .x-k{height:36px;box-sizing:border-box}
+.x-top > .x-ib{width:36px;height:36px}
+.x-clock{height:36px;display:inline-flex;align-items:center}
+.x-topx{display:flex;align-items:center;gap:6px;height:36px;flex:none}
+.x-topx .x-ib{width:36px;height:36px;box-sizing:border-box}
+.x-topx .x-ib:has(span){width:auto;padding:0 10px;display:inline-flex;align-items:center;gap:6px;flex-direction:row}
+.x-topx .x-ib:has(span) span{margin:0;font-size:12.5px;font-weight:550;line-height:1;color:inherit}
+.x-hub{height:36px;border-radius:8px;font-size:12.5px}
+.x-hubpill{height:36px;line-height:34px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:8px}
+.x-av{width:36px;height:36px}
+@media (max-width:899px){
+  .x-topx{height:36px}
+  .x-topx .x-ib{width:36px;height:36px}
+}

@@ -14,19 +14,20 @@ function bar(){const u=O?O.ui():{},d=O?O.serviceDate():'',today=O?O.todayStr():'
   const type= (__v5d.ui.line||'all');
   const can=(a,html,cls,attrs)=>A?A.actBtn(a,html,cls,attrs):`<button class="${cls||'btn sm'}" ${attrs||''}>${html}</button>`;
   return `<div class="d5-bar">
-    <input class="in" id="d5date" type="date" value="${esc(d)}" title="Service date" style="width:140px">
-    <button class="btn sm ${d===today?'pri':''}" data-a="today">Today</button>
-    <input class="in d5-search" id="d5q2" placeholder="Run, driver or reference" value="${esc(__v5d.ui.q||'')}">
-    <select class="in" id="d5type" title="Work type" style="width:130px">${[['all','All work types'],['pd','P&D'],['bulky','Bulky'],['wg','White glove'],['ltl','LTL'],['shuttle','Shuttle']].map(([v,l])=>`<option value="${v}"${type===v?' selected':''}>${l}</option>`).join('')}</select>
-    <div class="seg" id="d5views">${[['map','Map'],['table','Table'],['schedule','Schedule']].map(([v,l])=>`<button data-a="view" data-v="${v}" class="${__v5d.ui.view===v?'on':''}">${esc(l)}</button>`).join('')}</div>
-    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-      <a class="btn sm" href="orders.html">Work orders</a>
-      <a class="btn sm" href="import.html">Import</a>
-      <a class="btn sm" href="dset.html">Settings</a>
-      ${can('dispatch.edit',ic('refresh',14)+'Undo','btn sm','data-a="undo" title="Undo last change"')}
-      <div style="position:relative">
-        ${can('order.create',ic('plus',14)+' New','btn sm pri','data-a="newmenu" id="d5new"')}
-      </div>
+    <div class="d5-bar-l">
+      <input class="in" id="d5date" type="date" value="${esc(d)}" title="Service date">
+      <button class="btn sm ${d===today?'pri':''}" data-a="today">Today</button>
+      <input class="in d5-search" id="d5q2" placeholder="Run, driver or reference" value="${esc(__v5d.ui.q||'')}">
+      <select class="in" id="d5type" title="Work type">${[['all','All work types'],['pd','P&D'],['bulky','Bulky'],['wg','White glove'],['ltl','LTL'],['shuttle','Shuttle']].map(([v,l])=>`<option value="${v}"${type===v?' selected':''}>${l}</option>`).join('')}</select>
+    </div>
+    <div class="d5-bar-c"><div class="seg" id="d5views">${[['map','Map'],['table','Table'],['schedule','Schedule']].map(([v,l])=>`<button data-a="view" data-v="${v}" class="${__v5d.ui.view===v?'on':''}">${esc(l)}</button>`).join('')}</div></div>
+    <div class="d5-bar-r">
+      <a class="d5-ico" href="orders.html" title="Work orders" aria-label="Work orders">${ic('box',16)}</a>
+      <a class="d5-ico" href="import.html" title="Import" aria-label="Import">${ic('scan',16)}</a>
+      <a class="d5-ico" href="dset.html" title="Settings" aria-label="Settings">${ic('gear',16)}</a>
+      ${can('dispatch.edit',ic('undo',15)+'<span class="d5-bar-txt">Undo</span>','btn sm','data-a="undo" title="Undo last change"')}
+      <button type="button" class="d5-ico d5-bar-more" data-a="barmore" title="More" aria-label="More">${ic('more',16)}</button>
+      <div class="d5-bar-new">${can('order.create',ic('plus',15)+' New','btn sm pri','data-a="newmenu" id="d5new" title="New"')}</div>
     </div>
   </div>`}
 window.__d5bar=bar;
@@ -144,7 +145,7 @@ function ctxHTML(kind,id){
   return rows.map(r=>r==='sep'?'<div class="sep"></div>':(A&&!A.can(r[0])?`<button class="x-locked" data-restricted="1" data-need="${r[0]}">${ic('lock',14)}${esc(r[2])}</button>`:`<button data-a="${r[1]}" data-v="${esc(id)}">${esc(r[2])}</button>`)).join('')}
 function openCtx(ev,kind,id){ev.preventDefault();closeCtx();const m=document.createElement('div');m.className='x-ctx on';m.id='d5ctx';m.innerHTML=ctxHTML(kind,id);
   m.style.left=Math.min(ev.clientX,innerWidth-240)+'px';m.style.top=Math.min(ev.clientY,innerHeight-280)+'px';document.body.appendChild(m)}
-function closeCtx(){const m=$('#d5ctx');if(m)m.remove();const n=$('#d5newm');if(n)n.remove()}
+function closeCtx(){['d5ctx','d5newm','d5morem'].forEach(id=>{const n=document.getElementById(id);if(n)n.remove()})}
 
 document.addEventListener('contextmenu',e=>{
   const mk=e.target.closest('.mk');if(mk&&mk.dataset.id){const t=C.task(mk.dataset.id)||(O&&O.allTasks().find(x=>x.id===mk.dataset.id));
@@ -182,6 +183,9 @@ window.__d5act=function(a,v,el){
     case 'today':O.setDate('today');__v5d.draw();break;
     case 'newmenu':{closeCtx();const r=(el||$('#d5new')).getBoundingClientRect();
       document.body.insertAdjacentHTML('beforeend',newMenu());const m=$('#d5newm');m.style.left=(r.right-220)+'px';m.style.top=(r.bottom+6)+'px';break}
+    case 'barmore':{closeCtx();const r=(el||document.querySelector('.d5-bar-more')).getBoundingClientRect();
+      document.body.insertAdjacentHTML('beforeend',`<div class="x-ctx on" id="d5morem" style="position:fixed">${[['orders.html','box','Work orders'],['import.html','scan','Import'],['dset.html','gear','Settings']].map(([h,i,l])=>`<a href="${h}">${ic(i,15)}${esc(l)}</a>`).join('')}</div>`);
+      const m=$('#d5morem');m.style.left=Math.min(r.right-220,innerWidth-240)+'px';m.style.top=(r.bottom+6)+'px';break}
     case 'newstop':V.close();closeCtx();formStop();break;
     case 'newroute':closeCtx();formRoute();break;
     case 'neworder':closeCtx();formOrder('ord');break;
