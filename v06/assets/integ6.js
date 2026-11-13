@@ -18,7 +18,11 @@ const TYPES={
 };
 const TZ='America/Los_Angeles';
 const nowClock=()=>(C.S&&C.S.clock)||'Sample day';
-function emptyInteg(){return {events:[],idem:{},keys:[],hooks:[],log:[],geoCache:{},outbox:[],notify:[],gps:{},accept:[],ondemand:[],rl:{},settings:{idleMin:15,inactiveMin:30,silentMin:20,replayDays:30},terms:{current:{},history:[]}}}function desk(){if(!C.S){try{if(typeof C.load==='function')C.load()}catch(e){} }if(!C.S)return emptyInteg();C.S.v06=C.S.v06||{};const v=C.S.v06;v.integ=v.integ||{};const I=v.integ;
+function emptyInteg(){return {events:[],idem:{},keys:[],hooks:[],log:[],geoCache:{},outbox:[],notify:[],gps:{},accept:[],ondemand:[],rl:{},settings:{idleMin:15,inactiveMin:30,silentMin:20,replayDays:30},terms:{current:{},history:[]}}}
+function stackReady(){return !!(C.v2||C.portal)}
+function dataComplete(S){S=S||C.S;return !!(S&&(S.drivers||[]).length&&(S.shipperLogins||[]).length)}
+function ensureStore(){if(!stackReady())return false;if(!C.S){try{C.load()}catch(e){}}if(dataComplete())return true;try{localStorage.removeItem('chainex.pilot.v03')}catch(e){}if(typeof C.reset==='function')C.reset();else if(typeof C.init==='function')C.init();return dataComplete()}
+function desk(){if(!C.S&&stackReady()){try{C.load()}catch(e){}}if(!C.S)return emptyInteg();C.S.v06=C.S.v06||{};const v=C.S.v06;v.integ=v.integ||{};const I=v.integ;
   I.events=I.events||[];I.idem=I.idem||{};I.keys=I.keys||[];I.hooks=I.hooks||[];I.log=I.log||[];
   I.geoCache=I.geoCache||{};I.outbox=I.outbox||[];I.notify=I.notify||[];I.gps=I.gps||{};
   I.accept=I.accept||[];I.ondemand=I.ondemand||[];I.rl=I.rl||{};
@@ -345,6 +349,7 @@ function offerOnDemand(wid){const od=desk().ondemand.find(x=>x.status==='offered
 
 /* ---- seed ---- */
 function seedInteg(){
+  if(stackReady())ensureStore();
   if(!C.S)return false;
   save(I=>{
     seedKeys(I);seedTerms(I);seedOnDemand(I);
@@ -367,7 +372,7 @@ function seedInteg(){
 function showTermsOverlay(kind,who,name,onOk){
   const cur=needsTerms(kind,who);if(!cur){onOk&&onOk();return false}
   if(document.getElementById('cxi-terms'))return true;
-  const el=document.createElement('div');el.id='cxi-terms';el.className='cxi-terms';
+  const el=document.createElement('div');el.id='cxi-terms';el.className='cxi-terms';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
   el.innerHTML=`<div class="cxi-terms-c"><div class="chip warn">Placeholder for legal review</div>
     <h2>${esc(cur.title)} · v${esc(cur.ver)}</h2>
     <p class="small t2">A new version is in effect. You need to accept it before continuing. This text is a placeholder and is not a real contract.</p>
@@ -376,8 +381,9 @@ function showTermsOverlay(kind,who,name,onOk){
     <label class="small"><input type="checkbox" id="cxi-ta"> I have read this placeholder and accept it for the pilot only.</label>
     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri" id="cxi-ok" disabled>Accept and continue</button></div></div>`;
   document.body.appendChild(el);
+  document.body.style.overflow='hidden';
   el.querySelector('#cxi-ta').onchange=e=>{el.querySelector('#cxi-ok').disabled=!e.target.checked};
-  el.querySelector('#cxi-ok').onclick=()=>{acceptTerms(kind,who,name);el.remove();onOk&&onOk()};
+  el.querySelector('#cxi-ok').onclick=()=>{if(!el.querySelector('#cxi-ta').checked)return;acceptTerms(kind,who,name);el.remove();document.body.style.overflow='';onOk&&onOk()};
   return true}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
