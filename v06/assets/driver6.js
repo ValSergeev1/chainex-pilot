@@ -9,8 +9,11 @@ const C=window.CX,V=window.V5,esc=V.esc,ic=V.ic,fmt=C.fmt,$=s=>document.querySel
 const LN={pd:'P&D',bulky:'Bulky',wg:'White glove',ltl:'LTL',shuttle:'Shuttle'};
 const DEMO={pd:'CX-PILOT-001',bulky:'CX-PILOT-002',wg:'CX-PILOT-003',ltl:'CX-PILOT-004',shuttle:'CX-PILOT-005'};
 const UK='cx.v06.driver';
-let ui=Object.assign({wid:null,tab:'today',plan:{mode:null,seq:[],ends:[]},sheet:'peek',autoNav:true,last:null,planOpen:false,set:{voice:true,haptics:true}},JSON.parse(localStorage.getItem(UK)||'{}'));
-const save=()=>localStorage.setItem(UK,JSON.stringify(ui));
+const UI0=()=>({wid:null,tab:'today',plan:{mode:null,seq:[],ends:[]},sheet:'peek',autoNav:true,last:null,planOpen:false,set:{voice:true,haptics:true}});
+let ui=(()=>{let o={};try{o=JSON.parse(localStorage.getItem(UK)||'{}')||{}}catch(e){o={}}const u=Object.assign(UI0(),o);const z=UI0();
+ if(!u.plan||typeof u.plan!=='object')u.plan=z.plan;['seq','ends'].forEach(k=>{if(!Array.isArray(u.plan[k]))u.plan[k]=[]});if(!u.set||typeof u.set!=='object')u.set=z.set;
+ if(!['today','route','inbox','me'].includes(u.tab))u.tab='today';return u})();
+const save=()=>{try{localStorage.setItem(UK,JSON.stringify(ui))}catch(e){}};
 const D=()=>ui.wid&&C.driver(ui.wid),W=()=>ui.wid,K=()=>C.lines[(D()||{}).line]||C.lines.pd,DC=()=>K().driver||{};
 const R=()=>C.routeAll(W()),openT=()=>R().filter(t=>C.OPEN(t)),cur=()=>openT()[0];
 const special=()=>{const d=D();return !!d&&(C.routeEditLines||['pd','bulky']).includes(d.line)};
@@ -70,7 +73,7 @@ function today(){const d=D(),a=R(),done=a.filter(t=>t.state==='completed').lengt
  ${a[0]?`<div class="dv-row" style="padding:4px 0"><span class="t3">${ic('clock',16)}</span><div class="grow"><div>First window ${fmt(a[0].window[0])}</div><div class="sub">Vehicle · ${esc(d.vehicle||'—')}</div></div></div>`:''}
  ${a.length?V.stack([[done,'var(--ok)'],[fail,'var(--bad)'],[a.length-done-fail,'var(--s3)']],200,6):''}</div>
  ${next?`<button class="dv-card" data-a="tab" data-v="route" style="text-align:left;color:inherit;cursor:pointer"><div class="dv-eyebrow">Next ${esc(word().toLowerCase())}</div><div style="display:flex;align-items:center;gap:10px"><span class="dv-n act">${no(next)}</span><div style="flex:1;min-width:0"><b style="font-size:15px">${esc(next.name)}</b><div class="t3" style="font-size:12.5px">${esc(next.address)}</div></div>${ic('chev',18)}</div></button>`:''}
- ${d.duty?(stage()==='closed'?'':`<button class="btn xl pri block" data-a="tab" data-v="route">${ic(special()&&pre()?'route':'nav',19)}${special()&&pre()?'Plan my route':pre()?'Start of day':'Continue route'}</button>`)+`<button class="dv-slide off" data-a="duty">${ic('power',20)}Go off duty</button>`:`<button class="dv-slide${stage()==='closed'?' off':''}" data-a="duty"${stage()==='closed'?' disabled':''}>${ic('power',20)}${stage()==='closed'?'Route closed for today':'Go on duty'}</button>`}
+ ${d.duty?(stage()==='closed'?'':`<button class="btn xl pri block" data-a="tab" data-v="route">${ic(special()&&pre()?'route':'nav',19)}${special()&&pre()?'Plan my route':pre()?'Start of day':'Continue route'}</button>`)+`<button class="dv-slide off" data-a="duty">${ic('power',20)}Go off duty</button>`:`<button class="dv-slide${stage()==='closed'?' off':''}" data-a="duty"${stage()==='closed'?' disabled':''}>${ic('power',20)}${stage()==='closed'?'Route closed for today':'Go on duty'}</button>${stage()==='closed'?`<button class="btn block" data-a="reset">${ic('route',16)}Start a new sample day</button>`:''}`}
  ${offers.length?`<div class="dv-eyebrow" style="margin-top:6px">Open work near you</div>${offers.map(o=>`<div class="dv-card" style="flex-direction:row;align-items:center"><div style="flex:1"><b style="font-size:14px">${esc(o.title)}</b><div class="t3" style="font-size:12px">${esc(o.zone)} · ${o.taskIds.length} stops · ${esc(o.pay)} · ${esc(o.pickup)}</div></div><button class="btn sm pri" data-a="claim" data-v="${o.id}">Claim</button></div>`).join('')}`:''}`}
 /* ---------- plan (P&D + Bulky) ---------- */
 const asg=()=>R().filter(t=>t.state==='assigned');
@@ -244,7 +247,7 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'demo':{const h=byId(DEMO[v]);if(!h.length)break;ui.wid=h[0].id;ui.tab='today';ui.plan={mode:null,seq:[],ends:[]};ui.last=null;openLoad=false;save();leg=null;fitKey='';render();toast('Demo · '+h[0].name+' · '+LN[v],'user');break}
  case 'signout':ui.wid=null;save();stopNav();render();break;
  case 'reset':if(confirm('Reset the shared sample day for every version?')){C.reset();ui.plan={mode:null,seq:[],ends:[]};ui.last=null;save();leg=null;render();toast('Sample day reset')}break;
- case 'duty':{if(!d.duty&&!elig().ok){toast('Blocked · '+elig().reasons.join(' · '),'lock');break}C.update(()=>C.ops.duty(w,!d.duty));const on=D().duty;if(on){ui.tab='route';ui.planOpen=false}save();fitKey='';render();toast(on?(special()&&pre()?'On duty · plan your route now':'You are on duty'):'You are off duty',on?'check':'power');break}
+ case 'duty':{if(!d.duty&&!elig().ok){toast('Blocked · '+elig().reasons.join(' · '),'lock');break}const was=!!d.duty;C.update(()=>C.ops.duty(w,!was));C.load();const on=!!(D()&&D().duty);if(on===was){render();toast("Couldn't save on this phone (browser storage is full). Settings → Reset sample day, then try again.",'alert');break}if(on){ui.tab='route';ui.planOpen=false}save();fitKey='';render();toast(on?(special()&&pre()?'On duty · plan your route now':'You are on duty'):'You are off duty',on?'check':'power');break}
  case 'claim':{let ok;C.update(()=>{ok=C.ops.claim(w,v)});toast(ok===false?'Blocked · '+elig().reasons.join(' · '):'Claimed · added to your route',ok===false?'lock':'check');render();break}
  case 'noticeok':C.update(()=>C.ops.noticeSeen(w));render();break;
  case 'pmode':ui.plan.mode=v||null;ui.plan.seq=[];ui.plan.ends=[];save();planScreen();break;
@@ -308,6 +311,7 @@ addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.__bip=e});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(()=>{});
 C.subscribe(()=>{if(modal||navTimer)return;const ae=document.activeElement;if(ae&&ae.matches&&ae.matches('input.in'))return;render()});
 addEventListener('v5-theme',()=>{if(D())render()});
+let fullT=0;addEventListener('cx-storage-full',()=>{if(Date.now()-fullT<8000)return;fullT=Date.now();toast("This phone's browser storage is full, so changes may not save. Settings → Reset sample day.",'alert')});
 mount();C.init();render();addEventListener('resize',()=>map&&map.resize());
 window.__v5drv={act,get ui(){return ui},render,cur,pk,R,D,get modal(){return modal}};
 })();
