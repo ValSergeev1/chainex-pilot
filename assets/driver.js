@@ -241,6 +241,7 @@ function drawSheet(){if(!sheet)return;const t=sheet.id&&C.task(sheet.id),k=K(),c
   <label class="lbl">Issue</label><select class="input" id="ritype">${['Road closed','Construction / lane closure','Low clearance / weight limit','Gate or access blocked','Flooding / hazard','Parking not possible','Bridge or ramp closed'].map(x=>`<option>${x}</option>`).join('')}</select>
   <label class="lbl">Where</label><select class="input" id="rinear"><option value="">My current location</option>${rows.map(x=>`<option value="${x.t.id}">Near ${x.n} · ${esc(x.t.name)} · ${esc(x.t.address.split(',')[0])}</option>`).join('')}</select>
   <label class="lbl">Details</label><input class="input" id="rinote" placeholder="e.g. NE 8th closed between 108th and 112th"><button class="pillbtn" style="margin-top:12px" data-a="eaddissue">Add to route changes</button><div class="hint">Sent with your route changes when you tap Submit.</div></div>`}
+ if(window.CXD3&&/^d3/.test(sheet.type))h=CXD3.sheetHTML(sheet.type);
  $('#sheet').innerHTML=h;bindSig()}
 function bindSig(){const cv=$('#sig');if(!cv)return;const x=cv.getContext('2d');x.lineWidth=2.2;x.lineCap='round';x.strokeStyle='#172b45';let dn=false;
  const P=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
@@ -274,7 +275,9 @@ const mapIsGL=()=>!!(dmap&&dmap.mode==='gl');
 function render(){C.load();const d=D();if(d)ui.line=d.line;else if(!['welcome','mywork'].includes(ui.screen))ui.screen='welcome';
  if(ui.screen==='redit'&&!canEdit()){ui.screen=d?landing():'welcome';ui.draft=null}
  const night=window.CXUI?CXUI.mode()==='night':document.documentElement.classList.contains('dark');$('#phone').classList.toggle('dark',!!night);
- const s=screens[ui.screen]?ui.screen:'welcome';const scr=$('#screen');scr.innerHTML=screens[s]();
+ const s=screens[ui.screen]?ui.screen:'welcome';const scr=$('#screen');
+ if(window.CXD3&&d&&CXD3.takes(s)){const k3='d3'+CXD3.key();if(k3!==lastScreen){scr.classList.remove('enter');void scr.offsetWidth;scr.classList.add('enter');lastScreen=k3}CXD3.paint(scr);if(window.CXUI&&CXUI.refreshTheme)CXUI.refreshTheme();return}
+ if(mapHost&&window.CXD3)CXD3.leave&&CXD3.leave();scr.innerHTML=screens[s]();
  const sk=s+(s==='route'?ui.tab:'');if(sk!==lastScreen){scr.classList.remove('enter');void scr.offsetWidth;scr.classList.add('enter');lastScreen=sk}
  if(s==='welcome'){const tb=$('#terms');tb.onchange=()=>$('#contBtn').disabled=!tb.checked}
  const slot=$('#mapslot');if(slot)mountMap(slot,s);
@@ -320,7 +323,7 @@ function doStep(id){const t=C.task(id),s=nextStep(t),d=D();if(!s)return;let data
  else if(s.kind==='form'){const r=readF(s.fields);if(r.miss){toast(r.miss+' is required');return}data=r.o}
  if(s.summary)try{data.summary=s.summary(data,t)}catch(e){}
  closeSheet();C.update(()=>{C.ops.completeStep(id,s,data,d.name);C.ops.tick(2)});const T=C.task(id);
- toast(T.state==='completed'?`${K().completeText?K().completeText(T):'Completed'} ✓ · synced to Dispatch`:`✓ ${s.label}`)}
+ toast(T.state==='completed'?`${K().completeText?K().completeText(T):'Completed'} ✓ · synced to Dispatch`:`✓ ${s.label}`);if(window.CXD3)CXD3.afterStep(id)}
 function openNav(id){const t=C.task(id),d=D();if(!t||!d||!window.CXNav)return;const hub=(C.S.hubs[d.hub]||{}).ll;const from=(d.loc&&d.loc.length===2)?d.loc:hub;
  CXNav.open({host:$('#phone'),from,to:t.ll,title:`${no(t)} · ${t.name}`,address:t.address,label:String(no(t)).replace(/\D/g,'')||'★',speed:3,
   onMove:ll=>{C.update(()=>{const x=C.driver(W());if(x)x.loc=ll})},
@@ -336,7 +339,7 @@ function act(a,v,el){const d=D(),w=W();
  case 'groupscan':{let n;C.update(()=>{n=C.ops.loadScan(w,v.split(','))});toast(`✓ ${n} loaded`);break}
  case 'startroute':C.update(()=>{const D2=C.driver(w);if(D2.route.checkin!=='arrived')C.ops.checkin(w,'arrived');if(DC().skipLoad)C.routeAll(w).forEach(t=>t.items.forEach(p=>p.loaded=true));C.ops.startRoute(w)});ui.tab='manifest';go('route');toast(ui.line==='shuttle'?'Shift started · next trip ready':'Route started · drive safe');break;
  case 'tab':if(v==='edit'){ui.edFrom='route';go('redit');break}ui.tab=v;saveUI();render();break;
- case 'step':{const t=C.task(v),s=nextStep(t);if(!s)break;if(s.kind==='confirm'){C.update(()=>{C.ops.completeStep(v,s,{},d.name);C.ops.tick(s.effect==='active'?3:2)});toast(s.effect==='active'?`Dispatch notified · ${s.label}`:`✓ ${s.label}`)}else openSheet('step',v);break}
+ case 'step':{const t=C.task(v),s=nextStep(t);if(!s)break;if(s.kind==='confirm'){C.update(()=>{C.ops.completeStep(v,s,{},d.name);C.ops.tick(s.effect==='active'?3:2)});toast(s.effect==='active'?`Dispatch notified · ${s.label}`:`✓ ${s.label}`);if(window.CXD3)CXD3.afterStep(v)}else openSheet('step',v);break}
  case 'dostep':doStep(sheet.id);break;
  case 'stopscan':{const inp=$('#sbc'),val=inp&&inp.value.trim();let id=null;C.update(S=>{const T=C.task(sheet.id),s=nextStep(T);const p=val?T.items.find(p=>p.id===val):T.items.find(p=>!p.stopScanned);if(p&&!p.stopScanned){p.stopScanned=true;p.events.push({type:(s&&s.itemEvent)||'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name});id=p.id}});toast(id?`✓ ${id}`:val?`${val} doesn't belong here`:'All scanned');drawSheet();break}
  case 'cap':cap.photos[v]=true;drawSheet();break;
@@ -344,7 +347,7 @@ function act(a,v,el){const d=D(),w=W();
  case 'clrsig':{const cv=$('#sig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cap.sig=false}break;
  case 'stop':if(el&&el.closest('.reord'))break;openSheet('stop',v);break;
  case 'cant':openSheet('cant',v);break;
- case 'submitcant':{const r=$('#cr').value,n=$('#cn').value;if(!r||!n){toast('Choose a reason and next action');break}const id=sheet.id,notes=$('#cnotes').value;closeSheet();C.update(()=>{C.ops.fail(id,r,n,notes,d.name);C.ops.tick(3)});const t=C.task(id);toast(C.OPEN(t)?(t.tags.includes('DELAY')?'Delay logged · Dispatch notified':'Logged · moved to end of route'):t.tags.includes('RTS')?'Logged · return to shipper':'Logged · Dispatch notified');break}
+ case 'submitcant':{const r=$('#cr').value,n=$('#cn').value;if(!r||!n){toast('Choose a reason and next action');break}const id=sheet.id,notes=$('#cnotes').value;closeSheet();C.update(()=>{C.ops.fail(id,r,n,notes,d.name);C.ops.tick(3)});const t=C.task(id);toast(C.OPEN(t)?(t.tags.includes('DELAY')?'Delay logged · Dispatch notified':'Logged · moved to end of route'):t.tags.includes('RTS')?'Logged · return to shipper':'Logged · Dispatch notified');if(window.CXD3)CXD3.afterStep(id,true);break}
   case 'up_legacy':{C.update(S=>{const open=C.routeAll(w).filter(t=>t.state==='assigned');const i=open.findIndex(t=>t.id===v),j=a==='up'?i-1:i+1;if(j<0||j>=open.length)return;const s1=open[i].seq;open[i].seq=open[j].seq;open[j].seq=s1;open[i].timeline.push({at:S.clock,text:`Driver moved to ${word().toLowerCase()} ${open[i].seq+1}`,actor:d.name})});break}
  case 'reorder':ui.reorder=!ui.reorder;saveUI();render();break;
  case 'repeat':{if(!v)break;let id;C.update(()=>{id=DC().repeat(D(),C.S,v)});const t=id&&C.task(id);toast(t?`Repeat trip added · departs ${fmt(t.x.dep)} · trailer ${t.x.trailer} · seal ${t.x.seal}`:'Could not add trip');break}
@@ -425,10 +428,12 @@ document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('
 $('#pback').onclick=closeSheet;
 $('#restart').onclick=e=>{e.preventDefault();ui.screen='welcome';ui.wid=null;saveUI();closeSheet();render()};
 $('#resetAll').onclick=e=>{e.preventDefault();localStorage.removeItem(UIK);C.reset();location.reload()};
+window.__drvI={get ui(){return ui},save:saveUI,D,R,K,DC,W,openT,cur,nextStep,stepsOf,act,openSheet,closeSheet,get sheet(){return sheet},toast,go,render,no,items,unitW,hubName,hubAddr,elig,canEdit,settings,I,fx,stLabel,landing};
 C.subscribe(()=>{const ae=document.activeElement;if(ae&&$('#phone').contains(ae)&&ae.matches('input,textarea,select'))return;render()});
 window.addEventListener('cx-theme',()=>render());
 C.init();
 const qp=new URLSearchParams(location.search);const qid=qp.get('id')||(qp.get('line')&&PILOT_IDS[qp.get('line')]);
+if(qp.get('classic')==='1')ui.classic=true;else if(qp.get('v3')==='1')ui.classic=false;
 if(qid){const h=byId(qid);if(h.length){ui.lastId=qid.toUpperCase();ui.wid=h[0].id;ui.line=h[0].line;ui.screen=landing();ui.draft=null}}
 if(qp.get('screen')&&(ui.wid||qp.get('screen')==='welcome')){ui.screen=qp.get('screen');if(qp.get('tab'))ui.tab=qp.get('tab')}
 /* theme query is handled by CXUI (?theme=day|night|auto) */

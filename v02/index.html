@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script>if(/\/$/.test(location.pathname))location.replace("start.html")</script><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230f1b2d%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-family=%22system-ui%22 font-weight=%22800%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%235b93ea%22%3EEx%3C/text%3E%3C/svg%3E"><title>ChainEx Dispatch · Pilot</title>
+<link rel="stylesheet" href="assets/vendor/maplibre-gl.css"><link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/desk.css">
+<link rel="stylesheet" href="assets/theme.css"><link rel="stylesheet" href="assets/staff.css"><script src="assets/cx-ui.js"></script>
+</head><body>
+<header class="topbar on-dark">
+  <a class="wordmark" href="start.html" title="Pilot home">Chain<span class="ex">Ex</span></a>
+  <nav class="topnav">
+    <a class="tn" href="dashboard.html">Dashboard</a>
+    <a class="tn active" href="index.html">Dispatch</a>
+    <a class="tn" href="driver.html" target="_blank" rel="noopener">Driver app ↗</a>
+    <a class="tn" href="shipper.html">Shipper view</a>
+    <a class="tn" href="workspaces.html">Workspaces</a>
+  </nav>
+  <div class="lineswitch" id="lineSwitch" role="tablist" aria-label="Service line"></div>
+  <div class="tb-right">
+    <span class="pilot-badge">Pilot · Sample data</span>
+    <span class="clock" id="clock"></span><button class="tb-btn" id="tick" title="Advance the sample clock 15 minutes">+15 min</button>
+    <button class="tb-btn" id="toolsBtn" title="Scenarios, simulation, export/import">Test tools</button>
+    <button class="tb-btn" id="activityBtn">Activity <span id="actCount" class="cnt"></span></button>
+    <button class="tb-btn" id="themeBtn" title="Appearance: Auto / Day / Night">◐</button>
+  </div>
+</header>
+<main class="wrap">
+  <section class="pagehead card">
+    <div class="ph-title"><div class="eyebrow" id="phEyebrow">Operations</div><h1 id="phTitle">Dispatch</h1><div class="muted small" id="phSub"></div></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="ph-date"><b id="phDate">Nov 12, 2026</b><span class="muted tiny">Pacific time</span></div>
+  </section>
+  <div id="sosBar"></div>
+  <div class="boardbar">
+    <div class="seg" id="viewSeg"></div>
+    <div class="actions" id="lineActions"><button class="btn" data-import="1">Import orders / manifest</button><button class="btn" id="newTaskBtn">+ New task</button><button class="btn" id="fitBtn" title="Zoom to fit (Z)">Zoom to fit</button><button class="btn" id="optAllBtn">Optimize</button><button class="btn primary" id="autoBtn">Auto-assign</button><button class="btn" id="walkBtn" hidden>Walkthrough: assign a P&amp;D route</button></div>
+  </div>
+  <div class="ovview" id="ovView" hidden></div>
+  <div class="board" id="board">
+    <aside class="side card">
+      <div class="side-head"><div><h3>Dispatch queue</h3><div class="muted tiny">Unassigned → Teams → Drivers</div></div><span class="count" id="qCount"></span></div>
+      <div class="side-tools"><input class="input" id="search" placeholder="Search task, stop, driver, PRO, seal"><select class="input" id="sort"><option value="before">Complete before</option><option value="name">Destination A–Z</option><option value="created">Creation time</option><option value="manual">Manual</option></select></div>
+      <div class="side-list" id="queue"></div>
+      <div class="side-foot">
+        <div class="eyebrow" style="margin-bottom:6px">Shift breakdown</div>
+        <div class="breakdown" id="breakdown"></div>
+        <div class="filters" id="filters"></div>
+      </div>
+    </aside>
+    <section class="mapcard card" id="mapCard">
+      <div class="mc-head"><div><h3>Live map</h3><div class="muted tiny" id="mapSub"></div></div><div class="mc-tools"><select class="input sm" id="contractFilter"></select></div></div>
+      <div class="mapbox"><div id="map"></div>
+        <div class="legend"><span class="status st-unassigned">Unassigned</span><span class="status st-assigned" style="color:var(--st-assigned)">Assigned</span><span class="status st-active">En route</span><span class="status st-completed">Completed</span><span class="status st-failed">Exception</span><span class="lg-drv">Driver</span></div>
+      </div>
+    </section>
+    <section class="tablecard card" id="tableCard" hidden></section>
+    <section class="tripcard card" id="tripCard" hidden></section>
+  </div>
+  <div class="mfview" id="mfView" hidden></div>
+  <div class="setview" id="setView" hidden></div>
+  <div class="ptview" id="ptView" hidden></div>
+  <footer class="foot"><span>ChainEx Dispatch · Pilot</span><span>Sample tasks, drivers, partners and manifests · No live tracking · Open the Driver app and Dashboard in other tabs of this browser to see changes sync</span></footer>
+</main>
+<div class="backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer"></aside>
+<script src="assets/vendor/maplibre-gl.js"></script>
+<script src="assets/store.js"></script><script src="assets/geo.js"></script>
+<script src="assets/lines/pd.js"></script><script src="assets/lines/bulky.js"></script><script src="assets/lines/wg.js"></script><script src="assets/lines/ltl.js"></script><script src="assets/lines/shuttle.js"></script>
+<script src="assets/session.js"></script><script src="assets/partners.js"></script><script src="assets/fieldops.js"></script><script src="assets/v02.js"></script><script src="assets/dlink.js"></script>
+<script src="assets/map.js"></script><script src="assets/desk.js"></script><script src="assets/staff.js"></script><script src="assets/desk-v02.js"></script><script src="assets/desk-tickets.js"></script>
+</body></html>

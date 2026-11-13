@@ -1,6 +1,6 @@
 /* ChainEx Pilot · shared state engine. Service lines plug in via CX.registerLine(config) (assets/lines/*.js). Sample data only. */
 (function(){
-const KEY='chainex.pilot.v02',VERSION=7;
+const KEY='chainex.pilot.v03',VERSION=7;
 const LINE_ORDER=['pd','bulky','wg','ltl','shuttle'];
 const lines={};const modules=[];
 const fmt=m=>{if(m==null||isNaN(m))return '—';m=Math.round(m);let h=Math.floor(m/60)%24,mm=((m%60)+60)%60,ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(mm).padStart(2,'0')} ${ap}`};

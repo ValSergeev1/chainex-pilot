@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230f1b2d%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-family=%22system-ui%22 font-weight=%22800%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%235b93ea%22%3EEx%3C/text%3E%3C/svg%3E"><title>ChainEx Dashboard · Pilot</title>
+<link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/desk.css"><link rel="stylesheet" href="assets/dashboard.css">
+<link rel="stylesheet" href="assets/theme.css"><script src="assets/cx-ui.js"></script>
+</head><body class="dash-page" data-design="a">
+<header class="topbar on-dark">
+  <a class="wordmark" href="start.html" title="Pilot home">Chain<span class="ex">Ex</span></a>
+  <nav class="topnav"><a class="tn active" href="dashboard.html">Dashboard</a><a class="tn" href="index.html">Dispatch</a><a class="tn" href="workspaces.html">Workspaces</a><a class="tn" href="driver.html" target="_blank" rel="noopener">Driver app ↗</a><a class="tn" href="shipper.html">Shipper view</a></nav>
+  
+  <div class="tb-right">
+    <div class="design-tg" title="Compare dashboard designs"><a href="dashboard.html" id="tgA" class="on">Design A</a><a href="dashboard-alt.html" id="tgB" class="">Design B</a></div>
+    <label class="asrole">Acting as <select id="asSel"></select></label>
+    <span class="pilot-badge">Pilot · Sample data</span><span class="clock" id="clock"></span>
+  </div>
+</header>
+<div class="dash"><nav id="sideNav" aria-label="Dashboard sections"></nav><main id="main"></main></div>
+
+<script src="assets/store.js"></script><script src="assets/geo.js"></script>
+<script src="assets/lines/pd.js"></script><script src="assets/lines/bulky.js"></script><script src="assets/lines/wg.js"></script><script src="assets/lines/ltl.js"></script><script src="assets/lines/shuttle.js"></script>
+<script src="assets/partners.js"></script><script src="assets/fieldops.js"></script><script src="assets/session.js"></script><script src="assets/v02.js"></script><script src="assets/dlink.js"></script><script src="assets/dashboard.js"></script>
+<script>/* keep the current section when switching designs */document.querySelectorAll('.design-tg a').forEach(a=>a.addEventListener('click',()=>{a.href=a.getAttribute('href').split('#')[0]+location.hash}));</script>
+</body></html>

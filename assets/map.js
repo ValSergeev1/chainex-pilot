@@ -23,7 +23,7 @@ CXMap.prototype._init=function(keep){
     const to=setTimeout(()=>{if(this.mode==='pending')fallback('style load timeout')},9000);
     this.map.on('load',()=>{clearTimeout(to);this.mode='gl';this.map.addSource('routes',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
       this.map.addLayer({id:'routes-casing',type:'line',source:'routes',paint:{'line-color':'#ffffff','line-width':['case',['get','sel'],7,5],'line-opacity':.9},layout:{'line-join':'round','line-cap':'round'}});
-      this.map.addLayer({id:'routes',type:'line',source:'routes',paint:{'line-color':['case',['get','sel'],'#1f4f9a','#6f97d6'],'line-width':['case',['get','sel'],4,2.5],'line-opacity':['case',['get','sel'],1,.75]},layout:{'line-join':'round','line-cap':'round'}});
+      this.map.addLayer({id:'routes',type:'line',source:'routes',paint:{'line-color':this.opts.lineColor?['case',['get','sel'],this.opts.lineColor,this.opts.lineColor2||'#c3cbf7']:['case',['get','sel'],'#1f4f9a','#6f97d6'],'line-width':['case',['get','sel'],4,2.5],'line-opacity':['case',['get','sel'],1,.75]},layout:{'line-join':'round','line-cap':'round'}});
       this.applyTheme();if(keep)this._fitDone=true;this.render();this.opts.onStyle&&this.opts.onStyle(this)});
     this.map.on('click',e=>{this.opts.onMap&&this.opts.onMap([+e.lngLat.lng.toFixed(5),+e.lngLat.lat.toFixed(5)])});
     this.map.on('error',e=>{if(this.mode==='pending')fallback(e&&e.error&&e.error.message||'map error')});
@@ -44,7 +44,7 @@ CXMap.prototype.renderSVG=function(d){const el=this.el;el.innerHTML='';const W=e
   let x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0])),y0=Math.min(...pts.map(p=>p[1])),y1=Math.max(...pts.map(p=>p[1]));const pad=50,sx=(W-2*pad)/Math.max(1e-4,(x1-x0)*0.674),sy=(H-2*pad)/Math.max(1e-4,(y1-y0));const s=Math.min(sx,sy);
   const P=ll=>[pad+((ll[0]-x0)*0.674)*s+((W-2*pad)-(x1-x0)*0.674*s)/2,H-pad-(ll[1]-y0)*s-((H-2*pad)-(y1-y0)*s)/2];
   const dark=this.styleKey==='night'||(this.styleKey!=='contrast'&&document.documentElement.classList.contains('dark'));
-  const grid=dark?'#1c3150':'#d5deea',land=dark?'#0a1628':'#e8eef5',route=l=>l.sel?(dark?'#4c95ff':'#1f4f9a'):(dark?'#3d6cac':'#6f97d6');
+  const grid=dark?'#1c3150':'#d5deea',land=dark?'#0a1628':'#e8eef5',route=l=>this.opts.lineColor?(l.sel?this.opts.lineColor:(this.opts.lineColor2||'#c3cbf7')):l.sel?(dark?'#4c95ff':'#1f4f9a'):(dark?'#3d6cac':'#6f97d6');
   const wrap=document.createElement('div');wrap.className='map-fallback';let svg=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="${grid}" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="${land}"/><rect width="100%" height="100%" fill="url(#g)"/>`;
   (d.lines||[]).forEach(l=>{if(l.coords.length>1)svg+=`<polyline points="${l.coords.map(c=>P(c).join(',')).join(' ')}" fill="none" stroke="${route(l)}" stroke-width="${l.sel?4:2.5}" stroke-linejoin="round" opacity="${l.sel?1:.75}"/>`});
   svg+='</svg>';wrap.innerHTML=svg+'<div class="note">'+(this.fallbackWhy==='schematic'?'Schematic map style':'Map tiles unavailable · schematic view')+'</div>';el.appendChild(wrap);

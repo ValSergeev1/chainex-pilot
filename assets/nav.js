@@ -16,7 +16,7 @@ let cur=null;
 function close(){if(!cur)return;clearInterval(cur.timer);try{cur.map&&cur.map.map&&cur.map.map.remove()}catch(e){}cur.el.remove();const c=cur;cur=null;c.o.onClose&&c.o.onClose()}
 async function open(o){close();const host=o.host||document.body;const el=document.createElement('div');el.className='cxnav';el.setAttribute('role','dialog');el.setAttribute('aria-label','In-app navigation');
   el.innerHTML=`<div class="nv-ban"><div class="nv-arw">↑</div><div class="nv-t"><b class="nv-d">—</b><span class="nv-i">Finding the best route…</span></div><button class="nv-x" data-nv="exit" aria-label="Exit navigation">✕</button></div><div class="nv-then"></div><div class="nv-map"></div>
-  <div class="nv-btns"><button data-nv="recenter" title="Recenter">◎</button><button data-nv="follow" class="on" title="Follow my position">➤</button><button data-nv="sim" title="Simulate driving (pilot)">▶</button></div>
+  <div class="nv-btns"><button data-nv="recenter" title="Recenter">◎</button><button data-nv="follow" class="on" title="Follow my position">➤</button><button data-nv="sim" title="Simulate driving (pilot)">▶</button><button data-nv="flat" title="Top-down view (see house numbers)" style="font-size:12px;font-weight:800">2D</button></div>
   <div class="nv-sheet"><div class="nv-eta"><b class="nv-eta-t">—</b><span class="nv-rem">—</span></div><div class="nv-dest"><b>${esc(o.title||'Stop')}</b><span>${esc(o.address||'')}</span></div><div class="nv-src"></div><div class="nv-acts"><button class="nv-arrive" data-nv="arrive">Arrive at stop</button></div></div>`;
   host.appendChild(el);cur={el,o,follow:true,sim:false,i:0,timer:null};const C=cur;
   const map=new CXMap(el.querySelector('.nv-map'),{controls:false,center:o.from,zoom:15,pad:()=>({top:120,left:30,right:30,bottom:170})});C.map=map;
@@ -25,6 +25,7 @@ async function open(o){close();const host=o.host||document.body;const el=documen
   el.querySelector('.nv-src').textContent=rt.src==='road'?'Road route · public routing service':'Offline route · straight line with simulated turns';el.dataset.src=rt.src;
   paint(true);el.addEventListener('click',ev=>{const b=ev.target.closest('[data-nv]');if(!b)return;const a=b.dataset.nv;
     if(a==='exit')close();if(a==='recenter'){C.follow=true;el.querySelector('[data-nv=follow]').classList.add('on');paint(true)}if(a==='follow'){C.follow=!C.follow;b.classList.toggle('on',C.follow)}
+    if(a==='flat'){C.flat=!C.flat;b.classList.toggle('on',C.flat);b.textContent=C.flat?'3D':'2D';paint(false)}
     if(a==='sim'){C.sim=!C.sim;b.textContent=C.sim?'❚❚':'▶';b.classList.toggle('on',C.sim)}
     if(a==='arrive'){const cb=o.onArrive;C.o.onClose=null;close();cb&&cb()}});
   C.timer=setInterval(()=>{if(!C.sim)return;C.i=Math.min(C.path.length-1,C.i+(o.speed||6));paint(false);if(o.onMove&&C.i%30<(o.speed||6))o.onMove(C.path[C.i]);if(C.i>=C.path.length-1){C.sim=false;const sb=el.querySelector('[data-nv=sim]');if(sb){sb.textContent='▶';sb.classList.remove('on')}}},250);
@@ -35,9 +36,9 @@ function paint(refit){const C=cur;if(!C||!C.path)return;const el=C.el,pos=C.path
   el.querySelector('.nv-arw').textContent=st.arrow;el.querySelector('.nv-d').textContent=rem<25?'Arrived':fmtD(toMan);el.querySelector('.nv-i').textContent=rem<25?'You have arrived at the stop':st.text;
   el.querySelector('.nv-then').textContent=next&&rem>=25?'Then '+next.arrow+' '+next.text:'';el.querySelector('.nv-then').hidden=!(next&&rem>=25);
   const min=Math.max(1,Math.round(rem/9.5/60));const clock=window.CX&&CX.S?CX.S.clock:null;el.querySelector('.nv-eta-t').textContent=clock!=null?CX.fmt(clock+min):min+' min';el.querySelector('.nv-rem').textContent=`${min} min · ${fmtD(rem)}`;
-  el.classList.toggle('near',rem<60);el.dataset.remaining=Math.round(rem);
+  el.classList.toggle('near',rem<60);if(C.o.autoArrive&&rem<25&&!C.autoFired){C.autoFired=true;setTimeout(()=>{if(cur===C){const cb=C.o.onArrive;C.o.onClose=null;close();cb&&cb()}},C.o.arriveDelay||900)}el.dataset.remaining=Math.round(rem);
   const ahead=C.path.slice(C.i);C.map.set({pins:[{id:'dest',ll:C.o.to,state:'assigned',label:C.o.label||'★',sel:true,title:C.o.title}],lines:[{coords:ahead.length>1?ahead:[pos,C.o.to],sel:true}],drivers:[{id:'me',ll:pos,name:'You'}],fitTo:refit?[pos,C.o.to]:null,refit:!!refit});
-  if(C.follow&&!refit&&C.map.mode==='gl'){const nb=C.path[Math.min(C.path.length-1,C.i+3)];try{C.map.map.easeTo({center:pos,zoom:16.2,bearing:hav(pos,nb)>1?bearing(pos,nb):C.map.map.getBearing(),pitch:45,duration:240})}catch(e){}}}
+  if(C.follow&&!refit&&C.map.mode==='gl'){const nb=C.path[Math.min(C.path.length-1,C.i+3)];try{C.map.map.easeTo({center:pos,zoom:16.2,bearing:hav(pos,nb)>1?bearing(pos,nb):C.map.map.getBearing(),pitch:C.flat?0:45,duration:240})}catch(e){}}}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const css=`.cxnav{position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;background:#0b1420;border-radius:inherit;overflow:hidden;animation:nvIn .22s ease}
 @keyframes nvIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
