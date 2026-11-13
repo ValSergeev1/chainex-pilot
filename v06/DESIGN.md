@@ -1,10 +1,10 @@
-# ChainEx V05 · "Graphite" design system
+# ChainEx V06 · "Signal" design system
 
-V05 is one design system for every ChainEx surface: dispatch, dashboard, the driver app (all five lines), DSP/carrier/driver/warehouse portals, shipper, staff workspaces (onboarding, compliance, payments, scorecards, admin, sales, bids, architecture) and the pilot start page. It aims for "super tech-advanced, minimal": near-black graphite and crisp white, one electric accent, hairlines instead of boxes, dense but calm data, keyboard-first on desktop, thumb-first on phones.
+V06 is one design system for every ChainEx surface: dispatch, dashboard, the driver app (all five lines), DSP/carrier/driver/warehouse portals, shipper, staff workspaces (onboarding, compliance, payments, scorecards, admin, sales, bids, architecture) and the pilot start page. It aims for "super tech-advanced, minimal": near-black graphite and crisp white, one electric accent, hairlines instead of boxes, dense but calm data, keyboard-first on desktop, thumb-first on phones.
 
 ## 1. What we studied (public sources) and what we took
 
-| Product | What we looked at | What V05 takes |
+| Product | What we looked at | What V06 takes |
 |---|---|---|
 | **Onfleet** | Dispatcher dashboard: map + one sidebar (Unassigned → Teams → Drivers with ordered tasks), Table view with batch actions, "Z" zoom-to-fit, slide-out Command Center map ([BloomNation help, Oct 2026](https://help.bloomnation.com/articles/Your-Delivery-Tracking-Dashboard); [Onfleet Q4 2025 update](https://onfleet.com/blog/onfleet-product-update-q4-2025/)) | Map-first dispatch with ONE sidebar ordered Unassigned → Exceptions → Drivers; Map/Table toggle; Z = fit; unique color per driver route |
 | **Jitsu** | Dispatch + Shipper "Client Control Tower" (searchable delivery DB, exceptions reports, batch upload), driver app with load-out label scan and driver-reorderable stops ([gojitsu.com/technology](https://gojitsu.com/technology); [Control Tower](https://gojitsu.com/news-insights/jitsu-client-control-tower-total-visibility-real-time-insights)) | Shipper portal = control tower (search first); driver app scan-to-load and own stop order |
@@ -21,39 +21,41 @@ V05 is one design system for every ChainEx surface: dispatch, dashboard, the dri
 ## 2. Principles
 
 1. **One screen, layered.** Map or data plane at the back; sheets, inspectors and palettes slide over it. No page jumps inside a workflow (the driver never leaves the map while delivering).
-2. **Color means something.** Neutral graphite everywhere; the accent is only for the primary action, selection and the active route. Status colors only for status.
+2. **Color means something.** Neutral navy-gray everywhere; the accent is only for the primary action, selection and the active route. Status colors only for status.
 3. **Dense but calm.** 13–14 px data type with tabular numbers, 32–36 px rows, hairline separators, generous outer margins.
 4. **Next action first.** Every surface opens on what needs a human (exceptions, tickets, expiring documents), then the rest.
 5. **Keyboard-first desktop, thumb-first phone.** ⌘K + single-key shortcuts on desktop; bottom tabs, bottom sheets and 48 px targets in the thumb zone on phones.
-6. **Original ChainEx.** Our own wordmark, "Volt" accent, icon set and copy. No competitor assets.
+6. **Original ChainEx.** Our own wordmark, ChainEx blue accent, icon set and copy. No competitor assets.
 
 ## 3. Tokens
 
-Three inputs (Linear-style): **base** (graphite), **accent** (ChainEx Volt), **contrast**. All other tokens derive from them.
+Three inputs (Linear-style): **base** (ChainEx navy), **accent** (ChainEx Volt), **contrast**. All other tokens derive from them.
 
 | Token | Night (default after sunset) | Day |
 |---|---|---|
-| `--bg` page | `#0B0C0E` | `#FAFAFB` |
-| `--bg-2` sunken / sidebar | `#08090A` | `#F3F4F6` |
-| `--s1` surface | `#111316` | `#FFFFFF` |
-| `--s2` raised / hover | `#171A1E` | `#F5F6F8` |
-| `--s3` active | `#1E2227` | `#ECEEF1` |
-| `--line` hairline | `rgba(255,255,255,.08)` | `rgba(10,12,16,.09)` |
-| `--line-2` strong hairline | `rgba(255,255,255,.14)` | `rgba(10,12,16,.16)` |
-| `--t1` primary text | `#EDEEF0` | `#0B0C0E` |
-| `--t2` secondary | `#A1A6AE` | `#565C66` |
-| `--t3` tertiary | `#6C717A` | `#8A9099` |
-| `--acc` ChainEx Volt | `#4C7DFF` | `#2A5BFF` |
-| `--acc-2` accent glow/tint | `rgba(76,125,255,.16)` | `rgba(42,91,255,.10)` |
-| `--ok` | `#3DD68C` | `#14965A` |
+| `--bg` page | `#08111C` | `#F7F9FC` |
+| `--bg-2` sunken / rail | `#060D16` | `#EEF3FA` |
+| `--s1` surface | `#0D1828` | `#FFFFFF` |
+| `--s2` raised / hover | `#122036` | `#F3F6FB` |
+| `--s3` active | `#192A43` | `#E7EDF6` |
+| `--line` hairline | `rgba(140,175,220,.11)` | `rgba(22,48,80,.10)` |
+| `--line-2` strong hairline | `rgba(140,175,220,.20)` | `rgba(22,48,80,.18)` |
+| `--t1` primary text | `#E7EEFA` | `#0F2440` |
+| `--t2` secondary | `#9AACC4` | `#4E6280` |
+| `--t3` tertiary | `#677B96` | `#8495AD` |
+| `--acc` ChainEx blue | `#3B82F6` | `#2E74E6` |
+| `--acc-2` accent tint | `rgba(59,130,246,.18)` | `rgba(46,116,230,.10)` |
+| `--ok` | `#3DD68C` | `#12976A` |
 | `--warn` | `#F5B544` | `#B7700A` |
 | `--bad` | `#FF5C64` | `#D9343D` |
-| `--vio` (DSP / partner) | `#A48BFF` | `#6E4FE0` |
-| `--cyan` (live / GPS) | `#3FD0E0` | `#0F8FA0` |
+| `--cyan` (live / GPS) | `#5EC8E8` | `#1B9DC2` |
+| brand mark | `#25486F → #3B82F6` | `#1E3860 → #2E74E6` |
+
+**Pairs with Website V05.** The palette is the Website V05 family (navy `#15253c / #1e3860 / #25486f`, blue `#2e74e6 / #3b82f6`, accents `#6aa8f7 / #5ec8e8`, day ink `#163050`, night bg `#08111c`), lifted slightly brighter for app surfaces. Every V06 "Website" link goes to `site-v05/`, sign-in to the shared `auth/signin.html`. Maps are recolored at runtime to the same navy (night) and blue-gray (day).
 
 Status chips use a 12–16% tint of the status color as background with the full color as text (≥ 4.5:1 on both themes).
 
-**Auto day/night** follows Seattle sunrise/sunset (Pacific time); Day and Night can be locked. Night is graphite (not pure black) to avoid halation; Day is crisp white with grey sidebar.
+**Auto day/night** follows Seattle sunrise/sunset (Pacific time); Day and Night can be locked. Night is deep navy (not pure black) to avoid halation; Day is crisp white with grey sidebar.
 
 ## 4. Typography
 
@@ -93,3 +95,12 @@ App shell (rail, top bar, bottom tabs, More sheet) · Command palette (⌘K, gro
 ## 10. Accessibility
 
 Text ≥ 4.5:1, icons/large ≥ 3:1 on both themes; focus ring 2 px Volt + 2 px offset; targets ≥ 44 px on touch; status never by color alone (label + icon); reduced motion respected.
+
+
+## Implementation (V06)
+
+- `v06/assets/v06.css` + `v06.js`: tokens, shell (rail, top bar, phone tabs, More sheet), ⌘K palette, panels, toasts, charts, MapLibre wrapper, link router (pages V06 does not rebuild go to the pilot root; `site/` goes to `site-v05/`).
+- Fully rebuilt in V06: Start, Dispatch, Control tower (dashboard), Driver app (installable PWA).
+- Staff workspaces (onboarding, compliance, payments, scorecards, admin, sales, bids, architecture, workspaces) run their existing working modules inside the V06 shell via `v06-staff.js` (same `CXStaff` API) and the `v06-legacy.css` bridge.
+- Portals and field pages (driver/DSP/carrier portals, shipper, DSP desk, DSP fleet, warehouse portal, warehouse supervisor, warehouse worker) are V06 reskins of the V03 modules (`v06-overlay.css` + `v06-legacy.css` + floating V06 pill).
+- All pages share the pilot store (`assets/store.js`, localStorage + BroadcastChannel), so V06, V03 and the driver app stay in sync.

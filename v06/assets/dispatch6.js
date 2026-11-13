@@ -1,4 +1,4 @@
-/* ChainEx V05 · Dispatch. Map-first with ONE sidebar (Needs you → Unassigned → Drivers), Map/Table toggle, right inspector,
+/* ChainEx V06 · Dispatch. Map-first with ONE sidebar (Needs you → Unassigned → Drivers), Map/Table toggle, right inspector,
    phone: full-screen map + 3-detent bottom sheet. Logic reuses the shared ops layer (assign + eligibility gate, ticketDecide,
    reviewRouteEdit, reoptPreview/Apply staff-only, msgSend, mergeRoute, redeliver). Shared state: syncs with every version + driver app. */
 (function(){
@@ -8,7 +8,7 @@ let scope,actor,blocked;
 function loadScope(){blocked=false;scope={lines:C.LINE_ORDER.slice(),all:true,role:'Ops manager',reopt:true};actor='Dispatcher';if(!window.CXS)return;const s=CXS.get&&CXS.get();if(s&&s.kind!=='staff'){blocked=`Signed in as ${s.role||s.kind}. Dispatch is for ChainEx staff.`;return}
  const st=CXS.staff();if(!CXS.can('dispatch',st)){blocked=`${st.role} can't open Dispatch.`;return}scope={lines:CXS.lines(st),all:CXS.can('dispatch.all',st),role:st.role,name:st.name,reopt:CXS.can('reopt',st)};actor=st.name&&st.name!==st.role?`${st.name} (${st.role})`:st.role}
 loadScope();
-const UK='cx.v05.dispatch';let ui=Object.assign({line:'all',view:'map',sel:null,checked:[],q:'',sheet:'peek',seg:'needs',open:{},kb:-1},JSON.parse(localStorage.getItem(UK)||'{}'));ui.checked=[];
+const UK='cx.v06.dispatch';let ui=Object.assign({line:'all',view:'map',sel:null,checked:[],q:'',sheet:'peek',seg:'needs',open:{},kb:-1},JSON.parse(localStorage.getItem(UK)||'{}'));ui.checked=[];
 const save=()=>{const {checked,...r}=ui;localStorage.setItem(UK,JSON.stringify(r))};
 const mob=()=>matchMedia('(max-width:899px)').matches;
 const lines=()=>ui.line==='all'?scope.lines:[ui.line].filter(l=>scope.lines.includes(l));
@@ -74,7 +74,7 @@ function bulkHTML(){return ui.checked.length?`<div class="d5-bulk glass"><span c
 function mapData(){const ds=drivers().filter(d=>!d.dspSlot),pins=[],lns=[];const s=ui.sel;let selD=s&&s.t==='drv'?C.driver(s.id):s&&s.t==='stop'&&C.task(s.id)&&C.task(s.id).workerId?C.driver(C.task(s.id).workerId):null;
  ds.forEach(d=>{const r=C.route(d.id);if(r.length&&(!selD||selD.id===d.id))lns.push({coords:selD?[d.loc,...r.map(t=>t.ll)]:r.map(t=>t.ll),color:V.hue(d.id),width:selD?3.5:1.6,opacity:selD?1:.55})});
  if(selD){C.routeAll(selD.id).forEach((t,i)=>pins.push({ll:t.ll,label:String(i+1),color:t.state==='completed'?'var(--ok)':t.state==='failed'?'var(--bad)':V.hue(selD.id),id:t.id,cls:s&&s.t==='stop'&&s.id===t.id?'sel':'',title:t.name,onClick:p=>act('stop',p.id)}))}
- else C.S.tasks.filter(t=>t.state==='unassigned'&&inL(t)).slice(0,200).forEach(t=>pins.push({ll:t.ll,label:'',color:'#8A9099',id:t.id,title:t.name+' · unassigned',onClick:p=>act('stop',p.id),cls:'u'}));
+ else C.S.tasks.filter(t=>t.state==='unassigned'&&inL(t)).slice(0,200).forEach(t=>pins.push({ll:t.ll,label:'',color:'#8495AD',id:t.id,title:t.name+' · unassigned',onClick:p=>act('stop',p.id),cls:'u'}));
  C.S.tasks.filter(t=>t.state==='failed'&&inL(t)&&!(t.tags||[]).includes('REVIEWED')).forEach(t=>pins.push({ll:t.ll,label:'!',color:'var(--bad)',id:t.id,title:'Not delivered · '+t.name,onClick:p=>act('stop',p.id)}));
  ds.forEach(d=>pins.push({ll:d.loc,label:'',color:d.sos?'#FF5C64':V.hue(d.id),cls:'drv'+(d.route.stage==='on_road'?' live':'')+(selD&&selD.id===d.id?' sel':''),id:d.id,title:`${d.name} · ${d.route.id}`,onClick:p=>act('drv',p.id)}));
  return{pins,lines:lns}}
@@ -129,7 +129,7 @@ function act(a,v,el){switch(a){
  case 'reroute':{const d=C.driver(v);pickDriver(`Move ${d.name}'s open stops to…`,d.line,to=>{let n=0;C.update(()=>{n=C.ops.mergeRoute(v,to)});draw();V.toast(C.ops.lastBlock?'Blocked · '+C.ops.lastBlock.join(', '):`${n} stops → ${C.driver(to).name}`,'swap')},v);break}
  case 'tkok':case 'tkno':{let r;C.update(()=>{r=C.ops.ticketDecide(v,a==='tkok',actor)});draw();V.toast(r&&r.ok===false?(r.why||'Not allowed'):a==='tkok'?'Approved · fixes applied · driver told':'Declined · driver told',a==='tkok'?'check':'x');break}
  case 'edok':case 'edno':C.update(()=>C.ops.reviewRouteEdit(v,a==='edok',actor));draw();V.toast(a==='edok'?"Driver's order kept":'Plan restored · driver notified');break;
- case 'exok':C.update(()=>{const t=C.task(v);t.tags.push('REVIEWED');t.timeline.push({at:C.S.clock,text:'Exception reviewed (V05 dispatch)',actor})});draw();V.toast('Marked reviewed','check');break;
+ case 'exok':C.update(()=>{const t=C.task(v);t.tags.push('REVIEWED');t.timeline.push({at:C.S.clock,text:'Exception reviewed (V06 dispatch)',actor})});draw();V.toast('Marked reviewed','check');break;
  case 'redo':C.update(()=>C.ops.redeliver(v));draw();V.toast('Queued to retry today','refresh');break;
  case 'whok':C.update(S=>{C.whp&&C.whp.X.resolveIssue(S,actor,v)});draw();V.toast('Warehouse issue resolved','check');break;
  case 'reopt':reoptPanel(v);break;
