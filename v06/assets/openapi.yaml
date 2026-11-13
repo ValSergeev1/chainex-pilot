@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: ChainEx Order and Tracking API
+  version: 0.1.0
+  description: >
+    Pilot specification for creating orders, quoting, cancelling and tracking
+    shipments. This file is the contract. In the V06 pilot the endpoints are
+    simulated in the browser on the Developer portal. Production will run the
+    same paths on ChainEx's own infrastructure. Sample data only. Idempotency-Key
+    is required for writes. Authenticate with a scoped API key.
+servers:
+  - url: https://api.chainex.example/v1
+    description: Production (not live in the pilot)
+  - url: /v1
+    description: In-browser sandbox used by the Developer portal
+security:
+  - bearerAuth: []
+paths:
+  /orders:
+    post:
+      summary: Create an order
+      operationId: createOrder
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '200':
+          description: Order accepted
+        '401':
+          description: Missing or invalid API key
+        '429':
+          description: Rate limited (20 requests per second per key)
+  /orders/batch:
+    post:
+      summary: Create many orders
+      operationId: createOrdersBatch
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orders:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '200':
+          description: Batch result
+  /orders/{id}/cancel:
+    post:
+      summary: Cancel an order that has not been loaded
+      operationId: cancelOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cancelled
+        '404':
+          description: Not found
+  /quotes:
+    post:
+      summary: Request a sample rate quote
+      operationId: quoteOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                line: { type: string, enum: [pd, bulky, wg, ltl, shuttle] }
+                packages: { type: number }
+                zip: { type: string }
+      responses:
+        '200':
+          description: Sample quotes (not a live tariff)
+  /tracking/{id}:
+    get:
+      summary: Get tracking by number or reference
+      operationId: getTracking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Tracking timeline
+        '404':
+          description: Not found
+  /events:
+    get:
+      summary: List recent canonical events for replay
+      operationId: listEvents
+      responses:
+        '200':
+          description: Event list
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Scoped key, for example cx_test_summit_demo
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string }
+      description: Client key so retries do not create duplicate orders
+  schemas:
+    OrderCreate:
+      type: object
+      required: [name, address]
+      properties:
+        name: { type: string }
+        address: { type: string }
+        packages: { type: number }
+        line: { type: string }
+        reference: { type: string }
+        window: { type: string }
+        lat: { type: number }
+        lng: { type: number }
