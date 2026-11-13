@@ -1,0 +1,16 @@
+/* ChainEx V03 palette: deep ink + indigo/periwinkle accent, clear status colors (never color-only: labels kept).
+   Loaded on the dispatch board, classic desk and dashboards A/B. */
+:root,html.cx:not(.dark){--v3-ink:#14213d;--v3-ink2:#1d2b4f;--v3-pri:#5a6be0;--v3-pri2:#7b8cf0;--v3-pri-bg:#eef0ff;--v3-ok:#18a957;--v3-warn:#e8930c;--v3-bad:#e5484d;--v3-info:#0ea5b7;--v3-bg:#f4f5fa;--v3-card:#ffffff;--v3-line:#e3e6f0;--v3-mut:#5d6785;--v3-txt:#14213d}
+html.cx.dark{--v3-ink:#0a1020;--v3-ink2:#121a33;--v3-pri:#7b8cf0;--v3-pri2:#a3afff;--v3-pri-bg:#1d2550;--v3-ok:#34d27b;--v3-warn:#f5a524;--v3-bad:#ff6369;--v3-info:#3cc8db;--v3-bg:#070b16;--v3-card:#0f1629;--v3-line:#1f2a47;--v3-mut:#97a3c4;--v3-txt:#e6eaf7}
+/* recolor the V02 shells (classic desk + dashboards) */
+html.cx.v03p .topbar,html.cx.v03p .sx-top{background:linear-gradient(90deg,var(--v3-ink),var(--v3-ink2))!important}
+html.cx.v03p .wordmark .ex{color:var(--v3-pri2)!important}
+html.cx.v03p .btn.primary,html.cx.v03p button.primary{background:var(--v3-pri)!important;border-color:var(--v3-pri)!important}
+html.cx.v03p .topnav a.on,html.cx.v03p .seg button.on,html.cx.v03p .lsw button.on,html.cx.v03p #lineSwitch button.on{background:var(--v3-pri)!important;color:#fff!important}
+html.cx.v03p .sx-side a.on,html.cx.v03p .sx-side [data-nav].on{background:var(--v3-pri-bg)!important;color:var(--v3-pri)!important}
+html.cx.v03p .chip.blue{background:var(--v3-pri-bg)!important;color:var(--v3-pri)!important}
+html.cx.v03p .chip.green{color:var(--v3-ok)!important}html.cx.v03p .chip.red{color:var(--v3-bad)!important}html.cx.v03p .chip.orange{color:var(--v3-warn)!important}
+html.cx.v03p a{accent-color:var(--v3-pri)}
+html.cx.v03p .kpi,html.cx.v03p .card,html.cx.v03p .sx-card{border-color:var(--v3-line)}
+html.cx.v03p .kpi:hover,html.cx.v03p .card:hover{border-color:color-mix(in srgb,var(--v3-pri) 40%,var(--v3-line))}
+.v3-tryboard{position:fixed;right:14px;bottom:14px;z-index:9998;display:inline-flex;gap:8px;align-items:center;background:var(--v3-pri);color:#fff!important;font:700 13px Inter,system-ui,sans-serif;border-radius:999px;padding:10px 14px;text-decoration:none;box-shadow:0 10px 24px -10px rgba(90,107,224,.9)}

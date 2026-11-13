@@ -2,7 +2,7 @@
 const main=X.shell({app:'Workspaces'});
 function render(){C.load();const S=C.S,s=CXS.staff();const m=C.portal.metrics();const q=C.v2.obQueue();const over=q.filter(p=>C.v2.slaState(p)==='overdue').length;
  const T=[['dashboard.html','◫','Dashboard','Partner accounts, onboarding, agreements, team access and reporting.','dashboard',`${S.partners.length} partners · ${m.inSetup} in setup`],
-  ['index.html','◎','Dispatch','Service requests, routes, drivers and live map. Board is scoped to your team\'s service line.','dispatch',`Your lines: ${CXS.lines().map(l=>CXS.LINES[l]).join(', ')||'none'}`],
+  ['board.html','◎','Dispatch board','V03 board: exceptions first, assign, tickets, re-optimize · works on phone. Classic desk: index.html. Scoped to your team\'s service line.','dispatch',`Your lines: ${CXS.lines().map(l=>CXS.LINES[l]).join(', ')||'none'}`],
   ['bids.html','✦','Bids','Opportunities, solicitations, proposal documents and submission tracking. Separate from dispatch.','bids','AI bid assistant · human approval'],
   ['sales.html','↗','Sales','Customer accounts, outreach and network growth.','sales',`${S.salesCounts.accounts.toLocaleString()} accounts (counts)`],
   ['payments.html','$','Payments','Rate cards, invoices, settlements, pay runs and payout batches (simulated money).','payments.view',`${S.payRuns.filter(r=>r.status!=='Paid').length} open pay runs`],

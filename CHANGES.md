@@ -1,5 +1,23 @@
 # ChainEx Pilot · Changes
 
+## V03 · Map-first driver app, installable apps, new dispatch board (Nov 12, 2026, in progress)
+
+V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03 page has a **V03 · switch to V02 · switch to V01** badge. Sample data only. V03 uses its own browser storage key, so V02 and V03 never share state.
+
+**Driver app (P&D and Bulky), `driver.html`.** Map-first layout: search bar, sequence and filter buttons, a rail (stop numbers, sync, recenter, dispatch chat), a stop card, a green **Navigate in sequence** pill, Manifest / Map / Settings tabs and a scan button. NEW ROUTE sheet ("You have N packages and M pickups") offers **Auto-optimize & scan** or **Build route manually**. To build manually, tap each stop on the map. Tapping the last numbered stop undoes it, and **Calculate (k/N)** orders whatever is left. The order goes live right away and shows on the dispatch board as a *Driver-built sequence*, where dispatch can keep it or restore the auto plan. In navigation, arriving opens the scan step. After delivered or can't-deliver, a 3-second banner takes the driver to the next stop without leaving the map. There is a 2D/top-down map toggle. A poor-network state never blocks work: scans and actions queue and sync on reconnect. White glove, LTL and Shuttle keep their own flow. The classic view is still available in Settings.
+
+**Installable apps (PWA).** `driver.html` installs as **ChainEx Driver** and `board.html` as **ChainEx Dispatch**:
+- Web app manifests (`driver.webmanifest`, `board.webmanifest`) with standalone display and portrait orientation (driver), plus ChainEx icons at 192/512, maskable 192/512 and Apple 180.
+- A service worker (`sw.js`, scoped to the folder it is in, so it works at `/chainex-pilot/`) caches the app shell. Map tiles are cache-first (last 1,500 kept). `offline.html` is the fallback page. `/v01/` and `/v02/` are left untouched.
+- iOS meta tags (capable, black-translucent status bar, title) and `viewport-fit=cover`. On a phone, or once installed, the driver app fills the screen. Safe-area insets cover the notch and the home bar. Inputs are 16px, so iOS does not zoom.
+- Install cards with a QR code on `driver.html` (desktop) and `start.html`. On Android the button opens the native install prompt. On iPhone it shows Share → Add to Home Screen. Phones also get a dismissible install banner.
+
+**Dispatch board, `board.html` (new; the classic desk stays at `index.html`).** One map plus one sidebar: **Attention** (SOS, driver tickets, driver-built sequences, at-risk routes, exceptions), **Unassigned** (search, multi-select, assign with eligibility) and **Drivers** (filters; a driver panel with KPIs, Re-optimize (staff only), messages, driver view and ordered stops). Map / List / Timeline views. On a phone it becomes a full-screen map with a swipe-up sheet, a bottom tab bar and cards instead of tables. Every action is reachable there.
+
+**Colors.** The new V03 palette (ink #14213d, indigo #5a6be0, periwinkle #7b8cf0, green #18a957, amber, red) is applied to the board, classic desk and dashboards A/B (`assets/v03.css`). Status is never shown by color alone.
+
+**Tests.** t18 (driver app V03), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
+
 ## V02 · Connected system: website → sign-in → every portal (Nov 12, 2026)
 
 V01 is frozen in `../pilot-V01` (git tag `V01`) and served at `/v01/`. Every V02 page has a **V02 · switch to V01** badge. V02 keeps every V01 feature. All data is **sample data**: no real partner or person names, phones, emails, addresses or documents. Money, sign-in codes, uploads, e-signatures and outgoing messages are simulated.
