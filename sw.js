@@ -1,7 +1,7 @@
 /* ChainEx V03 service worker: installable driver + dispatch apps, offline app shell, map-tile cache.
    Scope = the folder this file lives in (works at / and at the GitHub Pages subpath /chainex-pilot/).
    Frozen copies under v01/ and v02/ are left alone (network only). */
-const VER='cx-v03-2026-11-12b';
+const VER='cx-v03-2026-11-12c';
 const SHELL='shell-'+VER, TILES='tiles-v1', TILE_MAX=1500;
 const SCOPE=new URL('./',self.location).href;
 const A=p=>new URL(p,SCOPE).href;
