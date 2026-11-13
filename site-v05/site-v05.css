@@ -690,7 +690,7 @@ html.cx.dark .st-sec.alt .st-card2, html.cx.dark .st-sec.alt .st-card, html.cx.d
 }
 
 /* Responsive */
-@media (max-width: 1180px) {
+@media (max-width: 1359px) {
   .v5-nav, .v5-cta { display: none !important; }
   .v5-ham { display: inline-flex; }
   .st-top .tb-right { margin-left: auto; }
@@ -776,4 +776,16 @@ html.cx.dark .st-sec.alt .st-card2, html.cx.dark .st-sec.alt .st-card, html.cx.d
 /* Phone utility bar: keep the phone number, drop the extra links (they're in the menu) */
 @media (max-width:700px){
   .st-bar a[href*="status.html"], .st-bar a[href*="workspaces.html"] { display: none; }
+}
+
+
+/* Keep the sticky header inside the viewport on mid-size desktops */
+.st-top, header.v5-top { box-sizing: border-box; width: 100%; max-width: 100%; }
+@media (min-width: 1360px) and (max-width: 1540px) {
+  .st-top, header.v5-top { padding: 10px 16px; gap: 6px; }
+  .v5-nav { gap: 0; }
+  .v5-nav > a, .v5-drop > button { padding: 8px 8px; font-size: 13px; }
+  .v5-cta { gap: 6px; }
+  .st-top .st-btn { padding: 9px 12px; font-size: 13.5px; }
+  .st-top .tb-right .cx-theme-sw, .st-top .cxt-seg { transform: scale(.88); transform-origin: right center; }
 }

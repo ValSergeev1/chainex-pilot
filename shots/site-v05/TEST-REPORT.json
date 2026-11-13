@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "fail": [],
+  "notes": [
+    "link-check 2095 hrefs/srcs, 0 missing",
+    "overflow PASS at 390, 768, 1280, 1366, 1440 on all 27 pages (header compacted; hamburger below 1360px)",
+    "button clicks 1410; console 0; pageerrors 0",
+    "screenshots 18 official"
+  ],
+  "pages": 27,
+  "clicks": 1410,
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "overflowFails": 0,
+  "badLinks": 0,
+  "retest": "overflow rechecked after header fix; console/links/buttons were already clean"
+}
