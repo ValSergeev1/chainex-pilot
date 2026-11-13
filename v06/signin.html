@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111C"><meta name="color-scheme" content="dark light"><title>Sign in · ChainEx V06</title>
+<link rel="stylesheet" href="assets/v06.css"><link rel="stylesheet" href="assets/w6.css"><script src="assets/v06.js"></script>
+<style>
+body.si{min-height:100vh;margin:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:var(--bg)}
+.si-l{padding:40px 48px;display:flex;flex-direction:column;gap:22px;border-right:1px solid var(--line);background:radial-gradient(900px 500px at -10% 110%,var(--acc-2),transparent 60%)}
+.si-l h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0;color:var(--t1)}.si-l p{color:var(--t2);margin:0;max-width:440px;font-size:15px;line-height:1.55}
+.si-f{display:flex;gap:8px;max-width:440px}.si-f .in{flex:1}
+.si-r{padding:40px 48px;overflow:auto}.si-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:10px 0 26px}
+.si-a{display:flex;gap:10px;align-items:center;text-align:left;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--s1);color:inherit;cursor:pointer;font:inherit}
+.si-a:hover{border-color:var(--acc)}.si-a b{display:block;font-size:13.5px;color:var(--t1)}.si-a small{color:var(--t3);font-size:12px}
+.si-cur{display:flex;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--s1);max-width:440px}
+@media(max-width:899px){body.si{grid-template-columns:minmax(0,1fr)}.si-l,.si-r{padding:24px 18px}.si-l{border-right:0;border-bottom:1px solid var(--line)}.si-l h1{font-size:26px}}
+</style></head><body class="v5 si">
+<section class="si-l"><a class="x-logo" href="start.html"><span class="x-mark">Ex</span><span class="x-word">Chain<b>Ex</b></span></a>
+<div class="micro">V06 · pilot sign-in</div><h1>One sign-in.<br>Everyone lands in their own workspace.</h1>
+<p>Type an account ID or work email, or pick a sample account. Staff land on the page for their role. Drivers, DSPs, carriers, shippers and warehouse staff land in their V06 portal.</p>
+<div class="si-f"><input class="in" id="q" placeholder="Account ID or work email" autocomplete="off"><button class="btn pri" id="go">Continue</button></div>
+<div id="cur"></div>
+<p class="small t3">Pilot only: no passwords, sample accounts and sample data. In production, sign-in runs on ChainEx's own identity service with 2-step verification. <a href="../auth/signin.html">V03 sign-in</a></p></section>
+<section class="si-r"><div id="list"></div></section>
+<script src="../assets/session.js"></script>
+<script>(function(){const V=window.V5,ic=V.ic,esc=V.esc;
+const ROLE_HOME={'Admin':'dashboard.html','Ops manager':'dashboard.html','Viewer':'dashboard.html','Onboarding':'onboarding.html','Finance':'payments.html','Sales':'sales.html'};
+function route(a){const e=encodeURIComponent(a.id);switch(a.kind){case 'staff':return ROLE_HOME[a.role]||'dispatch.html';case 'driver':return 'portal-driver.html?id='+e;case 'dsp':return 'portal-dsp.html?login='+e;case 'carrier':return 'portal-carrier.html?login='+e;case 'warehouse':return 'portal-warehouse.html';case 'shipper':return 'shipper.html?login='+e;default:return 'start.html'}}
+window.CX6_ROUTE=route;
+const G=[['Staff','staff','users'],['Drivers','driver','user'],['DSPs','dsp','users'],['Carriers','carrier','truck'],['Shippers','shipper','ship'],['Warehouse','warehouse','warehouse']];
+const ini=n=>String(n).replace(/\(.*?\)/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+document.getElementById('list').innerHTML=G.map(([l,k,i])=>{const A=CXS.ACCOUNTS.filter(a=>a.kind===k);return `<div class="micro">${l}</div><div class="si-g">${A.map(a=>`<button class="si-a" data-id="${esc(a.id)}"><span class="w6-lead">${ini(a.name)}</span><span><b>${esc(a.name)}</b><small>${esc(a.role||a.label)} · goes to ${esc(route(a).split('?')[0].replace('.html',''))}</small></span></button>`).join('')}</div>`}).join('');
+function cur(){const s=CXS.get();document.getElementById('cur').innerHTML=s?`<div class="si-cur"><span class="w6-lead">${ini(s.name)}</span><div style="flex:1"><b>${esc(s.name)}</b><div class="small t3">${esc(s.role||'')}</div></div><a class="btn pri" href="${route(s)}">Open</a><button class="btn" id="out">Sign out</button></div>`:''}
+cur();
+function go(a){if(!a){V.toast('No account with that ID or email');return}CXS.set(a);location.href=route(a)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b){go(CXS.find(b.dataset.id));return}if(e.target.id==='go')go(CXS.find(document.getElementById('q').value));if(e.target.id==='out'){CXS.clear();cur();V.toast('Signed out')}});
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')go(CXS.find(e.target.value))});
+})();</script></body></html>

@@ -1,0 +1,25 @@
+/* V06 Scorecards · every service line against its targets, side by side. Pick a line to see its trend, why stops failed this week
+   and the Monday sign-off. This week is live (every completed stop writes a score entry); earlier weeks are sample history. */
+(function(){const C=CX,V2=C.v2,{H}=W6,{esc,ic,chip,btn,money}=H;C.init();const A=()=>H.actor(),O=H.O,T=V2.TARGETS;
+const p1=x=>x==null?'—':(x*100).toFixed(1)+'%';
+const mine=()=>window.CXS&&!CXS.can('scorecards')?CXS.lines():C.LINE_ORDER;
+const cur=l=>{const s=V2.scorecard(l);return{s,c:s[s.length-1],p:s[s.length-2]||{}}};
+const tone=(v,t,inv)=>v==null?'':(inv?v<=t:v>=t)?'ok':'bad';
+const wk=()=>V2.weekOf(V2.today());
+const review=l=>C.S.scoreReviews.find(r=>r.line===l&&r.week===wk());
+const reasons=l=>{const o={};C.S.scores.filter(s=>s.line===l&&s.week===wk()&&s.exc).forEach(s=>{const k=s.reason||'Other';o[k]=(o[k]||0)+1});return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+function lineDetail(l){const {s,c,p}=cur(l);const exr=c.stops?c.exc/(c.stops+c.exc):0;const r=review(l);const team=(C.S.dispatchTeams.find(t=>t.lines.length===1&&t.lines[0]===l)||{});const rs=reasons(l);const mx=Math.max(1,...rs.map(x=>x[1]));
+ const k=(lbl,v,tn,d)=>`<div><span>${lbl}</span><b class="num ${tn}" style="font-size:20px">${v}</b><span>${d}</span></div>`;
+ return `<div class="w6-dh">${H.lead(esc(V2.LN[l]).slice(0,2),'acc')}<div style="flex:1"><h2>${esc(V2.LN[l])}</h2><p>Owner ${esc(team.lead||'—')} · week of ${H.dfmt(wk())}</p></div>${r?chip('Signed off','ok'):chip('Review due','warn')}</div>
+ <div class="w6-kv">${k('On-time',p1(c.onTime),tone(c.onTime,T.onTime),'target '+p1(T.onTime))}${k('First attempt',p1(c.first),tone(c.first,T.first),'target '+p1(T.first))}${k('Exceptions',c.exc,exr>T.excRate?'bad':'ok',p1(exr)+' of attempts')}${k('Cost / stop',c.cps==null?'—':money(c.cps,2),'','last wk '+(p.cps!=null?money(p.cps,2):'—'))}</div>
+ <div class="w6-two" style="grid-template-columns:1fr 1fr"><div class="w6-c"><span class="small t3">On-time by week</span>${H.chart(s.map(w=>Math.round((w.onTime||0)*1000)/10),s.map(w=>H.dfmt(w.week)),s.length-1)}</div><div class="w6-c"><span class="small t3">Stops by week</span>${H.chart(s.map(w=>w.stops),s.map(w=>H.dfmt(w.week)),s.length-1)}</div></div>
+ ${H.sec('Why stops failed this week',rs.length?rs.map(([k,n])=>`<div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:200px">${esc(k)}</span><div style="flex:1">${H.bar(n/mx)}</div><b class="num">${n}</b></div>`).join(''):H.note('No exceptions yet this week.','ok'))}
+ ${H.table(['Week of','Stops','On-time','First attempt','Exceptions','Cost / stop','Revenue'],s.slice().reverse().map(w=>`<tr><td>${H.dfmt(w.week)} ${w.current?chip('live','acc'):''}</td><td class="num">${w.stops}</td><td class="num ${tone(w.onTime,T.onTime)}">${p1(w.onTime)}</td><td class="num ${tone(w.first,T.first)}">${p1(w.first)}</td><td class="num">${w.exc}</td><td class="num">${w.cps==null?'—':money(w.cps,2)}</td><td class="num">${money(w.rev)}</td></tr>`))}
+ ${H.sec('Monday sign-off',r?H.note(`<b>${esc(r.by)}</b> · ${H.dfmt(r.at)} · ${esc(r.note)}`,'ok'):`<textarea class="in" id="scNote" placeholder="What happened this week and what we change next week"></textarea><div>${btn('Sign off the week','sign',l,'pri','check')}</div>`)}`}
+W6.app({key:'scorecards',app:'Scorecards',active:'scorecards.html',classic:'../scorecards.html',search:false,
+ gate:()=>window.CXS&&!CXS.can('scorecards')&&!CXS.can('scorecards.own')?'Your role does not include scorecards.':null,
+ header:()=>{const below=mine().filter(l=>{const c=cur(l).c;return c.onTime!=null&&c.onTime<T.onTime});const open=mine().filter(l=>!review(l)).length;return{eyebrow:'People · Scorecards',title:'Scorecards',sub:`${below.length?`<b class="bad">${below.map(l=>V2.LN[l]).join(', ')}</b> below the on-time target this week.`:'Every line is on target this week.'} ${open?`<b>${open}</b> weekly sign-offs open.`:'All lines signed off.'}`,actions:[]}},
+ kpis:()=>{const all=mine().map(l=>cur(l).c);const st=all.reduce((a,c)=>a+c.stops,0),ex=all.reduce((a,c)=>a+c.exc,0);const ot=all.reduce((a,c)=>a+(c.onTime||0)*c.stops,0)/Math.max(1,st),fa=all.reduce((a,c)=>a+(c.first||0)*c.stops,0)/Math.max(1,st);return[{l:'Stops this week',v:st.toLocaleString(),d:'all your lines'},{l:'On-time',v:p1(ot),d:'target '+p1(T.onTime),tone:tone(ot,T.onTime)},{l:'First attempt',v:p1(fa),d:'target '+p1(T.first),tone:tone(fa,T.first)},{l:'Exceptions',v:ex,d:'this week',tone:ex/(st+ex||1)>T.excRate?'bad':'ok'},{l:'Sign-offs',v:`${mine().filter(review).length}/${mine().length}`,d:'Monday review'}]},
+ views:[{id:'lines',label:'Lines',list:()=>mine(),row:l=>{const c=cur(l).c;return{id:l,t:V2.LN[l],s:`${c.stops} stops · ${c.exc} exceptions · ${review(l)?'signed off':'review due'}`,ini:esc(V2.LN[l]).slice(0,2),tone:tone(c.onTime,T.onTime)||'acc',r:`<b class="num ${tone(c.onTime,T.onTime)}">${p1(c.onTime)}</b><span>on-time</span>`}},detail:lineDetail,find:l=>C.LINE_ORDER.includes(l)?l:null}],
+ acts:{sign:l=>{O.scoreReview(l,wk(),H.val('scNote')||'Reviewed',A());H.toast('Week signed off')}}
+});})();
