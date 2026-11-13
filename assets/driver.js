@@ -167,7 +167,7 @@ redit:()=>{const d=D(),k=K(),dr=draft(),rows=edRows(dr),n=nChanges(dr),sel=dr.se
   <div class="body tight ed-list">${listParts.join('')}
    ${dr.issues.length?`<div class="dcard" style="padding:10px"><div class="eyebrow">Road issues to report (${dr.issues.length})</div>${dr.issues.map((x,i)=>`<div class="kvrow"><span>🚧 ${esc(x.type)}${x.near?' · '+esc(x.near):''}</span><span><a href="#" data-a="edelissue" data-v="${i}">Remove</a></span></div>`).join('')}</div>`:''}</div>
   <div class="bottom ed-bottom"><button class="pillbtn" data-a="esubmit" ${n?'':'disabled'}>${I('send',14)} Submit route changes${n?' ('+n+')':''}</button>${n?'<button class="linkbtn" data-a="ediscard">Discard</button>':''}<button class="linkbtn" data-a="edback">Back</button></div>`},
-closed:()=>{const r=R(),done=r.filter(t=>t.state==='completed').length,pct=r.length?Math.round(done/r.length*100):0;return `${appH()}<div class="body done-hero"><div class="eyebrow">${esc(K().name)} · ${esc(D().route.id)}</div><div class="h1">${ui.line==='shuttle'?'Shift ended':'Route closed'}</div><div class="sub">Return scan complete. You're off duty. Earnings post to your settlement in the partner portal.</div><div class="ring" style="--p:${pct}"><span>${pct}%<small>completed</small></span></div><div class="sub">${done} of ${r.length} ${esc(K().stopWord||'stops')} completed · ${r.filter(t=>t.state==='failed').length} exception(s)</div></div><div class="bottom"><button class="pillbtn out" data-a="signout">Sign out</button></div>`}
+closed:()=>{const r=R(),done=r.filter(t=>t.state==='completed').length,pct=r.length?Math.round(done/r.length*100):0;return `${appH()}<div class="body done-hero"><div class="eyebrow">${esc(K().name)} · ${esc(D().route.id)}</div><div class="h1">${ui.line==='shuttle'?'Shift ended':'Route closed'}</div><div class="sub">Return scan complete. You're off duty. Earnings post to your settlement in the partner portal.</div><div class="ring" style="--p:${pct}"><span>${pct}%<small>completed</small></span></div><div class="sub">${done} of ${r.length} ${esc(K().stopWord||'stops')} completed · ${r.filter(t=>t.state==='failed').length} exception(s)</div></div><div class="bottom"><button class="pillbtn" data-d3="mesheet" id="closedPay">Today's pay &amp; scorecard</button><button class="pillbtn out" data-a="signout">Sign out</button></div>`}
 };
 function noticeBan(d){const n=d.route&&d.route.notice;return n&&!n.seen?`<div class="edban ok" id="reoptNotice">${I('send',14)} Route re-optimized by dispatch · ${fmt(n.at)}${n.savedKm>0?' · '+n.savedKm+' km shorter':''} <button class="btn" style="margin-left:auto;padding:2px 8px;font-size:11px" data-a="noticeok">OK</button></div>`:''}
 function edBan(d){return noticeBan(d)+edBan0(d)}
@@ -183,6 +183,7 @@ function settings(){const s=ui.set,T=k=>`<button class="toggle${s[k]?' on':''}" 
  <div class="sethead">Your work</div><div class="setrow"><div>${esc(d.name)} · ${esc(d.driverId)}<small>${esc(K().long)} · ${esc(hubName())} · ${esc(d.vehicle||'')}</small></div></div>
  <div class="setrow"><div>Partner &amp; documents<small>${e.partner?esc(e.partner.name)+' · ':''}${e.ok?'Eligible':'Blocked: '+esc(e.reasons.join('; '))}</small></div><a class="v" href="dashboard.html#onboard" target="_blank" rel="noopener">Portal ›</a></div>
  <div class="setrow" data-a="nav" data-v="shift" style="cursor:pointer"><div>Driver home<small>Duty, assigned route, check-in</small></div><span class="v">›</span></div>
+ <div class="setrow" data-d3="mesheet" id="setMe" style="cursor:pointer"><div>Pay, scorecard, documents &amp; notifications<small>Today's pay lines, your scorecard, document status, help</small></div><span class="v">›</span></div>
  <div class="setrow set-theme"><div>Appearance<small>Auto follows Seattle sunrise and sunset. Day and Night stay locked.</small></div></div>
  <div class="cx-theme-sw on-light" style="padding:4px 0 10px">${window.CXUI?CXUI.switcherHTML():''}</div>
  <div style="margin-top:14px"><button class="pillbtn out" data-a="signout">Sign out</button></div></div>`}
@@ -428,7 +429,7 @@ document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('
 $('#pback').onclick=closeSheet;
 $('#restart').onclick=e=>{e.preventDefault();ui.screen='welcome';ui.wid=null;saveUI();closeSheet();render()};
 $('#resetAll').onclick=e=>{e.preventDefault();localStorage.removeItem(UIK);C.reset();location.reload()};
-window.__drvI={get ui(){return ui},save:saveUI,D,R,K,DC,W,openT,cur,nextStep,stepsOf,act,openSheet,closeSheet,get sheet(){return sheet},toast,go,render,no,items,unitW,hubName,hubAddr,elig,canEdit,settings,I,fx,stLabel,landing};
+window.__drvI={get ui(){return ui},screens,edBan,save:saveUI,D,R,K,DC,W,openT,cur,nextStep,stepsOf,act,openSheet,closeSheet,get sheet(){return sheet},toast,go,render,no,items,unitW,hubName,hubAddr,elig,canEdit,settings,I,fx,stLabel,landing};
 C.subscribe(()=>{const ae=document.activeElement;if(ae&&$('#phone').contains(ae)&&ae.matches('input,textarea,select'))return;render()});
 window.addEventListener('cx-theme',()=>render());
 C.init();

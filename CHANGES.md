@@ -4,7 +4,21 @@
 
 V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03 page has a **V03 · switch to V02 · switch to V01** badge. Sample data only. V03 uses its own browser storage key, so V02 and V03 never share state.
 
-**Driver app (P&D and Bulky), `driver.html`.** Map-first layout: search bar, sequence and filter buttons, a rail (stop numbers, sync, recenter, dispatch chat), a stop card, a green **Navigate in sequence** pill, Manifest / Map / Settings tabs and a scan button. NEW ROUTE sheet ("You have N packages and M pickups") offers **Auto-optimize & scan** or **Build route manually**. To build manually, tap each stop on the map. Tapping the last numbered stop undoes it, and **Calculate (k/N)** orders whatever is left. The order goes live right away and shows on the dispatch board as a *Driver-built sequence*, where dispatch can keep it or restore the auto plan. In navigation, arriving opens the scan step. After delivered or can't-deliver, a 3-second banner takes the driver to the next stop without leaving the map. There is a 2D/top-down map toggle. A poor-network state never blocks work: scans and actions queue and sync on reconnect. White glove, LTL and Shuttle keep their own flow. The classic view is still available in Settings.
+**Driver app, `driver.html` (rebuilt Nov 12 evening after review).** P&D and Bulky run on the V03 map flow. White glove, LTL and Shuttle keep their V02 step flows inside the same app.
+- **Look.** It now uses ChainEx's own design: a navy status strip (line, route, done/total, on-time or at-risk, duty light, **SOS**), a horizontal map tools row (Fit, Labels, Filter, Refresh, Chat), and tag-shaped stop markers (navy upcoming, amber driving-to, blue next, grey done, red exception). A bottom route sheet ends in a five-way segmented control: **Map · Stops · Today · Me · Settings**. Primary buttons are ChainEx blue, not green.
+- **Wording is ChainEx's own:** *Today: N packages · M pickups · S stops*, *Let ChainEx order it*, *Plan my route*, *Tap stops in your order*, *Set order · k of N*, *Start driving / Resume driving*, *Up next*, *Offline, saving your work*.
+- **Restored from V02** (missing or unreachable in the first V03 cut):
+  - Driver home (*Today* tab): duty switch, eligibility, approved lines, route card, station check-in (On my way / I've arrived), job offers with **Claim**, Check for work, Sign out.
+  - **SOS** and its cancel bar.
+  - The full **route planner**: skip, notes, pin fixes, issues, move/lock, first/last, submit to Dispatch.
+  - At the stop: the next step and **Can't deliver** buttons on the Up-next card.
+  - Stop details: call (masked), Message Dispatch, view on map.
+  - Edit-route entry from Stops.
+  - V02 settings: navigation, map styles, scanning, device, your work, appearance, sign out.
+  - The return-to-station → return scan → close route → off-duty flow.
+- **New in the *Me* tab** (also opens from Settings on White glove, LTL and Shuttle, and from the Route closed screen): profile, today's pay lines (sample amounts), route scorecard (delivered, exceptions, on time, first try), documents and eligibility, notifications (route changes, tickets, unread messages), help (Dispatch chat, Message Dispatch, SOS, how-to), plus links into the partner portal.
+- **What stays the same:** tap-to-order planning, ChainEx auto-order, load scan, stop-to-stop driving with arrival scan and auto-advance, and the offline queue.
+- **Checklist and test.** `driver-checklist.html` (linked from `start.html`) lists 68 numbered checks, one per screen and button, with ticks saved on the device. t23 walks one full shift per line.
 
 **Installable apps (PWA).** Five apps install from the browser: `driver.html` (**ChainEx Driver**), `board.html` (**ChainEx Dispatch**), `portal-warehouse.html` and `wh-supervisor.html` (**ChainEx Warehouse**), `dashboard.html` and `dashboard-alt.html` (**ChainEx Dashboard**), and `dsp-fleet.html`, `portal-dsp.html` and `dsp.html` (**ChainEx DSP**):
 - Web app manifests (`driver.webmanifest`, `board.webmanifest`) with standalone display and portrait orientation (driver), plus ChainEx icons at 192/512, maskable 192/512 and Apple 180.
@@ -28,7 +42,7 @@ V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03
 
 **Screenshot catalog.** `shots/v03/catalog/` holds 413 screenshots: every app screen and nav option on desktop and phone, the scripted driver flow, board actions and the DSP driver view. It is indexed in `INDEX.md`, and `sheets/*.png` has one contact sheet per area. Generator: `test/catalog.js`; sheets: `build/sheets.py`.
 
-**Tests.** t18 (driver app V03: tap-to-sequence, Calculate, navigate in sequence, auto-arrive → scan → deliver → auto-advance, offline modal), t19 (warehouse portal + supervisor, 61 checks), t22 (DSP fleet + partner next-action homes, 40 checks), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
+**Tests.** t18 (driver app V03: Plan my route by tapping, Set order, Start driving stop to stop, auto-arrive → scan → deliver → auto-advance, offline), t23 (driver end to end for all five lines), t19 (warehouse portal + supervisor, 61 checks), t22 (DSP fleet + partner next-action homes, 40 checks), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
 
 ## V02 · Connected system: website → sign-in → every portal (Nov 12, 2026)
 

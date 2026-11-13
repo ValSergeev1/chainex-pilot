@@ -16,7 +16,7 @@ A clickable copy of the whole ChainEx system: public website → unified sign-in
 
 Sample sign-ins: staff `admin@`, `ops.manager@`, `pd.dispatch@`, `bulky.dispatch@`, `wg.dispatch@`, `ltl.dispatch@`, `shuttle.dispatch@`, `onboarding@`, `finance@`, `sales@`, `viewer@chainex.example`. Drivers `CX-PILOT-001`…`005` (→ driver portal), DSP `DSP-EEX-01` (→ DSP portal), carrier `CAR-CFR-01` (→ carrier portal), warehouse `WH-KNT-014`, shippers `SPN-PNW`, `HPL-SEA`, `SHP-NORTHLINE`. The sign-in page shows the pilot one-time code (and the MFA code for staff).
 
-Tests: `test/t1.js` … `test/t22.js` (Playwright, file:// URLs; t21 uses a local http server at `/chainex-pilot/`). t16 = partner portals, t17 = responsive, t18 = V03 driver flow, t19 = warehouse portal, t20 = board/dashboard on a phone, t21 = PWA, t22 = DSP fleet and partner homes. Screenshots: `shots/v03/` (catalog in `shots/v03/catalog/`), V02 in `shots/v02/`.
+Tests: `test/t1.js` … `test/t22.js` (Playwright, file:// URLs; t21 uses a local http server at `/chainex-pilot/`). t16 = partner portals, t17 = responsive, t18 = V03 driver flow, t19 = warehouse portal, t20 = board/dashboard on a phone, t21 = PWA, t22 = DSP fleet and partner homes, t23 = driver app end to end (all five lines). Driver checklist: `driver-checklist.html`. Screenshots: `shots/v03/` (catalog in `shots/v03/catalog/`), V02 in `shots/v02/`.
 
 Responsive: every page adapts to phone (~390px), tablet (~768px) and desktop (1280px+) through `assets/rwd.css` + `assets/rwd.js`.
 
