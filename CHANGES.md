@@ -1,12 +1,12 @@
 # ChainEx Pilot · Changes
 
-## V03 · Map-first driver app, installable apps, new dispatch board (Nov 12, 2026, in progress)
+## V03 · Map-first driver app, installable apps, new dispatch board (Nov 12, 2026)
 
 V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03 page has a **V03 · switch to V02 · switch to V01** badge. Sample data only. V03 uses its own browser storage key, so V02 and V03 never share state.
 
 **Driver app (P&D and Bulky), `driver.html`.** Map-first layout: search bar, sequence and filter buttons, a rail (stop numbers, sync, recenter, dispatch chat), a stop card, a green **Navigate in sequence** pill, Manifest / Map / Settings tabs and a scan button. NEW ROUTE sheet ("You have N packages and M pickups") offers **Auto-optimize & scan** or **Build route manually**. To build manually, tap each stop on the map. Tapping the last numbered stop undoes it, and **Calculate (k/N)** orders whatever is left. The order goes live right away and shows on the dispatch board as a *Driver-built sequence*, where dispatch can keep it or restore the auto plan. In navigation, arriving opens the scan step. After delivered or can't-deliver, a 3-second banner takes the driver to the next stop without leaving the map. There is a 2D/top-down map toggle. A poor-network state never blocks work: scans and actions queue and sync on reconnect. White glove, LTL and Shuttle keep their own flow. The classic view is still available in Settings.
 
-**Installable apps (PWA).** `driver.html` installs as **ChainEx Driver** and `board.html` as **ChainEx Dispatch**:
+**Installable apps (PWA).** Five apps install from the browser: `driver.html` (**ChainEx Driver**), `board.html` (**ChainEx Dispatch**), `portal-warehouse.html` and `wh-supervisor.html` (**ChainEx Warehouse**), `dashboard.html` and `dashboard-alt.html` (**ChainEx Dashboard**), and `dsp-fleet.html`, `portal-dsp.html` and `dsp.html` (**ChainEx DSP**):
 - Web app manifests (`driver.webmanifest`, `board.webmanifest`) with standalone display and portrait orientation (driver), plus ChainEx icons at 192/512, maskable 192/512 and Apple 180.
 - A service worker (`sw.js`, scoped to the folder it is in, so it works at `/chainex-pilot/`) caches the app shell. Map tiles are cache-first (last 1,500 kept). `offline.html` is the fallback page. `/v01/` and `/v02/` are left untouched.
 - iOS meta tags (capable, black-translucent status bar, title) and `viewport-fit=cover`. On a phone, or once installed, the driver app fills the screen. Safe-area insets cover the notch and the home bar. Inputs are 16px, so iOS does not zoom.
@@ -18,7 +18,17 @@ V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03
 
 **Colors.** The new V03 palette (ink #14213d, indigo #5a6be0, periwinkle #7b8cf0, green #18a957, amber, red) is applied to the board, classic desk and dashboards A/B (`assets/v03.css`). Status is never shown by color alone.
 
-**Tests.** t18 (driver app V03), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
+**Warehouse worker portal, `portal-warehouse.html` + supervisor view `wh-supervisor.html` (new; warehouse sign-in lands here; the scanner stays at `warehouse.html`).** The home screen leads with the next action. Clock in → acknowledge the previous shift's handoff → PPE check → facility checklist (a failure creates a corrective action with an owner and due time) → OSHA 1910.178-style pre-shift equipment inspection. Every item must be answered, and a fail needs a note. A failed unit goes out of service with a lockout tag, can't be assigned, and needs a work order to be cleared. Toolbox talk sign-off. Tasks: start, pause, count, complete or exception. Issues: load, damage, missing and mis-sort issues go straight to the dispatch board. Partner issues stay drafts until a supervisor approves them. Hazard and incident reports take photos, and an incident closes only with a corrective action. Clock-out requires a handoff and an end-of-shift report, which the supervisor reviews. Phone layout: bottom nav plus a More sheet.
+
+**Dashboards A/B on a phone.** Under 900px both dashboards get a bottom tab bar (Overview, Queue, Partners, Onboarding, More). Exceptions sort first, tables turn into labelled cards and kanban stacks vertically.
+
+**Partner portal homes lead with the next action.** Driver, DSP and carrier portals open on one "Next" card in priority order: expired or rejected document, missing document, unsigned agreement, payout method, blocked DSP drivers, expiring document, then "all set" (DSP → fleet app). Document tables now show issued and expiry dates.
+
+**Website illustrations.** Every website page now has its own illustration: 26 site pages, all original flat vector in the V03 palette with no third-party marks. The sign-in page has a new illustration (key, shield and the ChainEx app). Captions now sit under the art. Builder: `build/v03art.py`, which replaces each scene in place and leaves the wording unchanged.
+
+**Screenshot catalog.** `shots/v03/catalog/` holds 413 screenshots: every app screen and nav option on desktop and phone, the scripted driver flow, board actions and the DSP driver view. It is indexed in `INDEX.md`, and `sheets/*.png` has one contact sheet per area. Generator: `test/catalog.js`; sheets: `build/sheets.py`.
+
+**Tests.** t18 (driver app V03: tap-to-sequence, Calculate, navigate in sequence, auto-arrive → scan → deliver → auto-advance, offline modal), t19 (warehouse portal + supervisor, 61 checks), t22 (DSP fleet + partner next-action homes, 40 checks), t20 (board on a 390px phone: approve a ticket, assign, view a driver, re-optimize, message), t21 (PWA: manifest validity, Chrome installability, service worker under the subpath, offline shell, phone app mode, install cards).
 
 ## V02 · Connected system: website → sign-in → every portal (Nov 12, 2026)
 
