@@ -100,3 +100,23 @@ canvas.dv-sig{width:100%;height:130px;border-radius:14px;border:1px solid var(--
 .mk.dim{opacity:.45}.mk.nx{transform:scale(1.25);z-index:4}
 .dv-tabs[hidden]{display:none}
 .dv-sheet.peek{max-height:58%}.dv-sheet.full{max-height:calc(100% - 110px)}
+/* hand-built route: big, easy-to-tap stop markers (34px dot + 6px invisible ring = 46px target) */
+.dv .mk.big{width:34px;height:34px;font:700 14px/1 var(--fm);border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.45);opacity:1}
+.dv .mk.big::after{content:'';position:absolute;inset:-6px;border-radius:50%}
+.dv .mk.big.u2{border-color:rgba(255,255,255,.85);opacity:.92}
+.dv .mk.big.on{z-index:3}
+.dv .mk.big.last{box-shadow:0 0 0 5px color-mix(in srgb,var(--acc) 45%,transparent),0 3px 10px rgba(0,0,0,.45);z-index:4}
+.dv .mk.big.nxt{width:44px;height:44px;font-size:16px;border:3px dashed #fff;z-index:5;animation:dvnx 1.4s ease-in-out infinite}
+.dv .mk.big.nxt::after{inset:-4px}
+.dv .mk.big:not(.maplibregl-marker){margin:-6px 0 0 -6px}.dv .mk.big.nxt:not(.maplibregl-marker){margin:-11px 0 0 -11px}
+@keyframes dvnx{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 70%,transparent)}50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--acc) 0%,transparent)}}
+/* route close-out */
+.dv-co{border:1px solid var(--line);border-radius:14px;background:var(--s1);margin-bottom:8px;overflow:hidden}
+.dv-co.co-ok{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.dv-coh{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;min-height:52px}
+.dv-coh .grow{min-width:0;flex:1}.dv-coh small{display:block;color:var(--t3);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-cob{display:flex;flex-direction:column;gap:8px;padding:0 12px 12px}
+.dv-coopts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dv-coopts button{display:flex;align-items:center;gap:7px;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--line-2);background:var(--s2);color:var(--t1);font:550 12.5px/1.2 var(--f);text-align:left;cursor:pointer}
+.dv-coopts button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.dv-cob .btn.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line-2))}
