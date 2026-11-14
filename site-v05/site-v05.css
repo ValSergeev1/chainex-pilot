@@ -517,26 +517,31 @@ a.st-card2:hover, a.st-card:hover {
 
 /* Footer */
 .st-foot {
-  position: relative; isolation: isolate; overflow: hidden;
+  position: relative; isolation: isolate;
   background: #0e1a2c; color: #c5d4ea;
   padding: 56px var(--v5-pad) 48px; font-size: 14px;
 }
 .st-foot > .st-wrap { position: relative; z-index: 2; }
+.v5-footnet-wrap { margin: -8px auto 32px; }
 .v5-footnet {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  display: block; pointer-events: none; z-index: 0;
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  height: 292px;
+  margin: 0 auto;
+  border: 1px solid #24354c;
+  border-radius: 16px;
+  background: radial-gradient(90% 120% at 50% 45%, #163049 0%, #0c1828 72%);
+  overflow: hidden;
+  pointer-events: none;
 }
-.v5-footnet-scrim {
-  position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(14,26,44,.50) 0%, rgba(14,26,44,.62) 28%, rgba(14,26,44,.86) 55%, rgba(14,26,44,.93) 100%);
-}
+.v5-footnet canvas { display: block; width: 100%; height: 100%; }
 .st-foot a { color: #c5d4ea; }
 .st-foot h4 { color: #e8f0ff; }
 .st-foot-cta {
   display: flex; justify-content: space-between; align-items: center;
   gap: 24px; flex-wrap: wrap;
-  padding-bottom: 40px; margin-bottom: 40px;
+  padding-bottom: 32px; margin-bottom: 24px;
   border-bottom: 1px solid #24354c;
 }
 .st-foot-cta h2 { color: #fff; margin: 8px 0 0; font-size: clamp(26px, 3.2vw, 38px); letter-spacing: -.03em; }
@@ -735,6 +740,8 @@ html.cx.dark .st-sec.alt .st-card2, html.cx.dark .st-sec.alt .st-card, html.cx.d
   .st-btn { min-height: 44px; }
   .v3art-inline { display: none; }
   .st-foot { padding: 40px 20px 110px; }
+  .v5-footnet-wrap { margin: 4px auto 22px; }
+  .v5-footnet { height: 172px; border-radius: 14px; }
   .st-foot .cols { grid-template-columns: 1fr; gap: 0; padding-top: 8px; }
   .st-foot .cols > div:first-child { padding-bottom: 18px; margin-bottom: 6px; border-bottom: 1px solid #24354c; }
   .st-foot .cols > div:not(:first-child) { border-bottom: 1px solid #24354c; }
@@ -866,5 +873,5 @@ html.cx.dark .v5-learn .lead { color: #9aacc4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .v5-footnet { opacity: .9; }
+  .v5-footnet { opacity: 1; }
 }
