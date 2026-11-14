@@ -1,5 +1,13 @@
 # ChainEx Pilot · Changes
 
+## V06 driver · banner, en-route Can't deliver, fewer store writes (Nov 13, 2026)
+
+- **Turn banner always visible.** With a turn banner showing, the full sheet stops 10px under it, and dragging past full can't slide the sheet over it. Checked at 375×667, 390×844 and 430×932 with a notch inset (t89).
+- **Can't deliver while driving is no longer hijacked.** If the driver started Can't deliver before reaching the stop and the simulated or GPS arrival fired mid-flow, the app replaced their flow with the scan sheet. Arrival is now recorded without taking over an open sheet. Opening a new sheet also clears any half-finished flow state.
+- **Shared store skips no-op saves** (from the ecosystem QA pass). A save that changes nothing writes nothing and broadcasts nothing, so a page load goes from 11 to 2 shared-store writes.
+- t41 now drives the full-screen delivery steps (place → photo → review → finish) that shipped in 15651dc.
+- Service worker cache `cx-v06-12`. The fresh-start stamp stays `v06-11`, so drivers who already got the reset don't get wiped again.
+
 ## V06 driver · smoothness pass, fresh start, new icon (Nov 13, 2026)
 
 - **Bottom sheet follows the finger.** Drag is batched to the screen refresh, reads layout once per drag (never in the move loop), and snaps with a spring that only moves the sheet (transform), with a flick to open or close. The full sheet always lists every remaining stop (Up next · 59), rendered cheaply.

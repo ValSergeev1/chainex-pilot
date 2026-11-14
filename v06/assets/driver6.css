@@ -246,3 +246,5 @@ body.dv-onmap.dv-hasturn #rxpill{top:calc(var(--sat,0px) + 92px)}
 .dv-scr.solid.dv-tabin>*{animation:dvin .18s ease-out both}
 @keyframes dvin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.dv-scr.solid>*,.dv .mk.big.nxt::before,.dv-scan i{animation:none!important}.dv-sheet.snap{transition:none}}
+/* Turn banner stays visible at every sheet height: the full sheet stops 10px under it (banner = --sat + 10px pad + 70px card). The drag ceiling in driver6.js matches it. */
+body.dv-hasturn .dv-sheet.full{max-height:calc(100% - var(--dv-tabs) - var(--sat,0px) - 90px)}

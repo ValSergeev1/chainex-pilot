@@ -19,7 +19,14 @@ function seed(){S=base();LINE_ORDER.forEach(l=>seedLine(l));modules.forEach(m=>m
 let lastRaw=null;
 function load(){try{const j=localStorage.getItem(KEY);if(S&&j&&j===lastRaw)return S;S=j?JSON.parse(j):null;lastRaw=j}catch(e){S=null;lastRaw=null} if(!S||S.version!==VERSION)seed(); return S}
 let bc=null;try{bc=new BroadcastChannel('cx-pilot-sync')}catch(e){}
-function save(){S._rev=(S._rev||0)+1+Math.random();try{const j=JSON.stringify(S);lastRaw=null;localStorage.setItem(KEY,j);lastRaw=j}catch(e){lastRaw=null;console.warn('save failed',e)}try{bc&&bc.postMessage(Date.now())}catch(e){}}
+/* Skip no-op saves: the state is ~1.3 MB and every page load ran ~11 init()/seed updates that changed nothing, each one
+   re-writing localStorage and waking every other open tab (desk, driver app) to re-parse it. If S serializes to exactly
+   what storage already holds, there is nothing to write or broadcast. Otherwise bump _rev inside the same string
+   (no second stringify) and write once. */
+function save(){let j0=null;try{j0=JSON.stringify(S)}catch(e){}if(j0!==null&&lastRaw!==null&&j0===lastRaw)return;
+ const old=S._rev,rev=(old||0)+1+Math.random();S._rev=rev;
+ try{let j=null;if(j0!==null){if(old===undefined)j=j0.length>2?j0.slice(0,-1)+',"_rev":'+JSON.stringify(rev)+'}':null;else{const a='"_rev":'+JSON.stringify(old),i=j0.indexOf(a);if(i>=0)j=j0.slice(0,i)+'"_rev":'+JSON.stringify(rev)+j0.slice(i+a.length)}}
+  if(j===null)j=JSON.stringify(S);lastRaw=null;localStorage.setItem(KEY,j);lastRaw=j}catch(e){lastRaw=null;console.warn('save failed',e)}try{bc&&bc.postMessage(Date.now())}catch(e){}}
 function emit(){subs.forEach(f=>{try{f(S)}catch(e){console.error(e)}})}
 function update(fn){load();let r;try{r=fn(S)}catch(e){lastRaw=null;throw e}save();emit();return r}
 function sync(){const r=S&&S._rev;let j=null;try{j=localStorage.getItem(KEY)}catch(e){}if(!j)return;let n;try{n=JSON.parse(j)}catch(e){return}if(n&&n._rev===r&&r!=null)return;if(n&&n.version===VERSION){S=n;lastRaw=j}if(!emitT)emitT=setTimeout(()=>{emitT=null;emit()},30)}let emitT=null;

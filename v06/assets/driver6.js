@@ -239,7 +239,9 @@ function navGo(){const t=cur();if(!t)return;const s=nextStep(t);if(s&&s.kind==='
  navTimer=setInterval(()=>{if(!leg||!leg.path){stopNav();return}leg.i=Math.min(leg.path.length-1,leg.i+inc);leg.pos=leg.path[leg.i];me(leg.pos);paintTurn();if(map.m&&map.ready)map.m.easeTo({center:leg.pos,duration:140,easing:x=>x,zoom:Math.max(map.m.getZoom(),14)});
   const el=$('#dvdist');if(el){const tx=CXNav.fmtD(Math.max(0,leg.total-leg.cum[leg.i]));if(el.textContent!==tx)el.textContent=tx}if(leg.i>=leg.path.length-1){stopNav();arrive()}},120);render()}
 function stopNav(){if(navTimer){clearInterval(navTimer);navTimer=null}}
-function arrive(){const t=cur();if(!t)return;stopNav();C.update(()=>{const d=C.driver(W());d.loc=t.ll.slice();for(let s=nextStep(C.task(t.id));s&&s.kind==='confirm';s=nextStep(C.task(t.id))){C.ops.completeStep(t.id,s,{},d.name);C.ops.tick(1)}});haptic();runNext(t.id)}
+function arrive(){const t=cur();if(!t)return;stopNav();C.update(()=>{const d=C.driver(W());d.loc=t.ll.slice();for(let s=nextStep(C.task(t.id));s&&s.kind==='confirm';s=nextStep(C.task(t.id))){C.ops.completeStep(t.id,s,{},d.name);C.ops.tick(1)}});haptic();
+ /* Don't hijack a sheet the driver already has open (e.g. a Can't deliver flow started en route): record the arrival, keep their flow. */
+ if(modal){render();return}runNext(t.id)}
 function runNext(id){const t=C.task(id);if(!t)return;if(!C.OPEN(t)||!nextStep(t)){afterStop(id);return}const s=nextStep(t);
  if(s.kind==='confirm'){C.update(()=>{C.ops.completeStep(id,s,{},D().name);C.ops.tick(s.effect==='active'?3:2)});toast(s.effect==='active'?`Dispatch notified · ${s.label}`:`✓ ${s.label}`,'check');if(special()&&stage()==='on_road')return runNext(id);render();return}
  openModal('step',id)}
@@ -392,7 +394,7 @@ function drawFlow(){if(!modal||!flow)return;const t=modal.id&&C.task(modal.id),k
   else if(flow.step==='scan'){const s=nextStep(t);title=s&&s.label||'Scan';h=flowHead(title,sub,false)+`<div class="dv-fc">${/* reuse scan body via existing draw? */''}</div>`}
   $('#dvmb').innerHTML=h||'';if(flow.step==='sign')bindSig();if(flow.step==='camera')setTimeout(()=>startFlowCam(),40);const file=$('#dvflowfile');if(file&&!file._cx){file._cx=1;file.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{flow.pending=rd.result;cap.photos[flow.camKind||'pod']=rd.result;goFlow('review')};rd.readAsDataURL(f)})}}
 /* ---------- modals ---------- */
-function openModal(type,id){stopFlowCam();modal={type,id};cap={photos:{},sig:false,reason:null};if(type==='cant'||type==='step'){const t=id&&C.task(id),st=t&&nextStep(t);if(type==='cant'||(st&&(st.kind==='pod'||st.kind==='photo'||st.kind==='sign')))armFlow(type,id,type==='cant'?'reason':'place')}drawModal();$('#dvmodal').classList.add('on')}
+function openModal(type,id){stopFlowCam();if(flow)disarmFlow();modal={type,id};cap={photos:{},sig:false,reason:null};if(type==='cant'||type==='step'){const t=id&&C.task(id),st=t&&nextStep(t);if(type==='cant'||(st&&(st.kind==='pod'||st.kind==='photo'||st.kind==='sign')))armFlow(type,id,type==='cant'?'reason':'place')}drawModal();$('#dvmodal').classList.add('on')}
 function closeModal(){disarmFlow();modal=null;const m=$('#dvmodal');if(m){m.classList.remove('on','flow','dv-flow-map')}setTimeout(()=>{if(!modal)$('#dvmb').innerHTML=''},260)}
 const opts=(f,t)=>typeof f.options==='function'?f.options(t,C.S):(f.options||[]);
 function fld(f,t){const v=f.value?f.value(t,C.S):(f.type==='checks'?[]:'');const id='sf_'+f.id,req=f.required?' *':'';
@@ -643,10 +645,10 @@ function bindSheet(){const host=$('#dv');if(!host||host._cxSheet)return;host._cx
     /* measure once per drag (never inside the move loop) */
     d.h0=sh.offsetHeight;const was=sh.classList.contains('full');sh.style.height='';sh.style.maxHeight='';
     sh.classList.add('peek');sh.classList.remove('full');d.hp=sh.offsetHeight;sh.classList.remove('peek');sh.classList.add('full');d.hf=Math.max(sh.offsetHeight,d.hp);
-    sh.classList.toggle('full',was);sh.classList.toggle('peek',!was);clearTimeout(sh._st);sh.classList.remove('snap');sh.style.transform='';sh.classList.add('drag');
+    sh.classList.toggle('full',was);sh.classList.toggle('peek',!was);d.hmax=Infinity;{const tb=document.body.classList.contains('dv-hasturn')&&$('#dvturn');if(tb){d.hmax=Math.max(d.hp,sh.getBoundingClientRect().bottom-tb.getBoundingClientRect().bottom-10);d.hf=Math.min(d.hf,d.hmax)}}clearTimeout(sh._st);sh.classList.remove('snap');sh.style.transform='';sh.classList.add('drag');
     try{if(d.pid!=null)sh.setPointerCapture(d.pid)}catch(x){}};
   const paint=()=>{const d=sheetDrag;if(!d)return;d.raf=0;const sh=$('#dvsheet');if(!sh)return;let h=d.h0-d.dy,ty=0;
-    if(h<d.hp){ty=rubber(d.hp-h)*1.6;h=d.hp}else if(h>d.hf){h=d.hf+rubber(h-d.hf)*.5}
+    if(h<d.hp){ty=rubber(d.hp-h)*1.6;h=d.hp}else if(h>d.hf){h=Math.min(d.hmax==null?Infinity:d.hmax,d.hf+rubber(h-d.hf)*.5)}
     d.vh=h;d.ty=ty;sh.style.maxHeight='none';sh.style.height=h.toFixed(1)+'px';sh.style.transform=ty?'translateY('+ty.toFixed(1)+'px)':''};
   const onDown=e=>{const sh=$('#dvsheet');if(!sh||sh.hidden||!sh.contains(e.target))return;if(e.isPrimary===false)return;
     if(e.target.closest('button,a,input,textarea,select,label,canvas,.dv-sig')){
