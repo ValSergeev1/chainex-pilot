@@ -545,7 +545,14 @@ a.st-card2:hover, a.st-card:hover {
   border-bottom: 1px solid #24354c;
 }
 .st-foot-cta h2 { color: #fff; margin: 8px 0 0; font-size: clamp(26px, 3.2vw, 38px); letter-spacing: -.03em; }
-.st-foot-cta .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.st-foot-cta .cta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.st-foot-cta .st-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; margin: 0;
+  min-height: 48px; padding: 12px 22px;
+  line-height: 1.2; text-align: center; text-decoration: none;
+}
+.st-foot-cta .st-btn:hover { text-decoration: none; }
 .st-foot .cols {
   display: grid; grid-template-columns: 1.4fr repeat(4, 1fr);
   gap: 32px 28px; padding-bottom: 28px;
@@ -555,8 +562,8 @@ a.st-card2:hover, a.st-card:hover {
   letter-spacing: .12em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: space-between;
 }
-.st-foot a { display: block; color: #c5d4ea; text-decoration: none; margin: 0; padding: 5px 0; line-height: 1.4; }
-.st-foot a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.st-foot a:not(.st-btn) { display: block; color: #c5d4ea; text-decoration: none; margin: 0; padding: 5px 0; line-height: 1.4; }
+.st-foot a:not(.st-btn):hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .st-foot .tag { color: #c5d4ea; font-weight: 600; }
 .st-foot .wordmark { display: inline-block; margin-bottom: 10px; }
 .cxf-contact { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
@@ -751,8 +758,12 @@ html.cx.dark .st-sec.alt .st-card2, html.cx.dark .st-sec.alt .st-card, html.cx.d
   .st-foot .cols > div:not(:first-child) > a { display: none; min-height: 44px; padding: 11px 2px; }
   .st-foot .cols h4.open ~ a { display: block; }
   .st-foot .cols h4.open ~ h4:not(.open) ~ a { display: none; }
-  .st-foot-cta .cta { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
-  .st-foot-cta .st-btn { justify-content: center; min-height: 48px; width: 100%; box-sizing: border-box; }
+  .st-foot-cta .cta { display: grid; grid-template-columns: 1fr; gap: 12px; width: 100%; }
+  .st-foot-cta .st-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 48px; padding: 12px 22px;
+    box-sizing: border-box; text-align: center;
+  }
   .st-legal { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; }
   .st-legal > span { flex-basis: 100%; }
   .st-legal .sp { display: none; }
