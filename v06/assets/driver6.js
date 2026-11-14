@@ -55,7 +55,7 @@ function render(){if(typeof sheetHold!=='undefined'&&sheetHold)return;try{C.load
  const scr=$('#dvscr');tabs();top();$('#dvsheet').hidden=true;scr.className='dv-scr solid';$('#dvtabs').hidden=!d;
  if(!d){scr.className='dv-scr';scr.innerHTML=welcome();$('#dvtop').innerHTML='';return}
  const t=ui.tab;if(t==='today')scr.innerHTML=today();else if(t==='inbox'){scr.innerHTML=inbox();if((C.S.msgs||[]).some(m=>m.wid===W()&&!m.readDriver))setTimeout(()=>C.update(()=>C.ops.msgRead&&C.ops.msgRead(W(),'driver')),0);scr.scrollTop=scr.scrollHeight}else if(t==='me')scr.innerHTML=settings();else routeTab();
- if(t!=='route')stopNav();syncCam();try{map&&map.resize()}catch(e){}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
+ if(t!=='route')stopNav();syncCam();try{map&&map.resize()}catch(e){}if(modal&&flow){flowChrome();if(flow.step==='map'){const sh=$('#dvsheet');if(sh)sh.hidden=true}}else if(!modal){document.body.classList.remove('dv-flowon','dv-flowmap')}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
 function mapScreen(on){document.body.classList.toggle('dv-onmap',!!on);$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');const topEl=$('#dvtop');if(topEl)topEl.hidden=!on;try{const pill=document.getElementById('rxpill');if(pill&&!on){/* visibility handled in CSS; keep hidden flag for duty-only when off-map */} }catch(e){}}
 function routeTab(){const d=D(),scr=$('#dvscr');
  if(!d.duty&&stage()!=='closed'){scr.innerHTML=`<div class="dv-card" style="margin-top:40px;align-items:flex-start"><div class="dv-eyebrow">${esc(d.route.id)}</div><div class="dv-h1">Go on duty to open your route</div><div class="t2" style="font-size:13.5px">${special()?'Your route map opens right away, so you can plan the order before you reach the warehouse.':'Check-in, load and your stops unlock once you are on duty.'}</div><button class="dv-slide" data-a="duty">${ic('power',20)}Go on duty</button></div>`;return}
@@ -309,9 +309,87 @@ function settings(){const d=D(),e=elig();
  <div class="dv-card dv-demo cx-pilot"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>
  ${window.CXTT&&CXTT.settingsHtml?CXTT.settingsHtml():''}${integSettings()}
  <button class="btn block" data-a="signout">${ic('logout',15)}Sign out</button><div class="t3" id="dvver">ChainEx Driver · V06</div>`}
+
+/* ---------- full-screen delivery flow ---------- */
+const FLOWK='cx.v06.flow';
+let flow=null,flowCam=null,flowTorch=null,flowLightT=0;
+function useFlow(){if(!modal)return false;if(modal.type==='cant')return true;if(modal.type==='step'){const t=C.task(modal.id),st=t&&nextStep(t);return !!(st&&(st.kind==='pod'||st.kind==='photo'||st.kind==='sign'))}return false}
+function flowStopN(){const t=modal&&modal.id&&C.task(modal.id);return t?no(t):''}
+function persistFlow(){try{if(!modal||!flow){localStorage.removeItem(FLOWK);return}localStorage.setItem(FLOWK,JSON.stringify({wid:W(),id:modal.id,type:modal.type,step:flow.step,returnStep:flow.returnStep||null,place:cap.place||null,reason:cap.reason||null,photos:cap.photos||{},sig:!!cap.sig,idChecked:!!cap.idChecked,geoOverride:!!cap.geoOverride,extras:cap.extras||[],pending:flow.pending||null,camKind:flow.camKind||'pod'}))}catch(e){}}
+function clearFlowStore(){try{localStorage.removeItem(FLOWK)}catch(e){}}
+function stopFlowCam(){try{if(flowCam)flowCam.getTracks().forEach(t=>t.stop())}catch(e){}flowCam=null;flowTorch=null;if(flowLightT){clearInterval(flowLightT);flowLightT=0}}
+function armFlow(type,id,step){flow={step:step||(type==='cant'?'reason':'place'),returnStep:null,pending:null,camKind:type==='cant'?'exc':'pod'};document.body.classList.add('dv-flowon');document.body.classList.remove('dv-flowmap');const m=$('#dvmodal');if(m)m.classList.add('flow')}
+function disarmFlow(){stopFlowCam();flow=null;document.body.classList.remove('dv-flowon','dv-flowmap');const m=$('#dvmodal');if(m)m.classList.remove('flow','dv-flow-map');clearFlowStore()}
+function restoreFlow(){try{const o=JSON.parse(localStorage.getItem(FLOWK)||'null');if(!o||!o.id||o.wid!==W())return false;const t=C.task(o.id);if(!t||!C.OPEN(t)){clearFlowStore();return false}modal={type:o.type||'step',id:o.id};cap=Object.assign({photos:{},sig:false,reason:null},cap||{},{place:o.place,reason:o.reason,photos:o.photos||{},sig:!!o.sig,idChecked:!!o.idChecked,geoOverride:!!o.geoOverride,extras:o.extras||[]});flow={step:o.step||'place',returnStep:o.returnStep||null,pending:o.pending||null,camKind:o.camKind||'pod'};const m=$('#dvmodal');if(m){m.classList.add('on','flow');if(flow.step==='map')m.classList.add('dv-flow-map')}document.body.classList.add('dv-flowon');if(flow.step==='map')document.body.classList.add('dv-flowmap');drawModal();return true}catch(e){return false}}
+function setMapGestures(on){try{if(!map)return;const fn=on?'enable':'disable';['dragPan','scrollZoom','boxZoom','dragRotate','keyboard','doubleClickZoom','touchZoomRotate'].forEach(k=>{try{map[k][fn]()}catch(e){}})}catch(e){}}
+function flowChrome(){const on=!!flow,mapStep=!!(flow&&flow.step==='map');document.body.classList.toggle('dv-flowon',on);document.body.classList.toggle('dv-flowmap',mapStep);const m=$('#dvmodal');if(m){m.classList.add('on','flow');m.classList.toggle('dv-flow-map',mapStep)}const sh=$('#dvsheet');if(sh)sh.hidden=true;setMapGestures(!on||mapStep)}
+function flowHead(title,sub,back){const n=flowStopN();return `<div class="dv-fh"><button class="btn sm ghost" data-a="flowback" ${back?'':'disabled style="opacity:0;pointer-events:none"'}">${ic('back',16)}Back</button><div class="grow"><div class="dv-eyebrow">${esc(sub||((word()+' '+n)))}</div><h2>${esc(title)}</h2></div><button class="btn sm" data-a="flowmap" id="dvflowmap">Back to route</button></div>`}
+function podNeed(t,s){const X=DO();if(!X||!t)return{photo:!!(s&&s.photoReq),sig:!!(s&&s.sigReq),proofs:false,list:[]};
+  const pid=cap.place||null;const rq=pid?X.required(t,pid):{proofs:[]};const list=rq.proofs||[];
+  return{photo:list.includes('photo')||!!(s&&s.photoReq),sig:list.includes('signature')||!!(s&&s.sigReq),proofs:list.some(x=>x!=='photo'&&x!=='signature')||!!((X.instructions(t)||{}).extras||[]).length,list,rq}}
+function geoBanner(t){const X=DO();if(!X||!t)return '';const d=D();const g=X.geofence(t,d.loc);const rq=cap.place?X.required(t,cap.place):{proofs:[]};if(!rq.proofs||!rq.proofs.includes('geofence'))return '';
+  return `<div class="dv-geo ${g.ok?'ok':'bad'}" id="dvgeo">${ic(g.ok?'check':'alert',15)} ${g.ft==null?'GPS not available':g.ok?`At the address · ${g.ft} ft`:`${g.ft} ft from the address · max ${g.limit} ft`}${!g.ok?`<label class="dv-chk" style="margin-left:auto"><input type="checkbox" data-a="geoov" ${cap.geoOverride?'checked':''}> GPS is off, I'm at the door</label>`:''}</div>`}
+function proofsHTML(t,s){const X=DO();const ins=X.instructions(t)||{};const pid=cap.place;const rq=X.required(t,pid);const need=rq.proofs;const pl=X.placement(pid)||{};let h='';
+  if(need.includes('name')||pl.attended)h+=`<input class="in" id="dvpodname" placeholder="${pl.neighbor?'Neighbor name (required)':pid==='receptionist'?'Receptionist name (required)':pid==='leasing_office'?'Name at the desk':'Recipient name'+(need.includes('name')?' (required)':'')}">`;
+  if(pl.neighbor)h+=`<input class="in" id="dvnbaddr" placeholder="Neighbor address / unit (required)">`;
+  if(need.includes('id21'))h+=`<div class="dv-card" style="padding:10px 14px;gap:6px;border-color:var(--bad)" id="dvidc"><div class="dv-eyebrow" style="color:var(--bad)">ID / age check · ${rq.policy.ageMin}+</div><label class="dv-chk"><input type="checkbox" data-a="idchk" ${cap.idChecked?'checked':''}> I checked a government photo ID and the face matches</label><input class="in" id="dvdob" placeholder="Date of birth on the ID (YYYY-MM-DD)" inputmode="numeric"></div>`;
+  if(need.includes('pin'))h+=`<input class="in mono" id="dvpin" placeholder="Customer's PIN / one-time code" inputmode="numeric" maxlength="8">`;
+  h+=geoBanner(t);
+  if((ins.extras||[]).length)h+=`<div class="dv-lbl">Service extras · confirm each</div><div id="dvextras">${ins.extras.map(e=>`<label class="dv-chk"><input type="checkbox" data-a="extra" data-v="${e}" ${(cap.extras||[]).includes(e)?'checked':''}> ${esc((X.EXTRAS.find(x=>x.id===e)||{}).label||e)}</label>`).join('')}</div>`;
+  h+=`<input class="in" id="dvpodnotes" placeholder="Notes (optional)">`;return h}
+function placeHTML(t,s){const X=DO();if(!X)return podDO(t,s);const ins=X.instructions(t)||{};const d=D();
+ const def=ins.age21||ins.pin||ins.signature?'recipient':(ins.prefer||'front_door');const pid=cap.place&&X.placements(D().line).some(x=>x.id===cap.place)?cap.place:(X.placements(D().line).some(x=>x.id===def)?def:X.placements(D().line)[0].id);cap.place=pid;
+ const rq=X.required(t,pid);const need=rq.proofs;const grp=['Door','Building','Person'];
+ return instrCard(t)+`<div class="dv-lbl">Where did it go?</div>${grp.filter(G=>X.placements(D().line).some(x=>x.grp===G)).map(G=>`<div class="dv-eyebrow" style="margin-top:2px">${G==='Door'?'At the home':G==='Building'?'In the building':'To a person'}</div><div class="dv-reasons dv-place">${X.placements(D().line).filter(x=>x.grp===G).map(x=>`<button class="${pid===x.id?'on':''}${ins.prefer===x.id?' pref':''}" data-a="place" data-v="${x.id}">${esc(x.label)}${ins.prefer===x.id?' ★':''}</button>`).join('')}</div>`).join('')}
+ <div class="dv-proofs" id="dvproofs"><span class="t3" style="font-size:12px">Needed:</span> ${need.map(x=>`<span class="chip" data-proof="${x}">${esc((X.PROOFS.find(p=>p.id===x)||{}).label||x)}</span>`).join('')||'<span class="chip">Nothing extra</span>'} <span class="t3" style="font-size:11px">· ${esc(rq.policy.from)} rules</span></div>`+geoBanner(t)}
+function reasonHTML(t,k){const X=DO();const line=D().line;const RS=X.reasons(line);const r=cap.reason&&X.reason(cap.reason);const nx=r?X.nextAction(t,r):null;
+ return `<div class="dv-lbl">What happened?</div><div class="dv-reasons" id="dvreasons">${RS.map(x=>`<button class="${r&&r.id===x.id?'on':''}" data-a="reason" data-v="${x.id}">${esc(x.label)}</button>`).join('')}</div>
+ ${nx?`<div class="dv-card dv-next" id="dvnext" style="padding:10px 14px;gap:4px"><div class="dv-eyebrow">Next · set by the rules</div><b style="font-size:16px" id="dvnexta">${esc(nx.next)}</b><div class="t3" style="font-size:12px">${esc(nx.why)}</div>${r.notice?'<label class="dv-chk"><input type="checkbox" checked disabled> Leave a delivery notice</label>':''}</div>`:''}`}
+function goFlow(step){if(!flow)return;if(step!=='camera'&&step!=='review')stopFlowCam();flow.step=step;if(step!=='map')flow.returnStep=null;persistFlow();drawModal()}
+function afterPickedPlace(){const t=C.task(modal.id),s=nextStep(t),need=podNeed(t,s);
+  if(need.photo&&!cap.photos.pod){flow.camKind='pod';goFlow('camera');return}
+  if(need.sig&&!cap.sig){goFlow('sign');return}
+  if(need.proofs){goFlow('proofs');return}
+  goFlow('proofs')}
+function afterPickedReason(){const t=C.task(modal.id),X=DO();const r=cap.reason&&X&&X.reason(cap.reason);const pol=X&&X.policy(t.contract,D().line);
+  const needPhoto=r&&((pol&&pol.attempt.includes('photo'))||(r.proofs||[]).includes('photo'));
+  const needName=r&&(r.proofs||[]).includes('name');
+  if(needPhoto&&!cap.photos.exc){flow.camKind='exc';goFlow('camera');return}
+  goFlow('attempt')}
+function useFlowPhoto(){if(!flow)return;const kind=flow.camKind||'pod';if(!cap.photos[kind]){if(flow.pending)cap.photos[kind]=flow.pending;else cap.photos[kind]=stampPic(kind==='exc'?'Attempt photo':'Delivery photo')}
+  flow.pending=cap.photos[kind];persistFlow();
+  if(kind==='exc'){goFlow('attempt');return}
+  const t=C.task(modal.id),s=nextStep(t),need=podNeed(t,s);
+  if(need.sig&&!cap.sig){goFlow('sign');return}
+  goFlow('proofs')}
+function snapFlow(){const v=$('#dvflowcam');if(v&&v.videoWidth){try{const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);return c.toDataURL('image/jpeg',0.85)}catch(e){}}return stampPic(flow&&flow.camKind==='exc'?'Attempt photo':'Delivery photo')}
+function paintFlowLight(info){const b=$('#dvflowtorch'),cam=$('.dv-cam');if(!b)return;const capable=info?!!info.capable:!!(flowTorch&&flowTorch.capable);const on=info?!!info.on:!!(flowTorch&&flowTorch.on);const luma=info&&info.luma!=null?info.luma:(flowTorch&&flowTorch.luma);b.classList.toggle('on',on);b.textContent=on?'Light on':'Light';if(!capable){b.hidden=false}const auto=!!(ui.set&&ui.set.autoLight);if(cam)cam.classList.toggle('boost',!capable&&auto&&luma!=null&&luma<55)}
+async function startFlowCam(){const v=$('#dvflowcam');if(!v||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const fb=$('#dvflowfall');if(fb)fb.hidden=false;return}
+  try{const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280}}});if(!$('#dvflowcam')){stream.getTracks().forEach(t=>t.stop());return}v.srcObject=stream;flowCam=stream;try{await v.play()}catch(e){}
+    const track=stream.getVideoTracks()[0];const capable=window.CXScan?CXScan.torchCapable(track):false;flowTorch={track,capable,on:false,luma:null,manual:null};
+    const loop=async()=>{if(!flowCam)return;try{const luma=CXScan&&CXScan.sampleLuma?CXScan.sampleLuma(v):null;flowTorch.luma=luma;const auto=!!(ui.set&&ui.set.autoLight);if(capable&&auto&&flowTorch.manual==null&&luma!=null){if(luma<45&&!flowTorch.on){const ok=await CXScan.applyTorch(track,true);if(ok)flowTorch.on=true}else if(luma>80&&flowTorch.on){const ok=await CXScan.applyTorch(track,false);if(ok)flowTorch.on=false}}paintFlowLight({capable,on:flowTorch.on,luma})}catch(e){}};
+    flowLightT=setInterval(loop,700);loop();paintFlowLight({capable,on:false,luma:null})}
+  catch(e){const fb=$('#dvflowfall');if(fb)fb.hidden=false}}
+function drawFlow(){if(!modal||!flow)return;const t=modal.id&&C.task(modal.id),k=K();if(!t){closeModal();return}flowChrome();persistFlow();
+  const n=no(t),placeL=(DO()&&cap.place&&DO().placement(cap.place)||{}).label||cap.place||'';const reasonL=(DO()&&cap.reason&&DO().reason(cap.reason)||{}).label||'';
+  let h='',title='',sub=`Stop ${n}`,back=true;
+  if(flow.step==='map'){const ret=`Return to stop ${n}`;h=`<div class="dv-fret"><button class="dv-slide" data-a="flowreturn" id="dvflowret">${ic('back',18)}${esc(ret)}</button></div>`;$('#dvmb').innerHTML=h;try{if(ui.tab!=='route'){ui.tab='route';save()}mapScreen(true);if(typeof driveScreen==='function'&&special()&&stage()==='on_road'){/* pins already from last render */}const sh=$('#dvsheet');if(sh)sh.hidden=true}catch(e){}return}
+  if(flow.step==='place'){back=false;title='Where did it go?';const s=nextStep(t)||{kind:'pod'};h=flowHead(title,sub,false)+`<div class="dv-fc">${placeHTML(t,s)}</div><div class="dv-ff"><button class="btn ghost" data-a="cant" data-v="${t.id}">${esc(k.exceptionLabel||"Can't deliver")}</button><button class="btn pri xl" data-a="place" data-v="${cap.place||'front_door'}" id="dvplacego">${(podNeed(t,s).photo&&!cap.photos.pod)?'Take photo':'Continue'}</button></div>`}
+  else if(flow.step==='reason'){back=false;title='What happened?';h=flowHead(title,sub,false)+`<div class="dv-fc">${reasonHTML(t,k)}</div>`}
+  else if(flow.step==='camera'){title=placeL||(flow.camKind==='exc'?'Take a photo':'Take a photo');sub=`Stop ${n}${placeL?' · '+placeL:reasonL?' · '+reasonL:''}`;
+    const nextH=flow.camKind==='exc'&&DO()&&cap.reason?(()=>{const r=DO().reason(cap.reason),nx=r&&DO().nextAction(t,r);return nx?`<div class="dv-card dv-next" id="dvnext" style="position:relative;z-index:3;margin:10px 16px;padding:10px 14px;gap:4px"><div class="dv-eyebrow">Next · set by the rules</div><b style="font-size:16px" id="dvnexta">${esc(nx.next)}</b><div class="t3" style="font-size:12px">${esc(nx.why)}</div></div>`:''})():'';
+    h=flowHead(title,sub,true)+`<div class="dv-cam${ui.set&&ui.set.autoLight?' auto':''}" id="dvflowbox"><video id="dvflowcam" playsinline muted autoplay></video><div class="dv-cam-guide"></div>${nextH}${geoBanner(t)}<div class="dv-cam-fallback" id="dvflowfall" hidden>Camera isn't available. Use Album, or the shutter for a sample photo.</div><input id="dvflowfile" type="file" accept="image/*" capture="environment" hidden><div class="dv-cam-bar"><button type="button" class="dv-cam-btn" id="dvflowtorch" data-a="flowtorch">Light</button><button type="button" class="dv-shutter" data-a="shutter" aria-label="Take photo"></button><button type="button" class="dv-cam-btn" data-a="flowpick">Album</button></div><button hidden data-a="cap" data-v="${flow.camKind||'pod'}" id="dvflowcap"></button></div>`}
+  else if(flow.step==='review'){const src=flow.pending||cap.photos[flow.camKind||'pod']||'';title='Use this photo?';sub=`Stop ${n}${placeL?' · '+placeL:reasonL?' · '+reasonL:''}`;
+    h=flowHead(title,sub,true)+`<div class="dv-flow-rev"><img class="dv-snap" alt="Photo preview" src="${esc(src)}"><div class="dv-ff"><button class="btn xl" data-a="retake">Retake</button><button class="btn xl pri" data-a="usephoto">Use photo</button></div></div>`}
+  else if(flow.step==='sign'){title='Signature';const s=nextStep(t)||{};h=flowHead(title,sub,true)+`<div class="dv-fc">${sigHTML(true)}</div><div class="dv-ff"><button class="btn pri xl" data-a="sigdone">Done</button></div>`}
+  else if(flow.step==='proofs'){title='Finish delivery';const s=nextStep(t)||{};h=flowHead(title,sub,true)+`<div class="dv-fc"><div class="dv-proofs" id="dvproofs"><span class="t3" style="font-size:12px">Needed:</span> ${(podNeed(t,s).list||[]).map(x=>`<span class="chip" data-proof="${x}">${esc((DO().PROOFS.find(p=>p.id===x)||{}).label||x)}</span>`).join('')}</div>${proofsHTML(t,s)}</div><div class="dv-ff"><button class="btn pri xl" data-a="dostep" id="dvfinish">${ic('check',16)}Complete</button></div>`}
+  else if(flow.step==='attempt'){title='Finish attempt';const X=DO();const r=cap.reason&&X.reason(cap.reason);const nx=r&&X.nextAction(t,r);const needName=r&&(r.proofs||[]).includes('name');
+    h=flowHead(title,sub,true)+`<div class="dv-fc">${nx?`<div class="dv-card dv-next" id="dvnext" style="padding:10px 14px;gap:4px"><div class="dv-eyebrow">Next · set by the rules</div><b style="font-size:16px" id="dvnexta">${esc(nx.next)}</b><div class="t3" style="font-size:12px">${esc(nx.why)}</div></div>`:''}${needName?'<input class="in" id="dvcname" placeholder="Name of who refused (required)">':''}<input class="in" id="dvcn" placeholder="Notes"></div><div class="dv-ff"><button class="btn danger xl" data-a="dofail" id="dvfinishfail">Log &amp; continue</button></div>`}
+  else if(flow.step==='scan'){const s=nextStep(t);title=s&&s.label||'Scan';h=flowHead(title,sub,false)+`<div class="dv-fc">${/* reuse scan body via existing draw? */''}</div>`}
+  $('#dvmb').innerHTML=h||'';if(flow.step==='sign')bindSig();if(flow.step==='camera')setTimeout(()=>startFlowCam(),40);const file=$('#dvflowfile');if(file&&!file._cx){file._cx=1;file.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{flow.pending=rd.result;cap.photos[flow.camKind||'pod']=rd.result;goFlow('review')};rd.readAsDataURL(f)})}}
 /* ---------- modals ---------- */
-function openModal(type,id){modal={type,id};cap={photos:{},sig:false,reason:null};drawModal();$('#dvmodal').classList.add('on')}
-function closeModal(){modal=null;$('#dvmodal').classList.remove('on');setTimeout(()=>{if(!modal)$('#dvmb').innerHTML=''},260)}
+function openModal(type,id){stopFlowCam();modal={type,id};cap={photos:{},sig:false,reason:null};if(type==='cant'||type==='step'){const t=id&&C.task(id),st=t&&nextStep(t);if(type==='cant'||(st&&(st.kind==='pod'||st.kind==='photo'||st.kind==='sign')))armFlow(type,id,type==='cant'?'reason':'place')}drawModal();$('#dvmodal').classList.add('on')}
+function closeModal(){disarmFlow();modal=null;const m=$('#dvmodal');if(m){m.classList.remove('on','flow','dv-flow-map')}setTimeout(()=>{if(!modal)$('#dvmb').innerHTML=''},260)}
 const opts=(f,t)=>typeof f.options==='function'?f.options(t,C.S):(f.options||[]);
 function fld(f,t){const v=f.value?f.value(t,C.S):(f.type==='checks'?[]:'');const id='sf_'+f.id,req=f.required?' *':'';
  if(f.type==='check')return `<label class="dv-chk"><input type="checkbox" id="${id}" ${v?'checked':''}> ${esc(f.label)}${req}</label>`;
@@ -319,7 +397,7 @@ function fld(f,t){const v=f.value?f.value(t,C.S):(f.type==='checks'?[]:'');const
  if(f.type==='select')return `<div class="dv-lbl">${esc(f.label)}${req}</div><select class="in" id="${id}">${opts(f,t).map(o=>`<option${String(o)===String(v)?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
  return `<div class="dv-lbl">${esc(f.label)}${req}</div><input class="in" id="${id}" type="${f.type==='number'?'number':f.type==='time'?'time':'text'}" value="${esc(v==null?'':v)}">`}
 function readF(fs){const o={};let miss=null;(fs||[]).forEach(f=>{const id='sf_'+f.id;let v;if(f.type==='check')v=$('#'+id).checked;else if(f.type==='checks')v=$$(`[name="${id}"]:checked`).map(x=>x.value);else{v=$('#'+id).value;if(f.type==='number'&&v!=='')v=+v}if(f.required&&(v===''||v===false||v==null))miss=miss||f.label;o[f.id]=v});return{o,miss}}
-function sigHTML(req){return `<div class="dv-lbl">Signature ${req?'(required)':'(optional)'}</div><canvas class="dv-sig" id="dvsig" width="700" height="260"></canvas><div style="display:flex;gap:8px"><button class="btn sm ghost" data-a="sigclr">Clear</button><button class="btn sm ghost" data-a="sigdemo">Sign (demo)</button></div>`}
+function sigHTML(req){return `<div class="dv-lbl">Signature ${req?'(required)':'(optional)'}</div><canvas class="dv-sig" id="dvsig" width="700" height="260"></canvas><div style="display:flex;gap:8px"><button class="btn sm ghost" data-a="sigclr">Clear</button><button class="btn sm ghost cx-pilot" data-a="sigdemo">Sign (demo)</button></div>`}
 /* ---- delivery outcomes (delivery6.js · CXDO) ---- */
 const DO=()=>window.CXDO;
 function instrCard(t,compact){const X=DO();if(!X||!t)return '';const ins=X.instructions(t)||{};const a=ins.access||{};const pl=X.placement(ins.prefer);const show=!!cap.showCodes;
@@ -350,7 +428,7 @@ function cantDO(t,k){const X=DO();const line=D().line;const RS=X.reasons(line);c
  ${nx?`<div class="dv-card dv-next" id="dvnext" style="padding:10px 14px;gap:4px"><div class="dv-eyebrow">Next · set by the rules</div><b style="font-size:16px" id="dvnexta">${esc(nx.next)}</b><div class="t3" style="font-size:12px">${esc(nx.why)}</div>${r.notice?'<label class="dv-chk"><input type="checkbox" checked disabled> Leave a delivery notice</label>':''}</div>`:''}
  <div class="dv-capture${cap.photos.exc?' ok':''}" data-a="cap" data-v="exc" style="height:70px">${cap.photos.exc?ic('check',18)+' Photo attached':ic('camera',18)+(needPhoto?' Photo of the door / address (required)':' Attach a photo')}</div>
  ${needName?'<input class="in" id="dvcname" placeholder="Name of who refused (required)">':''}<input class="in" id="dvcn" placeholder="Notes">`}
-function drawModal(){if(!modal)return;const t=modal.id&&C.task(modal.id),k=K();let h='',f='';const hdr=(title,sub)=>`<div class="dv-mh"><div style="flex:1;min-width:0"><div class="dv-eyebrow">${sub||''}</div><h2 style="margin-top:6px">${esc(title)}</h2></div><button class="dv-rb" data-a="mclose" aria-label="Close">${ic('x',17)}</button></div>`;
+function drawModal(){if(!modal)return;if(useFlow()&&flow){drawFlow();return}document.body.classList.remove('dv-flowon','dv-flowmap');const mm=$('#dvmodal');if(mm)mm.classList.remove('flow','dv-flow-map');const t=modal.id&&C.task(modal.id),k=K();let h='',f='';const hdr=(title,sub)=>`<div class="dv-mh"><div style="flex:1;min-width:0"><div class="dv-eyebrow">${sub||''}</div><h2 style="margin-top:6px">${esc(title)}</h2></div><button class="dv-rb" data-a="mclose" aria-label="Close">${ic('x',17)}</button></div>`;
  if(modal.type==='step'){const s=nextStep(t);if(!s){closeModal();return}const st=stepsOf(t),si=st.findIndex(x=>x.id===s.id)+1,sub=`${esc(word())} ${no(t)} · step ${si} of ${st.length}`;const exc=`<button class="btn ghost" data-a="cant" data-v="${t.id}">${esc(k.exceptionLabel||"Can't deliver")}</button>`;
   h=hdr(s.label,sub)+`<div class="dv-mc"><div class="t2" style="font-size:13px;margin-top:-6px">${esc(t.name)} · ${esc(t.address.split(',')[0])}</div>${s.desc?`<div class="t3" style="font-size:12.5px">${esc(s.desc)}</div>`:''}`;
   if(s.kind==='scan'){const n=t.items.filter(p=>p.stopScanned).length,all=t.items.length;h+=`<div class="dv-scan" style="height:150px"><i style="animation-duration:1.4s"></i><div class="res"><div class="dv-big">${n}<small style="color:rgba(255,255,255,.5)"> / ${all}</small></div><div style="color:rgba(255,255,255,.6);font-size:12px;margin-top:4px">scanned at the door</div></div></div><div style="display:flex;gap:8px"><button class="btn xl pri" style="flex:1" data-a="sscan"${n<all?'':' disabled'}>${ic('scan',18)}Scan</button><button class="btn xl" data-a="sscanall"${n<all?'':' disabled'}>All</button></div>${t.items.map(p=>`<div class="dv-pk"><span class="${p.stopScanned?'ok':'t3'}">${ic(p.stopScanned?'check':'box',15)}</span><div class="grow mono" style="font-size:12px">${esc(p.id)}</div><span class="t3" style="font-size:11.5px">${esc(p.label||'')}</span></div>`).join('')}`;f=exc+`<button class="btn pri" data-a="dostep"${n===all?'':' disabled'}>Continue</button>`}
@@ -462,21 +540,31 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'grab':if(Date.now()-sheetTapped<450)break;toggleSheet();break;
  case 'torch':if(!camSess||!camSess.setTorch)break;camSess.torchManual=!camSess.torchOn;camSess.setTorch(camSess.torchManual).then(()=>paintTorch({capable:!!camSess.torchCapable,on:!!camSess.torchOn,luma:camSess.luma})).catch(()=>{});break;
  case 'step':closeModal();runNext(v);break;
- case 'dostep':doStep();break;
+ case 'dostep':if(flow&&(flow.step==='camera'||flow.step==='review')){useFlowPhoto();break}if(flow&&flow.step==='sign'){if(!cap.sig){toast('Signature required');break}goFlow('proofs');break}doStep();break;
  case 'sscan':C.update(S=>{const T=C.task(modal.id),p=T.items.find(p=>!p.stopScanned);if(p){p.stopScanned=true;p.events.push({type:'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name})}});haptic();drawModal();break;
  case 'sscanall':C.update(S=>{C.task(modal.id).items.forEach(p=>{if(!p.stopScanned){p.stopScanned=true;p.events.push({type:'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name})}})});drawModal();break;
- case 'cap':cap.photos[v]=stampPic(v==='exc'?'Attempt photo':(v==='pod'?'Delivery photo':'Photo'),v==='exc'?'#6B3A2A':'#1E3860');keepInputs(drawModal);break;
- case 'place':cap.place=v;keepInputs(drawModal);break;
+ case 'cap':{const kind=v||(flow&&flow.camKind)||'pod';const pic=flow&&flow.step==='camera'?snapFlow():stampPic(kind==='exc'?'Attempt photo':(kind==='pod'?'Delivery photo':'Photo'),kind==='exc'?'#6B3A2A':'#1E3860');cap.photos[kind]=pic;if(flow){flow.pending=pic;goFlow('review')}else keepInputs(drawModal);break}
+ case 'place':cap.place=v;if(flow){afterPickedPlace()}else keepInputs(drawModal);break;
+ case 'shutter':{const pic=snapFlow();cap.photos[flow&&flow.camKind||'pod']=pic;if(flow){flow.pending=pic;goFlow('review')}break}
+ case 'retake':if(flow){flow.pending=null;if(flow.camKind&&cap.photos)delete cap.photos[flow.camKind];goFlow('camera')}break;
+ case 'usephoto':useFlowPhoto();break;
+ case 'flowpick':{const i=$('#dvflowfile');if(i)i.click();else{const pic=stampPic('Delivery photo');cap.photos[flow&&flow.camKind||'pod']=pic;if(flow){flow.pending=pic;goFlow('review')}}break}
+ case 'flowtorch':if(flowTorch&&flowTorch.track&&window.CXScan){flowTorch.manual=!flowTorch.on;CXScan.applyTorch(flowTorch.track,flowTorch.manual).then(ok=>{if(ok)flowTorch.on=flowTorch.manual;paintFlowLight({capable:flowTorch.capable,on:flowTorch.on,luma:flowTorch.luma})});}break;
+ case 'flowback':if(!flow)break;if(flow.step==='review')goFlow('camera');else if(flow.step==='camera')goFlow(modal.type==='cant'?'reason':'place');else if(flow.step==='sign')goFlow(cap.photos.pod?'review':'place');else if(flow.step==='proofs'){const t=C.task(modal.id),n=podNeed(t,nextStep(t));goFlow(n.sig?'sign':(cap.photos.pod?'review':'place'))}else if(flow.step==='attempt')goFlow(cap.photos.exc?'review':'reason');break;
+ case 'flowmap':if(!flow)break;flow.returnStep=flow.step;if(flow.step==='camera')stopFlowCam();goFlow('map');try{ui.tab='route';save();render();flowChrome();drawModal()}catch(e){}break;
+ case 'flowreturn':if(!flow)break;document.body.classList.remove('dv-flowmap');goFlow(flow.returnStep||(modal.type==='cant'?'reason':'place'));break;
+ case 'sigdone':if($('#dvsig')&&!cap.sig){toast('Signature required');break}if(flow){const t=C.task(modal.id),need=podNeed(t,nextStep(t));goFlow(need.proofs?'proofs':'proofs')}break;
+
  case 'showcodes':cap.showCodes=!cap.showCodes;if(modal)keepInputs(drawModal);else render();break;
  case 'idchk':cap.idChecked=!cap.idChecked;keepInputs(drawModal);break;
  case 'geoov':cap.geoOverride=!cap.geoOverride;keepInputs(drawModal);break;
  case 'extra':{cap.extras=cap.extras||[];const i=cap.extras.indexOf(v);if(i<0)cap.extras.push(v);else cap.extras.splice(i,1);keepInputs(drawModal);break}
  case 'rate':cap.survey=+v;keepInputs(drawModal);break;
- case 'reason':cap.reason=v;keepInputs(drawModal);break;
+ case 'reason':cap.reason=v;if(flow){afterPickedReason()}else keepInputs(drawModal);break;
  case 'sigclr':{const cv=$('#dvsig');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);cap.sig=false;break}
  case 'sigdemo':$('#dvsig')._demo();break;
  case 'cant':openModal('cant',v);break;
- case 'dofail':{if(DO()&&!$('#dvna')){const id=modal.id,t0=C.task(id),X=DO();const nt=$('#dvcn').value,nm=($('#dvcname')||{}).value||'';const vr=X.validateAttempt(t0,{reason:cap.reason,photo:!!cap.photos.exc,name:nm,loc:d.loc,geoOverride:true});
+ case 'dofail':{if(flow&&(flow.step==='camera'||flow.step==='review')&&!($('#dvcn')||$('#dvcname'))){if(flow.step==='camera'&&!cap.photos.exc&&!flow.pending){const X=DO(),t0=C.task(modal.id),vr=X&&X.validateAttempt(t0,{reason:cap.reason,photo:false,name:'',loc:d.loc,geoOverride:true});if(vr&&!vr.ok){toast(vr.missing[0],'alert');break}const pic=snapFlow();cap.photos.exc=pic;flow.pending=pic}useFlowPhoto();break}if(DO()&&!$('#dvna')){const id=modal.id,t0=C.task(id),X=DO();const nt=($('#dvcn')||{}).value||'',nm=($('#dvcname')||{}).value||'';const vr=X.validateAttempt(t0,{reason:cap.reason,photo:!!cap.photos.exc,name:nm,loc:d.loc,geoOverride:true});
    if(!vr.ok){toast(vr.missing[0],'alert');window.__cxDOLast=vr;break}const rl=vr.reason.label,nx=vr.next;
    C.update(()=>{C.ops.fail(id,rl,nx.next,nt+(nm?` · ${nm}`:''),d.name);C.ops.tick(3);const T=C.task(id);if(T){T.x=T.x||{};T.x.attempt={reason:vr.reason.id,edi:vr.reason.edi,next:nx.code,why:nx.why,photo:!!cap.photos.exc,at:C.S.clock}}enrichPod(C.task(id),'fail',{notes:nt,placement:rl,receivedBy:rl},d)});
    if(window.CXI)CXI.emit({type:'attempted',taskId:id,actor:d.name,extra:{reason:rl,reason_code:vr.reason.id,next_action:nx.code,notes:nt},ll:d.loc});toast(`${rl} → ${nx.next}`,'alert');afterStop(id,true);break}
@@ -560,13 +648,17 @@ function recoverUi(err){try{endSheetPtr()}catch(e){}try{sheetHold=false;const sh
   try{if(window.V5&&V5.toast&&err)V5.toast('The screen recovered. Try that again.','alert')}catch(e){}}
 function lockIosScroll(){if(document._cxLock)return;document._cxLock=1;
   document.addEventListener('touchmove',e=>{if(sheetDrag){e.preventDefault();return}
+    const flowOn=document.body.classList.contains('dv-flowon'),flowMap=document.body.classList.contains('dv-flowmap');
+    if(flowOn&&!flowMap&&e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas,.dv-map')){e.preventDefault();return}
     if(e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas,canvas.dv-sig,.dv-sig'))return;
-    const sc=e.target.closest&&e.target.closest('.dv-sb,.dv-scr.solid,.dv-mc,.dv-wel,.cx-tt-panel,.cxi-terms-c,.cxi-terms-body,.rx-sheet,.rx-job,textarea,input.in');
+    const sc=e.target.closest&&e.target.closest('.dv-fc,.dv-sb,.dv-scr.solid,.dv-mc,.dv-wel,.cx-tt-panel,.cxi-terms-c,.cxi-terms-body,.rx-sheet,.rx-job,textarea,input.in');
     if(sc){if(sc.scrollHeight>sc.clientHeight+1)return;e.preventDefault();return}
     if(e.target.closest&&e.target.closest('.dv-sheet,.dv-modal.on,.dv-tabs'))return;
     e.preventDefault()},{passive:false});
+  document.addEventListener('touchstart',e=>{if(!document.body.classList.contains('dv-flowon')||document.body.classList.contains('dv-flowmap'))return;if(e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas,.dv-map'))e.preventDefault()},{passive:false});
 }
-function onResume(){try{endSheetPtr()}catch(e){}try{fitShell()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}}
+function onResume(){try{endSheetPtr()}catch(e){}try{fitShell()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}try{if(flow){persistFlow();if(flow.step==='camera'&&!flowCam)startFlowCam();else if(flow.step==='camera'){const v=$('#dvflowcam');v&&v.play&&v.play().catch(()=>{})}flowChrome()}}catch(e){}try{if(!modal&&!flow)restoreFlow()}catch(e){}}
+addEventListener('pagehide',()=>{try{if(flow)persistFlow()}catch(e){}});
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')onResume()});
 addEventListener('pageshow',onResume);
 addEventListener('orientationchange',()=>setTimeout(onResume,250));
@@ -574,7 +666,7 @@ addEventListener('focus',onResume);
 addEventListener('error',e=>{try{recoverUi(e&&e.error||e)}catch(x){}});
 addEventListener('unhandledrejection',e=>{try{recoverUi(e&&e.reason)}catch(x){}});
 const _act=act;act=function(){try{return _act.apply(this,arguments)}catch(err){console.warn('driver act',err);try{recoverUi(err)}catch(x){}}};
-mount();C.init();bindSheet();lockIosScroll();bindCleanExit();fitShell();render();
+mount();C.init();bindSheet();lockIosScroll();bindCleanExit();fitShell();render();try{restoreFlow()}catch(e){}
 const _fit=()=>{fitShell();try{map&&map.resize()}catch(e){}};
 addEventListener('resize',_fit);
 if(window.visualViewport){visualViewport.addEventListener('resize',_fit);visualViewport.addEventListener('scroll',_fit)}
@@ -609,5 +701,5 @@ function bindCleanExit(){const host=$('#dv');if(!host||host._cxVer)return;host._
   host.addEventListener('pointerdown',e=>{const v=e.target.closest&&e.target.closest('#dvver');if(!v)return;clear();t=setTimeout(()=>{t=0;if(!isClean())return;applyClean(false);if(window.CXTT&&CXTT.setClean)CXTT.setClean(false);try{render()}catch(x){}toast('Pilot tools are back on')},700)},{passive:true});
   host.addEventListener('pointerup',clear,{passive:true});host.addEventListener('pointercancel',clear,{passive:true});host.addEventListener('pointerleave',clear,{passive:true})}
 function resetMem(){try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;openLoad=false;leg=null;fitKey='';try{closeModal()}catch(e){}ui.plan={mode:null,seq:[],ends:[]};ui.last=null;ui.hit=false;ui.planOpen=false;ui.lc=null;ui.self=false;ui.coOpen=null;ui.scanLog=[];try{endSheetPtr()}catch(e){}}
-window.__v5drv={act,toggleSheet,applyClean,isClean,fitShell,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
+window.__v5drv={act,toggleSheet,applyClean,isClean,fitShell,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},get flow(){return flow},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
 })();

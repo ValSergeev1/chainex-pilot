@@ -190,3 +190,40 @@ html:not(.cx-clean) body.dv5 .dv-sb{padding-bottom:56px}
 .dv-sw[aria-checked="true"]{background:var(--acc)}
 .dv-sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);pointer-events:none;transition:left .2s ease}
 .dv-sw[aria-checked="true"] i{left:22px}
+
+/* ---------- full-screen delivery flow (not a sheet over the map) ---------- */
+body.dv-flowon .dv-map,body.dv-flowon .maplibregl-canvas,body.dv-flowon .dv-sheet,body.dv-flowon .dv-scr,body.dv-flowon .dv-tabs,body.dv-flowon .dv-top{pointer-events:none!important;touch-action:none!important}
+body.dv-flowon .dv-sheet,body.dv-flowon .dv-tabs{visibility:hidden}
+body.dv-flowon.dv-flowmap .dv-map,body.dv-flowon.dv-flowmap .maplibregl-canvas,body.dv-flowon.dv-flowmap .dv-top{pointer-events:auto!important;touch-action:pan-x pan-y;visibility:visible}
+body.dv-flowon.dv-flowmap .dv-top{pointer-events:none!important}
+body.dv-flowon.dv-flowmap .dv-top>*{pointer-events:auto}
+.dv-modal.flow{justify-content:stretch;z-index:45}
+.dv-modal.flow .scrim{opacity:0;pointer-events:none}
+.dv-modal.flow .dv-mb{border-radius:0;max-height:100%;height:100%;transform:none;border:0;background:var(--bg);box-shadow:none;overflow:hidden;display:flex;flex-direction:column}
+.dv-modal.flow.dv-flow-map{background:transparent}
+.dv-modal.flow.dv-flow-map .dv-mb{background:transparent;pointer-events:none}
+.dv-modal.flow.dv-flow-map .dv-fret{pointer-events:auto}
+.dv-fh{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 8px) 12px 10px;background:var(--bg);flex:none;border-bottom:1px solid var(--line);min-height:calc(var(--sat) + 56px)}
+.dv-fh h2{margin:0;font-size:17px;font-weight:650;letter-spacing:-.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-fh .grow{min-width:0;flex:1}.dv-fh .dv-eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-fh .btn{flex:none;min-height:40px;padding:0 12px;font-weight:620}
+.dv-fc{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.dv-fc>*{flex:none}
+.dv-ff{flex:none;display:flex;gap:8px;padding:10px 16px calc(var(--sab) + 14px);border-top:1px solid var(--line);background:var(--s1)}
+.dv-ff .btn,.dv-ff .dv-slide{flex:1;min-height:52px}
+.dv-modal.flow .dv-cam{position:relative;flex:1;min-height:0;background:#050607;overflow:hidden;display:flex;flex-direction:column}
+.dv-modal.flow .dv-cam video,.dv-modal.flow .dv-cam img.dv-snap{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dv-modal.flow .dv-cam.boost video{filter:contrast(1.28) brightness(1.22) saturate(1.05)}
+.dv-cam-guide{position:absolute;inset:18% 14%;border:2px solid rgba(255,255,255,.35);border-radius:18px;pointer-events:none;z-index:2}
+.dv-cam-bar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:22px;padding:18px 16px calc(var(--sab) + 22px);background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.dv-shutter{width:76px;height:76px;border-radius:50%;border:6px solid #fff;background:rgba(255,255,255,.92);box-shadow:0 8px 28px rgba(0,0,0,.4);cursor:pointer;flex:none}
+.dv-shutter:active{transform:scale(.96)}
+.dv-cam-btn{width:48px;height:48px;border-radius:24px;border:0;background:rgba(0,0,0,.5);color:#fff;font:650 12px/1 var(--f);display:grid;place-items:center;cursor:pointer}
+.dv-cam-btn.on{background:var(--acc)}
+.dv-cam-fallback{position:absolute;left:16px;right:16px;bottom:calc(var(--sab) + 118px);z-index:3;text-align:center;color:#fff;pointer-events:none;font:550 12px/1.35 var(--f);text-shadow:0 1px 4px #000}
+.dv-fret{position:absolute;left:12px;right:12px;bottom:calc(var(--sab) + 16px);z-index:46}
+.dv-fret .dv-slide{box-shadow:0 12px 36px rgba(0,0,0,.4)}
+.dv-flow-rev{flex:1;display:flex;flex-direction:column;min-height:0;background:#050607}
+.dv-flow-rev img{flex:1;width:100%;object-fit:contain;background:#050607;min-height:0}
+
+body.dv-flowon .cx-tt-fab{display:none!important}
