@@ -95,17 +95,27 @@ function mono(m){const p=MPAL[resolve(pref())];const L=m.getStyle().layers||[];L
  else if(l.type==='fill-extrusion')m.setLayoutProperty(l.id,'visibility','none')}catch(e){}})}
 function Map5(el,o={}){this.el=el;this.o=o;this.data={pins:[],lines:[]};this.mk=[];this.mode=null;this.init();addEventListener('v5-theme',()=>{if(this.m&&this.ready){mono(this.m)}else if(this.mode==='svg')this.svg()})}
 Map5.prototype.init=function(){const el=this.el;if(!window.maplibregl||this.o.schematic){this.mode='svg';return}
- try{const m=new maplibregl.Map({container:el,style:'https://tiles.openfreemap.org/styles/positron',center:this.o.center||[-122.25,47.6],zoom:this.o.zoom||9.4,attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false});this.m=m;this.mode='gl';
+ try{const m=new maplibregl.Map({container:el,style:'https://tiles.openfreemap.org/styles/positron',center:this.o.center||[-122.25,47.6],zoom:this.o.zoom||9.4,attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false,touchPitch:false,pixelRatio:Math.min(window.devicePixelRatio||1,2),refreshExpiredTiles:false});this.m=m;this.mode='gl';
+  /* resize only when the container really changes size (ResizeObserver), never on every app render */
+  if(window.ResizeObserver){this._ro=new ResizeObserver(en=>{const r=en[0]&&en[0].contentRect;if(!r)return;const k=Math.round(r.width)+'x'+Math.round(r.height);if(k===this._sz)return;this._sz=k;try{m.resize()}catch(e){}});this._ro.observe(el)}
   m.on('load',()=>{this.ready=true;mono(m);m.addSource('cxl',{type:'geojson',data:{type:'FeatureCollection',features:[]}});m.addLayer({id:'cxl-glow',type:'line',source:'cxl',paint:{'line-color':['get','c'],'line-width':['*',['get','w'],3],'line-opacity':.16,'line-blur':2},layout:{'line-cap':'round','line-join':'round'}});m.addLayer({id:'cxl',type:'line',source:'cxl',paint:{'line-color':['get','c'],'line-width':['get','w'],'line-opacity':['get','o'],'line-dasharray':[1,0]},layout:{'line-cap':'round','line-join':'round'}});this.render(true)});
   m.on('error',e=>{if(!this.ready&&!this._fb){this._fb=1;this.fallback()}});setTimeout(()=>{if(!this.ready&&!this._fb){this._fb=1;this.fallback()}},7000)}catch(e){this.mode='svg'}};
 Map5.prototype.fallback=function(){try{this.m&&this.m.remove()}catch(e){}this.m=null;this.mode='svg';this.svg()};
 Map5.prototype.set=function(d,fit){this.data=Object.assign({pins:[],lines:[]},d);this.render(fit)};
 Map5.prototype.render=function(fit){if(this.mode==='svg')return this.svg();if(!this.ready)return;const m=this.m,d=this.data;
- m.getSource('cxl').setData({type:'FeatureCollection',features:d.lines.filter(l=>l.coords&&l.coords.length>1).map(l=>({type:'Feature',properties:{c:l.color||'#3B82F6',w:l.width||3,o:l.opacity??1},geometry:{type:'LineString',coordinates:l.coords}}))});
- this.mk.forEach(x=>x.remove());this.mk=d.pins.map(p=>{const e=document.createElement('div');e.className='mk'+(p.cls?' '+p.cls:'');e.style.background=p.color||'var(--acc)';if(p.cls&&p.cls.includes('drv'))e.style.color=p.color;e.textContent=p.label||'';e.title=p.title||'';if(p.id)e.dataset.id=p.id;if(p.onClick)e.addEventListener('click',ev=>{ev.stopPropagation();p.onClick(p)});return new maplibregl.Marker({element:e}).setLngLat(p.ll).addTo(m)});
+ const feats=d.lines.filter(l=>l.coords&&l.coords.length>1).map(l=>({type:'Feature',properties:{c:l.color||'#3B82F6',w:l.width||3,o:l.opacity??1},geometry:{type:'LineString',coordinates:l.coords}}));const sig=JSON.stringify(feats);if(sig!==this._ls){this._ls=sig;m.getSource('cxl').setData({type:'FeatureCollection',features:feats})}
+ /* reuse markers by key and only touch what changed: no DOM churn, no GL repaint when nothing moved */
+ const old=this._mk||new Map(),nx=new Map(),seen={};this.mk=[];
+ d.pins.forEach((p,i)=>{let k=p.id?'id:'+p.id:'ll:'+p.ll[0].toFixed(6)+','+p.ll[1].toFixed(6);if(seen[k])k+='#'+i;seen[k]=1;
+  let r=old.get(k);if(r)old.delete(k);else{const e=document.createElement('div');e.addEventListener('click',ev=>{const q=e._p;if(q&&q.onClick){ev.stopPropagation();q.onClick(q)}});r={e,m:new maplibregl.Marker({element:e}).setLngLat(p.ll).addTo(m),ll:p.ll.join()}}
+  const e=r.e,cls='mk'+(p.cls?' '+p.cls:'');e._p=p;if(r.cls!==cls){/* keep MapLibre's own marker classes */(r.cls||'').split(' ').filter(Boolean).forEach(c=>e.classList.remove(c));cls.split(' ').forEach(c=>e.classList.add(c));r.cls=cls}const bg=p.color||'var(--acc)';if(r.bg!==bg){e.style.background=bg;r.bg=bg}
+  const col=p.cls&&p.cls.includes('drv')?p.color:'';if(r.col!==col){e.style.color=col;r.col=col}const tx=p.label||'';if(e.textContent!==tx)e.textContent=tx;const ti=p.title||'';if(e.title!==ti)e.title=ti;
+  if(p.id){if(e.dataset.id!==p.id)e.dataset.id=p.id}else if(e.dataset.id)delete e.dataset.id;const ll=p.ll.join();if(r.ll!==ll){r.m.setLngLat(p.ll);r.ll=ll}
+  nx.set(k,r);this.mk.push(r.m)});
+ old.forEach(r=>r.m.remove());this._mk=nx;
  if(fit)this.fit()};
 Map5.prototype.fit=function(lls){lls=lls||[...this.data.pins.map(p=>p.ll),...this.data.lines.flatMap(l=>l.coords||[])];if(!lls.length)return;if(this.mode==='svg'){this._fit=lls;return this.svg()}if(!this.ready)return;const b=new maplibregl.LngLatBounds(lls[0],lls[0]);lls.forEach(x=>b.extend(x));this.m.fitBounds(b,{padding:this.o.pad||60,maxZoom:14,duration:400})};
-Map5.prototype.resize=function(){this.m&&this.m.resize();if(this.mode==='svg')this.svg()};
+Map5.prototype.resize=function(force){if(this.m&&(force||!this._ro))this.m.resize();if(this.mode==='svg')this.svg()};
 Map5.prototype.svg=function(){const el=this.el,d=this.data,W=el.clientWidth||600,Hh=el.clientHeight||400;const all=this._fit&&this._fit.length?this._fit:[...d.pins.map(p=>p.ll),...d.lines.flatMap(l=>l.coords||[])];
  if(!all.length){el.innerHTML='';return}const xs=all.map(l=>l[0]),ys=all.map(l=>l[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);if(x1-x0<.01){x0-=.01;x1+=.01}if(y1-y0<.01){y0-=.01;y1+=.01}
  const sx=v=>40+(v-x0)/(x1-x0)*(W-80),sy=v=>Hh-40-(v-y0)/(y1-y0)*(Hh-80);

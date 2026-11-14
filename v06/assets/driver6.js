@@ -25,7 +25,7 @@ const elig=()=>C.eligibility?C.eligibility(W(),D().line):{ok:true,reasons:[],war
 const hub=()=>{const d=D();return C.S.hubs[d.hub]||{name:d.hubName||'hub',ll:d.loc}};
 const byId=id=>C.S.drivers.filter(d=>!d.dspSlot&&(d.driverId||'').toUpperCase()===String(id||'').trim().toUpperCase());
 const toast=(m,i)=>V.toast(m,i);
-const units=()=>(K().units||'items').toLowerCase();
+const units=n=>{const u=(K().units||'items').toLowerCase();return n===1?u.replace(/(ies)$/,'y').replace(/(?<!s)s$/,''):u};
 function haptic(){try{ui.set.haptics&&navigator.vibrate&&navigator.vibrate(18)}catch(e){}}
 function slot(t){const ds=R().filter(x=>x.kind!=='pickup'),n=ds.length||1,i=Math.max(0,ds.findIndex(x=>x.id===t.id));const part=i<n/3?'Rear, by the door':i<2*n/3?'Middle':'Front, behind the seat';
  if(D().line==='bulky')return{big:`Floor · ${i<n/3?'rear':i<2*n/3?'middle':'front'}`,txt:part};
@@ -43,19 +43,23 @@ function fitShell(){try{const root=document.documentElement,vv=window.visualView
   if(standalone&&sat<20)sat=47;if(sat)root.style.setProperty('--sat',sat+'px');else root.style.removeProperty('--sat');
   if(sab)root.style.setProperty('--sab',sab+'px');else root.style.removeProperty('--sab');
  }catch(e){}}
+/* write HTML only when it changed (and the node wasn't replaced by someone else): no flicker, no lost scroll, no wasted layout */
+function setH(el,h){if(!el)return;if(el.__h===h&&el.firstChild&&el.firstChild===el.__n)return;el.innerHTML=h;el.__h=h;el.__n=el.firstChild}
+let rq=0,rqT=0,renderPending=false;
+function scheduleRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;clearTimeout(rqT);render()});rqT=setTimeout(()=>{if(rq){cancelAnimationFrame(rq);rq=0;render()}},150)}
 function mount(){document.documentElement.classList.add('dv-shell');document.body.classList.add('dv5','dv-toastz');if(isClean())document.body.classList.add('cx-clean');fitShell();$('#app').innerHTML=`<div class="dv-stage"><aside class="dv-side"><div class="dv-eyebrow">ChainEx · V06</div><h1>Driver</h1><p>Phone-first app. Open this page on your phone and choose <b>Add to Home Screen</b> to install it. Every scan and delivery syncs live to Dispatch and the Dashboard.</p><div class="dv-card" style="font-size:12.5px"><b style="color:var(--t1)">Sample drivers</b><span>Settings → Demo switches between P&amp;D, Bulky, White glove, LTL and Shuttle.</span></div><a class="btn" href="start.html">${ic('home',15)}V06 start page</a></aside>
  <div class="dv" id="dv"><div class="dv-map" id="dvmap"></div><div class="dv-top" id="dvtop"></div><main class="dv-scr" id="dvscr"></main><div class="dv-sheet" id="dvsheet" hidden><button class="dv-grab" data-a="grab" aria-label="Resize"><i></i></button><div class="dv-sb" id="dvsb"></div></div><nav class="dv-tabs" id="dvtabs"></nav><div class="dv-modal" id="dvmodal"><div class="scrim" data-a="mclose"></div><div class="dv-mb" id="dvmb"></div></div></div></div>`;
  map=new V.Map($('#dvmap'),{pad:{top:90,bottom:300,left:40,right:40},zoom:11})}
 function me(ll){if(!map||!map.m||!map.ready||!ll)return;if(!meMk){const e=document.createElement('div');e.className='mk me';meMk=new maplibregl.Marker({element:e}).setLngLat(ll).addTo(map.m)}else meMk.setLngLat(ll)}
 function tabs(){const d=D();const unread=(C.S.msgs||[]).filter(m=>m.wid===W()&&!m.readDriver).length;const drive=special()&&stage()==='on_road';const rl=!d?'Route':special()&&pre()&&d.duty?'Plan':drive?'Drive':'Route';
- $('#dvtabs').innerHTML=[['today','Today','home'],['route',rl,drive?'nav':'route'],['inbox','Inbox','chat',unread],['me','Settings','gear']].map(([k,l,i,b])=>`<button class="dv-tab${ui.tab===k?' on':''}" data-a="tab" data-v="${k}">${ic(i,21)}<span>${l}</span>${b?`<span class="bdg">${b}</span>`:''}</button>`).join('')}
-function top(){const d=D();if(!d){$('#dvtop').innerHTML='';return}const a=R(),done=a.filter(t=>t.state==='completed').length;
- $('#dvtop').innerHTML=(ui.tab==='route'&&special()&&stage()==='on_road'&&cur()?`<div class="dv-turn" id="dvturn"></div>`:`<div class="dv-pill"><i class="dot${d.duty?' live':''}" style="background:${d.duty?'var(--ok)':'var(--t3)'}"></i><span>${esc(d.route.id)}</span><span class="mono">${done}/${a.length}</span></div><span style="flex:1"></span>`)+`<button class="dv-rb${d.sos?' sos':''}" data-a="sos" aria-label="SOS">${d.sos?'SOS ON':ic('sos',17)}</button>`;if($('#dvturn'))paintTurn()}
-function render(){if(typeof sheetHold!=='undefined'&&sheetHold)return;try{C.load();const d=D();if(!d)ui.wid=null;
+ setH($('#dvtabs'),[['today','Today','home'],['route',rl,drive?'nav':'route'],['inbox','Inbox','chat',unread],['me','Settings','gear']].map(([k,l,i,b])=>`<button class="dv-tab${ui.tab===k?' on':''}" data-a="tab" data-v="${k}">${ic(i,21)}<span>${l}</span>${b?`<span class="bdg">${b}</span>`:''}</button>`).join(''))}
+function top(){const d=D();if(!d){setH($('#dvtop'),'');return}const a=R(),done=a.filter(t=>t.state==='completed').length;
+ setH($('#dvtop'),(ui.tab==='route'&&special()&&stage()==='on_road'&&cur()?`<div class="dv-turn" id="dvturn"></div>`:`<div class="dv-pill"><i class="dot${d.duty?' live':''}" style="background:${d.duty?'var(--ok)':'var(--t3)'}"></i><span>${esc(d.route.id)}</span><span class="mono">${done}/${a.length}</span></div><span style="flex:1"></span>`)+`<button class="dv-rb${d.sos?' sos':''}" data-a="sos" aria-label="SOS">${d.sos?'SOS ON':ic('sos',17)}</button>`);document.body.classList.toggle('dv-hasturn',!!$('#dvturn'));if($('#dvturn'))paintTurn()}
+function render(){if(rq){cancelAnimationFrame(rq);rq=0;clearTimeout(rqT)}if(typeof sheetHold!=='undefined'&&sheetHold){renderPending=true;return}renderPending=false;try{C.load();const d=D();if(!d)ui.wid=null;
  const scr=$('#dvscr');tabs();top();$('#dvsheet').hidden=true;scr.className='dv-scr solid';$('#dvtabs').hidden=!d;
- if(!d){scr.className='dv-scr';scr.innerHTML=welcome();$('#dvtop').innerHTML='';return}
+ if(!d){scr.className='dv-scr';scr.innerHTML=welcome();setH($('#dvtop'),'');return}
  const t=ui.tab;if(t==='today')scr.innerHTML=today();else if(t==='inbox'){scr.innerHTML=inbox();if((C.S.msgs||[]).some(m=>m.wid===W()&&!m.readDriver))setTimeout(()=>C.update(()=>C.ops.msgRead&&C.ops.msgRead(W(),'driver')),0);scr.scrollTop=scr.scrollHeight}else if(t==='me')scr.innerHTML=settings();else routeTab();
- if(t!=='route')stopNav();syncCam();try{map&&map.resize()}catch(e){}if(modal&&flow){flowChrome();if(flow.step==='map'){const sh=$('#dvsheet');if(sh)sh.hidden=true}}else if(!modal){document.body.classList.remove('dv-flowon','dv-flowmap')}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
+ if(t!=='route'){stopNav();mapScreen(false)}syncCam();if(modal&&flow){flowChrome();if(flow.step==='map'){const sh=$('#dvsheet');if(sh)sh.hidden=true}}else if(!modal){document.body.classList.remove('dv-flowon','dv-flowmap')}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
 function mapScreen(on){document.body.classList.toggle('dv-onmap',!!on);$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');const topEl=$('#dvtop');if(topEl)topEl.hidden=!on;try{const pill=document.getElementById('rxpill');if(pill&&!on){/* visibility handled in CSS; keep hidden flag for duty-only when off-map */} }catch(e){}}
 function routeTab(){const d=D(),scr=$('#dvscr');
  if(!d.duty&&stage()!=='closed'){scr.innerHTML=`<div class="dv-card" style="margin-top:40px;align-items:flex-start"><div class="dv-eyebrow">${esc(d.route.id)}</div><div class="dv-h1">Go on duty to open your route</div><div class="t2" style="font-size:13.5px">${special()?'Your route map opens right away, so you can plan the order before you reach the warehouse.':'Check-in, load and your stops unlock once you are on duty.'}</div><button class="dv-slide" data-a="duty">${ic('power',20)}Go on duty</button></div>`;return}
@@ -210,15 +214,15 @@ function startOfDay(){mapScreen(false);const d=D(),ck=d.route.checkin,e=elig(),s
  <div class="dv-card" style="padding:4px 14px"><div class="dv-eyebrow" style="padding-top:10px">Today's ${esc(K().stopWord||'stops')}</div>${R().map(stopRow).join('')}</div>`}
 /* ---------- drive: one screen (P&D + Bulky) ---------- */
 function driveScreen(){mapScreen(true);const t=cur();if(!t)return finishScreen();const s=nextStep(t),et=(C.etas(W())||{})[t.id];
- $('#dvscr').innerHTML=`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:22px"><button class="dv-rb" data-a="fit" aria-label="Overview">${ic('target',17)}</button><button class="dv-rb" data-a="recenter" aria-label="Follow">${ic('nav',17)}</button></div>`;
+ setH($('#dvscr'),`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:22px"><button class="dv-rb" data-a="fit" aria-label="Overview">${ic('target',17)}</button><button class="dv-rb" data-a="recenter" aria-label="Follow">${ic('nav',17)}</button></div>`);
  const nav=!!navTimer,arrived=!!t.stepData.arrive;
- $('#dvsb').innerHTML=`<div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div class="dv-eyebrow">${esc(word())}</div><div class="dv-big" style="font-size:38px">${no(t)}<small> of ${tot()}</small></div></div><div style="text-align:right"><div class="mono" id="dvdist" style="font-size:20px;font-weight:600">${leg&&leg.total?CXNav.fmtD(Math.max(0,leg.total-(leg.cum[leg.i]||0))):'—'}</div><div class="t3" style="font-size:11.5px">${et?'ETA '+fmt(et.eta):''}${et&&et.risk?' · <span class="warn">late</span>':''}</div></div></div>
+ setH($('#dvsb'),`<div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div class="dv-eyebrow">${esc(word())}</div><div class="dv-big" style="font-size:38px">${no(t)}<small> of ${tot()}</small></div></div><div style="text-align:right"><div class="mono" id="dvdist" style="font-size:20px;font-weight:600">${leg&&leg.total?CXNav.fmtD(Math.max(0,leg.total-(leg.cum[leg.i]||0))):'—'}</div><div class="t3" style="font-size:11.5px">${et?'ETA '+fmt(et.eta):''}${et&&et.risk?' · <span class="warn">late</span>':''}</div></div></div>
  <div><b style="font-size:16px">${esc(t.name)}</b><div class="t2" style="font-size:13px">${esc(t.address)}</div></div>
  ${['pd','bulky','wg'].includes(D().line)?instrCard(t,true):''}
- <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip">${fmt(t.window[0])}–${fmt(t.window[1])}</span><span class="chip">${t.items.length} ${esc(units())}</span>${(t.tags||[]).slice(0,3).map(x=>`<span class="chip">${esc(x.toLowerCase())}</span>`).join('')}${t.driverNote?`<span class="chip warn">${esc(t.driverNote)}</span>`:''}</div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip">${fmt(t.window[0])}–${fmt(t.window[1])}</span><span class="chip">${t.items.length} ${esc(units(t.items.length))}</span>${(t.tags||[]).slice(0,3).map(x=>`<span class="chip">${esc(x.toLowerCase())}</span>`).join('')}${t.driverNote?`<span class="chip warn">${esc(t.driverNote)}</span>`:''}</div>
  ${arrived?`<button class="btn xl pri block" data-a="arrive">${ic('scan',19)}${esc(s?s.label:'Continue')}</button>`:nav?`<div style="display:flex;gap:8px"><button class="btn xl" style="flex:1" data-a="navpause">Pause</button><button class="btn xl pri" style="flex:1.4" data-a="arrive">${ic('pin',18)}I've arrived</button></div>`:`<div style="display:flex;gap:8px"><button class="btn xl pri" style="flex:1.4" data-a="navgo">${ic('nav',18)}Start navigation</button><button class="btn xl" style="flex:1" data-a="arrive">Arrived</button></div>`}
  <div style="display:flex;gap:6px"><button class="btn ghost" style="flex:1" data-a="cant" data-v="${t.id}">${esc(K().exceptionLabel||"Can't deliver")}</button><button class="btn ghost" style="flex:1" data-a="stop" data-v="${t.id}">Details</button><button class="btn ghost" style="flex:1" data-a="call">${ic('phone',15)}Call</button></div>
- ${ui.sheet==='full'?`<div class="dv-eyebrow">Up next</div><div>${openT().slice(1,15).map(stopRow).join('')}</div>`:''}`;
+ ${(()=>{const up=openT().slice(1);return up.length?`<div class="dv-eyebrow">Up next · ${up.length}</div><div class="dv-upnext">${up.map(stopRow).join('')}</div>`:''})()}`);
  drawDriveMap(t);if(!leg||leg.tid!==t.id)planLeg(t)}
 function drawDriveMap(t){const d=D(),pins=[];R().forEach(x=>{if(x.state==='completed'||x.state==='failed')pins.push({ll:x.ll,color:x.state==='completed'?'var(--ok)':'var(--bad)',cls:'u dim',title:x.name});else pins.push({ll:x.ll,label:String(no(x)),color:x.id===t.id?'var(--acc)':'#4E6280',cls:x.id===t.id?'nx':'',id:x.id,title:x.name,onClick:p=>act('stop',p.id)})});
  const lines=[{coords:openT().map(x=>x.ll),color:'#8495AD',width:1.5,opacity:.5}];lines.push(leg&&leg.path?{coords:leg.path,color:'#3B82F6',width:5}:{coords:[d.loc,t.ll],color:'#3B82F6',width:4});
@@ -227,13 +231,13 @@ async function planLeg(t){const d=D(),L={tid:t.id,i:0};leg=L;let rt=null;try{rt=
  L.rt=rt;L.path=window.CXNav?CXNav.densify(rt.coords):rt.coords;L.cum=[0];for(let i=1;i<L.path.length;i++)L.cum.push(L.cum[i-1]+(window.CXNav?CXNav.hav(L.path[i-1],L.path[i]):C.dist(L.path[i-1],L.path[i])*1000));L.total=L.cum[L.cum.length-1];L.pos=L.path[0];
  L.si=(rt.steps||[]).map(s=>{let b=0,bd=1e12;L.path.forEach((p,i)=>{const dd=Math.abs(p[0]-s.loc[0])+Math.abs(p[1]-s.loc[1]);if(dd<bd){bd=dd;b=i}});return b});
  if(ui.tab==='route'&&special()&&stage()==='on_road'&&cur()&&cur().id===t.id){drawDriveMap(t);paintTurn();const el=$('#dvdist');if(el)el.textContent=CXNav.fmtD(L.total);if(ui.autoGo){ui.autoGo=false;navGo()}}}
-function paintTurn(){const el=$('#dvturn');if(!el)return;const t=cur();if(!leg||!leg.rt){el.innerHTML=`<span class="ar">↑</span><div style="min-width:0;flex:1"><b>${t?esc(t.address.split(',')[0]):'Route'}</b><span>Finding the best way…</span></div>`;return}
+function paintTurn(){const el=$('#dvturn');if(!el)return;const t=cur();if(!leg||!leg.rt){setH(el,`<span class="ar">↑</span><div style="min-width:0;flex:1"><b>${t?esc(t.address.split(',')[0]):'Route'}</b><span>Finding the best way…</span></div>`);return}
  let k=leg.si.findIndex(ix=>ix>leg.i);if(k<0)k=leg.rt.steps.length-1;const st=leg.rt.steps[k]||{},toMan=Math.max(0,(leg.cum[leg.si[k]]||0)-(leg.cum[leg.i]||0));
- el.innerHTML=`<span class="ar">${esc(st.arrow||'↑')}</span><div style="min-width:0;flex:1"><b>${esc(st.text||'Continue')}</b><span>${window.CXNav?CXNav.fmtD(toMan):''} · ${esc(t?t.address.split(',')[0]:'')}</span></div>`}
+ setH(el,`<span class="ar">${esc(st.arrow||'↑')}</span><div style="min-width:0;flex:1"><b>${esc(st.text||'Continue')}</b><span>${window.CXNav?CXNav.fmtD(toMan):''} · ${esc(t?t.address.split(',')[0]:'')}</span></div>`)}
 function navGo(){const t=cur();if(!t)return;const s=nextStep(t);if(s&&s.kind==='confirm'&&s.effect==='active')C.update(()=>{C.ops.completeStep(t.id,s,{},D().name);C.ops.tick(1)});
  if(!leg||!leg.path||leg.tid!==t.id){ui.autoGo=true;if(!leg||leg.tid!==t.id)planLeg(t);return}stopNav();const inc=Math.max(1,Math.floor(leg.path.length/45));
- navTimer=setInterval(()=>{if(!leg||!leg.path){stopNav();return}leg.i=Math.min(leg.path.length-1,leg.i+inc);leg.pos=leg.path[leg.i];me(leg.pos);paintTurn();if(map.m&&map.ready)map.m.easeTo({center:leg.pos,duration:110,zoom:Math.max(map.m.getZoom(),14)});
-  const el=$('#dvdist');if(el)el.textContent=CXNav.fmtD(Math.max(0,leg.total-leg.cum[leg.i]));if(leg.i>=leg.path.length-1){stopNav();arrive()}},120);render()}
+ navTimer=setInterval(()=>{if(!leg||!leg.path){stopNav();return}leg.i=Math.min(leg.path.length-1,leg.i+inc);leg.pos=leg.path[leg.i];me(leg.pos);paintTurn();if(map.m&&map.ready)map.m.easeTo({center:leg.pos,duration:140,easing:x=>x,zoom:Math.max(map.m.getZoom(),14)});
+  const el=$('#dvdist');if(el){const tx=CXNav.fmtD(Math.max(0,leg.total-leg.cum[leg.i]));if(el.textContent!==tx)el.textContent=tx}if(leg.i>=leg.path.length-1){stopNav();arrive()}},120);render()}
 function stopNav(){if(navTimer){clearInterval(navTimer);navTimer=null}}
 function arrive(){const t=cur();if(!t)return;stopNav();C.update(()=>{const d=C.driver(W());d.loc=t.ll.slice();for(let s=nextStep(C.task(t.id));s&&s.kind==='confirm';s=nextStep(C.task(t.id))){C.ops.completeStep(t.id,s,{},d.name);C.ops.tick(1)}});haptic();runNext(t.id)}
 function runNext(id){const t=C.task(id);if(!t)return;if(!C.OPEN(t)||!nextStep(t)){afterStop(id);return}const s=nextStep(t);
@@ -484,7 +488,7 @@ function doStep(){const t=C.task(modal.id),s=nextStep(t),d=D();if(!s)return;let 
 function keepInputs(fn){const keep={};$$('#dvmb input.in,#dvmb select.in').forEach(i=>keep[i.id]=i.value);const sig=cap.sig;fn();Object.entries(keep).forEach(([k,v])=>{const e=document.getElementById(k);if(e)e.value=v});if(sig&&$('#dvsig'))$('#dvsig')._demo()}
 /* ---------- actions ---------- */
 function act(a,v){const d=D(),w=W();switch(a){
- case 'tab':ui.tab=v;save();fitKey='';render();break;
+ case 'tab':{const same=ui.tab===v;ui.tab=v;save();fitKey='';render();const sc=$('#dvscr');if(sc&&!same){sc.classList.remove('dv-tabin');void sc.offsetWidth;sc.classList.add('dv-tabin');clearTimeout(sc._ti);sc._ti=setTimeout(()=>sc.classList.remove('dv-tabin'),260)}break}
  case 'fillid':$('#dvid').value=v;$('#dvterms').checked=true;break;
  case 'signin':{const id=($('#dvid').value||'').trim();if(!$('#dvterms').checked){toast('Please accept the driver terms');break}const h=byId(id);if(!h.length){toast('Driver ID not found · check with your DSP or ChainEx','alert');break}ui.wid=h[0].id;ui.tab=h[0].duty&&h[0].route.stage!=='closed'?'route':'today';ui.plan={mode:null,seq:[],ends:[]};save();fitKey='';leg=null;render();if(window.CXI&&CXI.needsTerms('driver',h[0].id))CXI.showTermsOverlay('driver',h[0].id,h[0].name);toast('Signed in · '+h[0].name,'check');break}
  case 'demo':{const h=byId(DEMO[v]);if(!h.length)break;ui.wid=h[0].id;ui.tab='today';ui.plan={mode:null,seq:[],ends:[]};ui.last=null;openLoad=false;save();leg=null;fitKey='';render();toast('Demo · '+h[0].name+' · '+LN[v],'user');break}
@@ -612,35 +616,57 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='dvcobc'){act('coscan','typed');return}if(e.target.id==='dvmsg')act('send');else if(e.target.id==='dvlbc')act('lscan','typed');else if(e.target.id==='dvaa')act('addrgo');else if(e.target.id==='dvid')act('signin')});
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.__bip=e});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(()=>{});
-C.subscribe(()=>{if(modal||navTimer)return;const ae=document.activeElement;if(ae&&ae.matches&&ae.matches('input.in'))return;render()});
+C.subscribe(()=>{if(modal||navTimer)return;const ae=document.activeElement;if(ae&&ae.matches&&ae.matches('input.in'))return;scheduleRender()});
 addEventListener('v5-theme',()=>{if(D())render()});
 let fullT=0;addEventListener('cx-storage-full',()=>{if(Date.now()-fullT<8000)return;fullT=Date.now();toast("This phone's browser storage is full, so changes may not save. Settings → Reset sample day.",'alert')});
 /* ---------- sheet drag, iOS scroll lock, resume, error recovery ---------- */
-let sheetHold=false,sheetDrag=null,sheetTapped=0;
-function toggleSheet(to){const sh=$('#dvsheet');if(!sh||sh.hidden)return;ui.sheet=to||(ui.sheet==='full'?'peek':'full');sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');sh.style.transform='';sh.classList.remove('drag');save();try{map&&map.resize()}catch(e){}}
-function endSheetPtr(){if(!sheetDrag){sheetHold=false;return}const d=sheetDrag;sheetDrag=null;sheetHold=false;const sh=$('#dvsheet');if(sh){sh.classList.remove('drag');sh.style.transform='';try{if(d.pid!=null)sh.releasePointerCapture(d.pid)}catch(e){}}
-  if(d.pending&&!d.moved)return;
-  if(d.moved&&Math.abs(d.dy)>28)toggleSheet(d.dy<0?'full':'peek');else if(!d.moved){toggleSheet();sheetTapped=Date.now()}else toggleSheet(ui.sheet)}
+let sheetHold=false,sheetDrag=null,sheetTapped=0,sheetVisH=null;
+const reduceMotion=()=>!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* snap to peek/full. Layout jumps once to the final size; the motion itself is a transform-only spring (FLIP), so it stays at 60fps over the live map. */
+function toggleSheet(to,extraY){const sh=$('#dvsheet');if(!sh||sh.hidden)return;const next=to||(ui.sheet==='full'?'peek':'full');
+  const hc=sheetVisH!=null?sheetVisH:sh.offsetHeight;sheetVisH=null;
+  ui.sheet=next;sh.classList.remove('drag');sh.style.height='';sh.style.maxHeight='';sh.classList.toggle('full',next==='full');sh.classList.toggle('peek',next!=='full');
+  const off=(sh.offsetHeight-hc)+(extraY||0);clearTimeout(sh._st);sh.classList.remove('snap');
+  if(Math.abs(off)>1&&!reduceMotion()){sh.style.transform='translateY('+off.toFixed(1)+'px)';void sh.offsetWidth;sh.classList.add('snap');sh.style.transform='';sh._st=setTimeout(()=>sh.classList.remove('snap'),340)}else sh.style.transform='';
+  save()}
+function endSheetPtr(){if(!sheetDrag){sheetHold=false;return}const d=sheetDrag;sheetDrag=null;sheetHold=false;if(d.raf)cancelAnimationFrame(d.raf);const sh=$('#dvsheet');
+  if(sh){try{if(d.pid!=null&&sh.hasPointerCapture&&sh.hasPointerCapture(d.pid))sh.releasePointerCapture(d.pid)}catch(e){}}
+  const flush=()=>{if(renderPending)scheduleRender()};
+  if(!sh||(d.pending&&!d.moved)){flush();return}
+  if(!d.moved){sh.classList.remove('drag');sh.style.height='';sh.style.maxHeight='';sh.style.transform='';toggleSheet();sheetTapped=Date.now();flush();return}
+  const S=d.samples,now=S[S.length-1];let i=S.length-1;while(i>0&&now.t-S[i-1].t<90)i--;const dt=now.t-S[i].t,v=dt>0?(now.y-S[i].y)/dt:0;
+  let to;if(Math.abs(v)>0.35)to=v<0?'full':'peek';else if(Math.abs(d.dy)<=28)to=ui.sheet;else to=(d.vh!=null?d.vh:d.h0)>(d.hp+d.hf)/2?'full':'peek';
+  sheetVisH=d.vh!=null?d.vh:d.h0;toggleSheet(to,d.ty||0);flush()}
 function bindSheet(){const host=$('#dv');if(!host||host._cxSheet)return;host._cxSheet=1;
-  const arm=sh=>{sheetHold=true;sh.classList.add('drag');try{if(sheetDrag&&sheetDrag.pid!=null)sh.setPointerCapture(sheetDrag.pid)}catch(x){}};
-  const onDown=e=>{const sh=$('#dvsheet');if(!sh||sh.hidden||!sh.contains(e.target))return;
+  const rubber=x=>x<=0?0:56*(1-Math.exp(-x/140));
+  const arm=sh=>{sheetHold=true;const d=sheetDrag;d.armed=true;
+    /* measure once per drag (never inside the move loop) */
+    d.h0=sh.offsetHeight;const was=sh.classList.contains('full');sh.style.height='';sh.style.maxHeight='';
+    sh.classList.add('peek');sh.classList.remove('full');d.hp=sh.offsetHeight;sh.classList.remove('peek');sh.classList.add('full');d.hf=Math.max(sh.offsetHeight,d.hp);
+    sh.classList.toggle('full',was);sh.classList.toggle('peek',!was);clearTimeout(sh._st);sh.classList.remove('snap');sh.style.transform='';sh.classList.add('drag');
+    try{if(d.pid!=null)sh.setPointerCapture(d.pid)}catch(x){}};
+  const paint=()=>{const d=sheetDrag;if(!d)return;d.raf=0;const sh=$('#dvsheet');if(!sh)return;let h=d.h0-d.dy,ty=0;
+    if(h<d.hp){ty=rubber(d.hp-h)*1.6;h=d.hp}else if(h>d.hf){h=d.hf+rubber(h-d.hf)*.5}
+    d.vh=h;d.ty=ty;sh.style.maxHeight='none';sh.style.height=h.toFixed(1)+'px';sh.style.transform=ty?'translateY('+ty.toFixed(1)+'px)':''};
+  const onDown=e=>{const sh=$('#dvsheet');if(!sh||sh.hidden||!sh.contains(e.target))return;if(e.isPrimary===false)return;
     if(e.target.closest('button,a,input,textarea,select,label,canvas,.dv-sig')){
       const grab=!!e.target.closest('.dv-grab');if(!grab)return}
     const grab=!!e.target.closest('.dv-grab');const top=sh.getBoundingClientRect().top;const onHead=e.clientY<=top+48&&!e.target.closest('#dvsb button, #dvsb a, #dvsb input');
     const sb=$('#dvsb');const pullEdge=sb&&sb.contains(e.target)&&sb.scrollTop<=0;
     if(!grab&&!onHead&&!pullEdge)return;
-    sheetDrag={y:e.clientY,dy:0,moved:false,pid:e.pointerId,grab,pending:!grab&&!onHead};
+    sheetDrag={y:e.clientY,dy:0,moved:false,pid:e.pointerId,grab,pending:!grab&&!onHead,samples:[{t:e.timeStamp,y:e.clientY}],raf:0};
     if(!sheetDrag.pending)arm(sh)};
-  const onMove=e=>{if(!sheetDrag)return;const dy=e.clientY-sheetDrag.y;if(Math.abs(dy)>8)sheetDrag.moved=true;sheetDrag.dy=dy;
+  const onMove=e=>{const d=sheetDrag;if(!d||(d.pid!=null&&e.pointerId!==d.pid))return;const dy=e.clientY-d.y;if(Math.abs(dy)>8)d.moved=true;d.dy=dy;
+    d.samples.push({t:e.timeStamp,y:e.clientY});if(d.samples.length>8)d.samples.shift();
     const sh=$('#dvsheet');if(!sh)return;
-    if(sheetDrag.pending){if(Math.abs(dy)<10)return;sheetDrag.pending=false;arm(sh)}
-    const cap=Math.max(-220,Math.min(220,dy));sh.style.transform='translateY('+cap+'px)';e.preventDefault()};
-  const onUp=e=>{if(!sheetDrag)return;endSheetPtr()};
+    if(d.pending){if(Math.abs(dy)<10)return;/* pulling the list up scrolls it; only a pull down from the top drags the sheet */if(dy<0&&!(ui.sheet==='peek')){sheetDrag=null;return}d.pending=false;arm(sh)}
+    if(e.cancelable)e.preventDefault();if(!d.raf)d.raf=requestAnimationFrame(paint)};
+  const onUp=e=>{if(!sheetDrag)return;if(sheetDrag.raf){cancelAnimationFrame(sheetDrag.raf);paint()}endSheetPtr()};
   host.addEventListener('pointerdown',onDown,{passive:true});
   host.addEventListener('pointermove',onMove,{passive:false});
   host.addEventListener('pointerup',onUp,{passive:true});
   host.addEventListener('pointercancel',onUp,{passive:true});
-  host.addEventListener('lostpointercapture',()=>{if(sheetDrag)endSheetPtr()});
+  host.addEventListener('lostpointercapture',()=>{if(sheetDrag&&sheetDrag.armed)endSheetPtr()});
 }
 function recoverUi(err){try{endSheetPtr()}catch(e){}try{sheetHold=false;const sh=$('#dvsheet');if(sh){sh.classList.remove('drag');sh.style.transform=''}}catch(e){}
   try{if(modal){const m=$('#dvmodal');if(m&&!m.classList.contains('on'))modal=null}}catch(e){}

@@ -60,11 +60,15 @@ function setPolicy(contract,line,patch,actor){let r;C.update(s=>{const D=ensure(
 function resetPolicy(contract,line){C.update(s=>{const D=ensure(s);const k=contract||'*';if(D.policy[k])delete D.policy[k][line]})}
 /* ---- sample customer instructions + access (deterministic per task, no real data) ---- */
 function hash(s){let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
-const NOTES=['Leave behind the planter on the porch','Please do not ring the bell, baby sleeping','Side gate is unlocked, leave by the back door','Use the parcel locker in the lobby','Front desk accepts packages 8–6','Call on arrival','Dog in the yard, use the front door only','Leave with the leasing office if no answer'];
-const PREF=['front_door','back_door','porch','locker','leasing_office','safe_place','side_door','mailroom'];
+/* every note matches its drop spot, so the card never says one door while the note says another */
+const RES=[['front_door','Dog in the yard, use the front door only'],['back_door','Side gate is unlocked, leave by the back door'],['porch','Leave behind the planter on the porch'],['front_door','Please do not ring the bell, baby sleeping'],['safe_place','Leave inside the bench box on the porch'],['side_door','Use the side door by the driveway'],['front_door','Call on arrival'],['porch','Leave on the covered porch, out of the rain']];
+const MULTI=[['locker','Use the parcel locker in the lobby'],['leasing_office','Leave with the leasing office if no answer'],['mailroom','Mailroom is open 8–6, leave with the clerk']];
+const BIG={bulky:[['inside_threshold','Call 30 minutes ahead'],['garage','Use the garage, code on the keypad'],['room_of_choice','Stairs to the 2nd floor, two people needed'],['room_of_choice','Remove the old sofa from the living room']],wg:[['room_of_choice','Call 30 minutes ahead'],['room_of_choice','Stairs to the 2nd floor, two people needed'],['room_of_choice','Remove the old sofa from the living room']]};
+const NOTES=RES.map(x=>x[1]);
 function instructions(t){if(!t)return null;const x=t.x||{};if(x.instr)return x.instr;const h=hash(t.id);const multi=(t.tags||[]).includes('MULTI-UNIT')||/apt|unit|#/i.test(t.address||'');const line=lineOf(t);
- const big=line==='bulky'||line==='wg';const o={notes:big?['Call 30 minutes ahead','Use the garage, code on the keypad','Stairs to the 2nd floor, two people needed','Remove the old sofa from the living room'][h%4]:NOTES[h%NOTES.length],prefer:big?(line==='wg'?'room_of_choice':['inside_threshold','garage','room_of_choice'][h%3]):multi?['locker','leasing_office','mailroom'][h%3]:PREF[h%PREF.length],noKnock:h%5===0,callAhead:h%4===1||line==='wg'||line==='bulky',
-  access:{gate:h%3===0?'#'+(1000+h%9000):'',door:multi&&h%2?'*'+(100+h%900):'',lockbox:h%7===2?'Lockbox at side door · code '+(10+h%90):'',fob:multi&&h%5===3?'Fob in lockbox':'',garage:h%6===0},
+ const big=line==='bulky'||line==='wg';const pair=big?BIG[line][h%BIG[line].length]:multi?MULTI[h%3]:RES[h%RES.length];
+ const o={notes:pair[1],prefer:pair[0],noKnock:/do not ring/i.test(pair[1])||h%5===0,callAhead:/^Call/.test(pair[1])||h%4===1||line==='wg'||line==='bulky',
+  access:{gate:h%3===0?'#'+(1000+h%9000):'',door:multi&&h%2?'*'+(100+h%900):'',lockbox:h%7===2?'Key lockbox by the entry · code '+(10+h%90):'',fob:multi&&h%5===3?'Fob in lockbox':'',garage:h%6===0||pair[0]==='garage'},
   age21:(t.tags||[]).includes('AGE21'),pin:(t.tags||[]).includes('PIN')?String(1000+h%9000).slice(-4):'',signature:(t.tags||[]).includes('SIGNATURE'),
   extras:(line==='bulky'||line==='wg')?EXTRAS.filter((e,i)=>line==='wg'?i!==4||h%2:(i===0||i===3||(i===4&&h%3===0)||(i===2&&h%2===0))).map(e=>e.id):[]};
  o.sample=true;return o}

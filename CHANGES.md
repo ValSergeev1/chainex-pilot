@@ -1,5 +1,15 @@
 # ChainEx Pilot · Changes
 
+## V06 driver · smoothness pass, fresh start, new icon (Nov 13, 2026)
+
+- **Bottom sheet follows the finger.** Drag is batched to the screen refresh, reads layout once per drag (never in the move loop), and snaps with a spring that only moves the sheet (transform), with a flick to open or close. The full sheet always lists every remaining stop (Up next · 59), rendered cheaply.
+- **No more redraw churn.** Map markers are reused and only changed when something changes; the route line is only re-sent when it changes; the map only resizes when its box really changes. Store updates are coalesced into one redraw per frame, and screens only rewrite HTML that changed. The shared store no longer re-parses unchanged saved data on every redraw.
+- **Cheaper surfaces over the live map.** Blur behind the tab bar, top pills and Routes pill removed (solid surfaces look the same); the next-stop pulse and scan laser animate with transform/opacity only; map renders at most 2x pixel density.
+- **Feel.** Instant press feedback on buttons, rows and tabs, no double-tap delay, no page rubber-band, short fade on tab switch, reduced-motion respected.
+- **Fixes.** Routes pill no longer overlaps the turn banner; route pills no longer float over Settings/Inbox; "1 package" (not "1 packages"); sample drop-spot notes always match the preferred spot (no more "Side door" with "front door only").
+- **Fresh start per version.** The first open of a new version wipes saved pilot state (stops, scans, photos, attempts, open delivery flow, old caches) and starts the sample day from stop 1; theme, demo mode and the signed-in sample driver stay. "Start a new sample day" also clears an open delivery flow.
+- **New driver icon:** solid neon CX van (App Store 1024, Play 512, maskable 512, 180/192, favicons 32/16). SW cache `cx-v06-11`. Backups: `backups/driver-v06-presmooth-2026-11-13/`, `backups/driver-icons-pre-cxvan-2026-11-13/`.
+
 ## V03 · Map-first driver app, installable apps, new dispatch board (Nov 12, 2026)
 
 V02 is frozen in `../pilot-V02` and served at `/v02/`; V01 at `/v01/`. Every V03 page has a **V03 · switch to V02 · switch to V01** badge. Sample data only. V03 uses its own browser storage key, so V02 and V03 never share state.

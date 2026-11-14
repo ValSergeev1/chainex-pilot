@@ -15,12 +15,14 @@ const api={T,ev,mk,dist,fmt,uid,log:(...a)=>log(...a),get S(){return S},task:id=
 function base(){return{version:VERSION,clock:T(10,40),sim:{playing:false,speed:1},contracts:{},teams:[],drivers:[],vehicles:[],hubs:{},tasks:[],manifests:[],offers:[],activity:[],lanes:[],facilities:{},meta:{},partners:[],users:[],queue:[],recruits:[],audit:[],events:[],payouts:[],dayOffset:0,settings:{claimEnabled:{pd:false,bulky:false,wg:false,ltl:false,shuttle:false}}}}
 function seedLine(l,scenario){const c=lines[l];if(c&&c.seed)c.seed(S,api,CXGeo,scenario||'normal')}
 function seed(){S=base();LINE_ORDER.forEach(l=>seedLine(l));modules.forEach(m=>m.seed&&m.seed(S,api,CXGeo));S.activity.sort((a,b)=>b.at-a.at);return S}
-function load(){try{const j=localStorage.getItem(KEY);S=j?JSON.parse(j):null}catch(e){S=null} if(!S||S.version!==VERSION)seed(); return S}
+/* skip re-parsing when storage still holds exactly what we last parsed or wrote (renders call load() a lot) */
+let lastRaw=null;
+function load(){try{const j=localStorage.getItem(KEY);if(S&&j&&j===lastRaw)return S;S=j?JSON.parse(j):null;lastRaw=j}catch(e){S=null;lastRaw=null} if(!S||S.version!==VERSION)seed(); return S}
 let bc=null;try{bc=new BroadcastChannel('cx-pilot-sync')}catch(e){}
-function save(){S._rev=(S._rev||0)+1+Math.random();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){console.warn('save failed',e)}try{bc&&bc.postMessage(Date.now())}catch(e){}}
+function save(){S._rev=(S._rev||0)+1+Math.random();try{const j=JSON.stringify(S);lastRaw=null;localStorage.setItem(KEY,j);lastRaw=j}catch(e){lastRaw=null;console.warn('save failed',e)}try{bc&&bc.postMessage(Date.now())}catch(e){}}
 function emit(){subs.forEach(f=>{try{f(S)}catch(e){console.error(e)}})}
-function update(fn){load();const r=fn(S);save();emit();return r}
-function sync(){const r=S&&S._rev;let j=null;try{j=localStorage.getItem(KEY)}catch(e){}if(!j)return;let n;try{n=JSON.parse(j)}catch(e){return}if(n&&n._rev===r&&r!=null)return;S=n&&n.version===VERSION?n:S;if(!emitT)emitT=setTimeout(()=>{emitT=null;emit()},30)}let emitT=null;
+function update(fn){load();let r;try{r=fn(S)}catch(e){lastRaw=null;throw e}save();emit();return r}
+function sync(){const r=S&&S._rev;let j=null;try{j=localStorage.getItem(KEY)}catch(e){}if(!j)return;let n;try{n=JSON.parse(j)}catch(e){return}if(n&&n._rev===r&&r!=null)return;if(n&&n.version===VERSION){S=n;lastRaw=j}if(!emitT)emitT=setTimeout(()=>{emitT=null;emit()},30)}let emitT=null;
 window.addEventListener('storage',e=>{if(e.key===KEY)sync()});if(bc)bc.onmessage=()=>sync();
 const task=id=>S.tasks.find(t=>t.id===id),driver=id=>S.drivers.find(d=>d.id===id);
 const OPEN=t=>t.state==='assigned'||t.state==='active';

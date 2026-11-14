@@ -4,7 +4,7 @@
 (function(){
 const C=window.CX;if(!C)return;
 const LABEL='Pilot test tools — sample data';
-const LS_KEEP=/^(cx\.themePref|cx\.v06\.demoMode)$/;
+const LS_KEEP=/^(cx\.themePref|cx\.v06\.demoMode|cx\.v06\.appVersion)$/;
 const LS_PILOT=/^(chainex\.pilot|cx\.v06|cx\.session|cx\.sessions|cx\.scan\.|cx\.bot\.min)/;
 const page=()=>(location.pathname.split('/').pop()||'');
 const CLEAN_KEY='cx.v06.demoMode';
@@ -130,6 +130,7 @@ function resetDriverDay(wid,opts){
     s.closeouts=(s.closeouts||[]).filter(r=>r.wid!==wid);
     s.tickets=(s.tickets||[]).filter(t=>!(t.wid===wid&&/short load|close-out|close out/i.test((t.label||'')+' '+(t.text||''))));
   });
+  try{localStorage.removeItem('cx.v06.flow');sessionStorage.removeItem('cx.v06.gpsbuf')}catch(e){}
   const D=drv();if(D&&D.ui&&D.ui.wid===wid){const ui=D.ui;ui.tab='today';ui.scanLog=[];resetDriverMem();try{localStorage.setItem('cx.v06.driver',JSON.stringify(ui))}catch(e){}}
   if(D&&D.render)D.render();paint();toast('Your sample driver day was reset','check');return true;
 }
