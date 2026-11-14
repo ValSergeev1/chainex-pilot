@@ -9,9 +9,9 @@ const C=window.CX,V=window.V5,esc=V.esc,ic=V.ic,fmt=C.fmt,$=s=>document.querySel
 const LN={pd:'P&D',bulky:'Bulky',wg:'White glove',ltl:'LTL',shuttle:'Shuttle'};
 const DEMO={pd:'CX-PILOT-001',bulky:'CX-PILOT-002',wg:'CX-PILOT-003',ltl:'CX-PILOT-004',shuttle:'CX-PILOT-005'};
 const UK='cx.v06.driver';
-const UI0=()=>({wid:null,tab:'today',plan:{mode:null,seq:[],ends:[]},sheet:'peek',autoNav:true,last:null,planOpen:false,set:{voice:true,haptics:true,autoScan:false,sound:true},lc:null,self:false});
+const UI0=()=>({wid:null,tab:'today',plan:{mode:null,seq:[],ends:[]},sheet:'peek',autoNav:true,last:null,planOpen:false,set:{voice:true,haptics:true,autoScan:false,sound:true,autoLight:true},lc:null,self:false});
 let ui=(()=>{let o={};try{o=JSON.parse(localStorage.getItem(UK)||'{}')||{}}catch(e){o={}}const u=Object.assign(UI0(),o);const z=UI0();
- if(!u.plan||typeof u.plan!=='object')u.plan=z.plan;['seq','ends'].forEach(k=>{if(!Array.isArray(u.plan[k]))u.plan[k]=[]});if(!u.set||typeof u.set!=='object')u.set=z.set;['autoScan','sound'].forEach(k=>{if(u.set[k]==null)u.set[k]=z.set[k]});
+ if(!u.plan||typeof u.plan!=='object')u.plan=z.plan;['seq','ends'].forEach(k=>{if(!Array.isArray(u.plan[k]))u.plan[k]=[]});if(!u.set||typeof u.set!=='object')u.set=z.set;['autoScan','sound','autoLight'].forEach(k=>{if(u.set[k]==null)u.set[k]=z.set[k]});
  if(!['today','route','inbox','me'].includes(u.tab))u.tab='today';return u})();
 const save=()=>{try{localStorage.setItem(UK,JSON.stringify(ui))}catch(e){}};
 const D=()=>ui.wid&&C.driver(ui.wid),W=()=>ui.wid,K=()=>C.lines[(D()||{}).line]||C.lines.pd,DC=()=>K().driver||{};
@@ -40,11 +40,11 @@ function tabs(){const d=D();const unread=(C.S.msgs||[]).filter(m=>m.wid===W()&&!
  $('#dvtabs').innerHTML=[['today','Today','home'],['route',rl,drive?'nav':'route'],['inbox','Inbox','chat',unread],['me','Settings','gear']].map(([k,l,i,b])=>`<button class="dv-tab${ui.tab===k?' on':''}" data-a="tab" data-v="${k}">${ic(i,21)}<span>${l}</span>${b?`<span class="bdg">${b}</span>`:''}</button>`).join('')}
 function top(){const d=D();if(!d){$('#dvtop').innerHTML='';return}const a=R(),done=a.filter(t=>t.state==='completed').length;
  $('#dvtop').innerHTML=(ui.tab==='route'&&special()&&stage()==='on_road'&&cur()?`<div class="dv-turn" id="dvturn"></div>`:`<div class="dv-pill"><i class="dot${d.duty?' live':''}" style="background:${d.duty?'var(--ok)':'var(--t3)'}"></i><span>${esc(d.route.id)}</span><span class="mono">${done}/${a.length}</span></div><span style="flex:1"></span>`)+`<button class="dv-rb${d.sos?' sos':''}" data-a="sos" aria-label="SOS">${d.sos?'SOS ON':ic('sos',17)}</button>`;if($('#dvturn'))paintTurn()}
-function render(){C.load();const d=D();if(!d)ui.wid=null;
+function render(){if(typeof sheetHold!=='undefined'&&sheetHold)return;try{C.load();const d=D();if(!d)ui.wid=null;
  const scr=$('#dvscr');tabs();top();$('#dvsheet').hidden=true;scr.className='dv-scr solid';$('#dvtabs').hidden=!d;
  if(!d){scr.className='dv-scr';scr.innerHTML=welcome();$('#dvtop').innerHTML='';return}
  const t=ui.tab;if(t==='today')scr.innerHTML=today();else if(t==='inbox'){scr.innerHTML=inbox();if((C.S.msgs||[]).some(m=>m.wid===W()&&!m.readDriver))setTimeout(()=>C.update(()=>C.ops.msgRead&&C.ops.msgRead(W(),'driver')),0);scr.scrollTop=scr.scrollHeight}else if(t==='me')scr.innerHTML=settings();else routeTab();
- if(t!=='route')stopNav();syncCam()}
+ if(t!=='route')stopNav();syncCam();try{map&&map.resize()}catch(e){}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
 function mapScreen(on){$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full')}
 function routeTab(){const d=D(),scr=$('#dvscr');
  if(!d.duty&&stage()!=='closed'){scr.innerHTML=`<div class="dv-card" style="margin-top:40px;align-items:flex-start"><div class="dv-eyebrow">${esc(d.route.id)}</div><div class="dv-h1">Go on duty to open your route</div><div class="t2" style="font-size:13.5px">${special()?'Your route map opens right away, so you can plan the order before you reach the warehouse.':'Check-in, load and your stops unlock once you are on duty.'}</div><button class="dv-slide" data-a="duty">${ic('power',20)}Go on duty</button></div>`;return}
@@ -75,7 +75,7 @@ function today(){const d=D(),a=R(),done=a.filter(t=>t.state==='completed').lengt
  ${a[0]?`<div class="dv-row" style="padding:4px 0"><span class="t3">${ic('clock',16)}</span><div class="grow"><div>First window ${fmt(a[0].window[0])}</div><div class="sub">Vehicle · ${esc(d.vehicle||'—')}</div></div></div>`:''}
  ${a.length?V.stack([[done,'var(--ok)'],[fail,'var(--bad)'],[a.length-done-fail,'var(--s3)']],200,6):''}</div>
  ${next?`<button class="dv-card" data-a="tab" data-v="route" style="text-align:left;color:inherit;cursor:pointer"><div class="dv-eyebrow">Next ${esc(word().toLowerCase())}</div><div style="display:flex;align-items:center;gap:10px"><span class="dv-n act">${no(next)}</span><div style="flex:1;min-width:0"><b style="font-size:15px">${esc(next.name)}</b><div class="t3" style="font-size:12.5px">${esc(next.address)}</div></div>${ic('chev',18)}</div></button>`:''}
- ${!a.length&&stage()!=='closed'?noRouteCard():''}${d.duty?(stage()==='closed'||!a.length?'':`<button class="btn xl pri block" data-a="tab" data-v="route">${ic(special()&&pre()?'route':'nav',19)}${special()&&pre()?'Plan my route':pre()?'Start of day':'Continue route'}</button>`)+`<button class="dv-slide off" data-a="duty">${ic('power',20)}Go off duty</button>`:`<button class="dv-slide${stage()==='closed'?' off':''}" data-a="duty"${stage()==='closed'?' disabled':''}>${ic('power',20)}${stage()==='closed'?'Route closed for today':'Go on duty'}</button>${stage()==='closed'?`<button class="btn block" data-a="reset">${ic('route',16)}Start a new sample day</button>`:''}`}
+ ${!a.length&&stage()!=='closed'?noRouteCard():''}${d.duty?(stage()==='closed'||!a.length?'':`<button class="btn xl pri block" data-a="tab" data-v="route">${ic(special()&&pre()?'route':'nav',19)}${special()&&pre()?'Plan my route':pre()?'Start of day':'Continue route'}</button>`)+`<button class="dv-slide off" data-a="duty">${ic('power',20)}Go off duty</button>`:`<button class="dv-slide${stage()==='closed'?' off':''}" data-a="duty"${stage()==='closed'?' disabled':''}>${ic('power',20)}${stage()==='closed'?'Route closed for today':'Go on duty'}</button>${stage()==='closed'?`<button class="btn block" data-a="resetday">${ic('route',16)}Start a new sample day</button>`:''}`}
  ${offers.length?`<div class="dv-eyebrow" style="margin-top:6px">Open work near you</div>${offers.map(o=>`<div class="dv-card" style="flex-direction:row;align-items:center"><div style="flex:1"><b style="font-size:14px">${esc(o.title)}</b><div class="t3" style="font-size:12px">${esc(o.zone)} · ${o.taskIds.length} stops · ${esc(o.pay)} · ${esc(o.pickup)}</div></div><button class="btn sm pri" data-a="claim" data-v="${o.id}">Claim</button></div>`).join('')}`:''}`}
 /* ---------- plan (P&D + Bulky) ---------- */
 const asg=()=>R().filter(t=>t.state==='assigned');
@@ -112,19 +112,24 @@ function pk(){return R().filter(t=>t.kind!=='pickup'&&C.OPEN(t)).sort((a,b)=>b.s
 let camWant=false,camSess=null,camBusy=false,camErr='',camEl=null;
 const ENG={native:'Native scanner (ML Kit)',detector:'Camera · built-in decoder',zxing:'Camera · JS decoder (iPhone Safari)',none:'No camera'};
 function stopCam(){const s=camSess;camSess=null;camBusy=false;if(s)try{s.stop()}catch(e){}if(camEl&&camEl.parentNode)camEl.remove()}
+function paintTorch(info){const lo=$('#dvlo'),btn=$('#lotorch'),hint=$('#lohint');if(!lo)return;
+ const capable=info?!!info.capable:!!(camSess&&camSess.torchCapable);const on=info?!!info.on:!!(camSess&&camSess.torchOn);
+ const luma=info&&info.luma!=null?info.luma:(camSess&&camSess.luma);const auto=!!ui.set.autoLight;
+ if(btn){if(capable){btn.hidden=false;btn.classList.toggle('on',on);btn.textContent=on?'Light on':'Light';btn.setAttribute('aria-pressed',on?'true':'false')}else btn.hidden=true}
+ if(hint)hint.hidden=!(!capable&&auto);lo.classList.toggle('boost',!capable&&auto&&luma!=null&&luma<55)}
 function syncCam(){if(window.CXScan){CXScan.settings.sound=!!ui.set.sound;CXScan.settings.haptics=!!ui.set.haptics}
  const slot=$('#dvcamslot');const want=!!slot&&(ui.set.autoScan||camWant)&&!!window.CXScan;
  if(!want){if(camSess||camEl&&camEl.parentNode)stopCam();return}
  if(!camEl){camEl=document.createElement('video');camEl.id='dvcam';camEl.setAttribute('playsinline','');camEl.muted=true;camEl.autoplay=true}
- if(camEl.parentNode!==slot)slot.appendChild(camEl);if(camSess||camBusy)return;camBusy=true;camErr='';
- const cont=!!ui.set.autoScan;CXScan.start(camEl,code=>{if(modal)return;if(!cont)camWant=false;scanCode(code,'camera')},{continuous:cont,sameMs:6000,gapMs:700}).then(s=>{camSess=s;camBusy=false;const e=$('#dvcameng');if(e)e.innerHTML=`<i></i>${esc(ENG[s.engine]||s.engine)}`;window.__cxCamEngine=s.engine}).catch(err=>{camBusy=false;camErr=err&&err.message||'Camera unavailable';camWant=false;const e=$('#dvcameng');if(e)e.textContent='Camera unavailable · type it or use a handheld scanner';toast('Camera unavailable · type the barcode or use a handheld scanner','alert')})}
+ if(camEl.parentNode!==slot)slot.appendChild(camEl);if(camSess||camBusy){try{paintTorch()}catch(e){}return}camBusy=true;camErr='';
+ const cont=!!ui.set.autoScan;CXScan.start(camEl,code=>{if(modal)return;if(!cont)camWant=false;scanCode(code,'camera')},{continuous:cont,sameMs:6000,gapMs:700,autoTorch:()=>!!ui.set.autoLight,onLight:paintTorch}).then(s=>{camSess=s;camBusy=false;const e=$('#dvcameng');if(e)e.innerHTML=`<i></i>${esc(ENG[s.engine]||s.engine)}`;window.__cxCamEngine=s.engine;try{paintTorch({capable:!!s.torchCapable,on:!!s.torchOn,luma:s.luma})}catch(e){}}).catch(err=>{camBusy=false;camErr=err&&err.message||'Camera unavailable';camWant=false;const e=$('#dvcameng');if(e)e.textContent='Camera unavailable · type it or use a handheld scanner';toast('Camera unavailable · type the barcode or use a handheld scanner','alert');try{paintTorch({capable:false,on:false,luma:null})}catch(e){}})}
 function selfMode(){if(!window.CXL||!pre())return false;const r=CXL.selfReq(W());return !R().length||(r&&r.status==='building')}
 function loCount(){const sm=CXL.summary(W());return `${sm.scanned}/${sm.expected}`}
 function loBox(L,opts){const k=ui.last&&ui.last.kind,hit=ui.hit;const n=L?no(L):null;const auto=ui.set.autoScan||camWant;
  const res=L&&k==='ok'?`<div class="lo-w">${esc(word())}</div><div class="lo-n" id="dvstopno">${n}</div><div class="lo-id">${esc(ui.last.pid)}</div>`
   :L&&k==='dup'?`<div class="lo-tag">Already scanned</div><div class="lo-n" id="dvstopno">${n}</div><div class="lo-id">${esc(word())} ${n} · ${esc(ui.last.pid)}</div>`
   :`<div style="color:rgba(255,255,255,.65);font-size:14px">${auto?'Hold a label in front of the camera':'Scan a label'}</div>`;
- return `<div class="dv-lo ${k==='dup'?'dup':L&&k==='ok'?'ok':''}${hit?' hit':''}" id="dvlo"><div id="dvcamslot" style="position:absolute;inset:0"></div>${auto?`<span class="lo-e" id="dvcameng"><i></i>${esc(ENG[(window.CXScan&&CXScan.engine())||'none'])}</span>`:''}<span class="lo-c" id="dvlocount">${opts&&opts.count||loCount()}</span><div class="lo-res">${res}</div></div>`}
+ return `<div class="dv-lo ${k==='dup'?'dup':L&&k==='ok'?'ok':''}${hit?' hit':''}" id="dvlo"><div id="dvcamslot" style="position:absolute;inset:0"></div>${auto?`<span class="lo-e" id="dvcameng"><i></i>${esc(ENG[(window.CXScan&&CXScan.engine())||'none'])}</span><button type="button" class="lo-torch" id="lotorch" data-a="torch" hidden>Light</button><div class="lo-hint" id="lohint" hidden>Flashlight isn't available on this phone. The viewfinder is brightened when it's dark.</div>`:''}<span class="lo-c" id="dvlocount">${opts&&opts.count||loCount()}</span><div class="lo-res">${res}</div></div>`}
 function scanRow(self){return `<div style="display:flex;gap:8px">${ui.set.autoScan?`<button class="btn xl" style="flex:1" data-a="tab" data-v="me">${ic('scan',18)}Auto-scan on</button>`:`<button class="btn xl" style="flex:1" data-a="lcam">${ic('camera',18)}${camWant?'Stop camera':'Camera'}</button>`}${self?`<button class="btn xl" style="flex:1" data-a="selfsample">${ic('plus',18)}Sample label</button>`:`<button class="btn xl pri" style="flex:1" data-a="lscan">${ic('scan',19)}Scan next</button>`}</div>
  <div style="display:flex;gap:8px"><input class="in" id="dvlbc" placeholder="Type or wedge-scan a barcode" autocomplete="off" autocapitalize="characters" style="flex:1;min-width:0"><button class="btn" data-a="lscan" data-v="typed">Enter</button>${!self&&DC().groupBy?`<button class="btn" data-a="lgroup">${esc(DC().groupScan||'Scan group')}</button>`:''}</div>`}
 function loadScreen(){mapScreen(false);const all=pk(),left=all.filter(x=>!x.p.loaded&&!x.p.loadFlag),fl=all.filter(x=>x.p.loadFlag&&!x.p.loaded),done=all.filter(x=>x.p.loaded).length;const L=ui.last&&C.task(ui.last.tid);const pct=all.length?Math.round(done/all.length*100):100;const conf=CXL.confirmed(W()),cs=CXL.canStart(W());
@@ -163,6 +168,7 @@ function scanSettings(){const d=D(),w=W();const p1=CXL.perm(w,'selfBuild'),p2=CX
  <div class="dv-row"><div class="grow">Auto-scan<div class="sub">Camera keeps scanning · move package to package without tapping</div></div>${sw(ui.set.autoScan,'set','autoScan')}</div>
  <div class="dv-row"><div class="grow">Beep on scan<div class="sub">Different sound for a wrong label</div></div>${sw(ui.set.sound,'set','sound')}</div>
  <div class="dv-row"><div class="grow">Vibrate on scan<div class="sub">Long buzz for a wrong label</div></div>${sw(ui.set.haptics,'set','haptics')}</div>
+ <div class="dv-row"><div class="grow">Auto flashlight<div class="sub">Turns the torch on in the dark while you scan. On phones without a torch, the viewfinder is brightened instead.</div></div>${sw(ui.set.autoLight,'set','autoLight')}</div>
  <div class="dv-row"><div class="grow">Confirm the load before leaving<div class="sub">Shows % scanned and anything missing</div></div><span class="chip ok">Always on</span></div>
  <div class="dv-row"><div class="grow">Build route by scanning<div class="sub">When no route is assigned · set by ${esc(p1.from)}</div></div><span class="chip ${p1.mode==='off'?'':'ok'}">${p1.mode==='off'?ic('lock',11)+' ':''}${PM[p1.mode]}</span></div>
  <div class="dv-row"><div class="grow">Take ownership<div class="sub">Add a package from another route · set by ${esc(p2.from)}</div></div><span class="chip ${p2.mode==='off'?'':'ok'}">${p2.mode==='off'?ic('lock',11)+' ':''}${PM[p2.mode]}</span></div>
@@ -290,7 +296,7 @@ function settings(){const d=D(),e=elig();
  ${scanSettings()}
  <div class="dv-card"><div class="dv-eyebrow">Install</div><div class="t2" style="font-size:12.5px">Add ChainEx Driver to your home screen. It opens full screen and keeps working on weak signal.</div><button class="btn" data-a="install" style="align-self:flex-start">${ic('plus',15)}Install app</button></div>
  <div class="dv-card"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>
- ${integSettings()}
+ ${window.CXTT&&CXTT.settingsHtml?CXTT.settingsHtml():''}${integSettings()}
  <button class="btn block" data-a="signout">${ic('logout',15)}Sign out</button><div class="t3" style="text-align:center;font-size:11px">ChainEx Driver · V06</div>`}
 /* ---------- modals ---------- */
 function openModal(type,id){modal={type,id};cap={photos:{},sig:false,reason:null};drawModal();$('#dvmodal').classList.add('on')}
@@ -394,7 +400,8 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'signin':{const id=($('#dvid').value||'').trim();if(!$('#dvterms').checked){toast('Please accept the driver terms');break}const h=byId(id);if(!h.length){toast('Driver ID not found · check with your DSP or ChainEx','alert');break}ui.wid=h[0].id;ui.tab=h[0].duty&&h[0].route.stage!=='closed'?'route':'today';ui.plan={mode:null,seq:[],ends:[]};save();fitKey='';leg=null;render();if(window.CXI&&CXI.needsTerms('driver',h[0].id))CXI.showTermsOverlay('driver',h[0].id,h[0].name);toast('Signed in · '+h[0].name,'check');break}
  case 'demo':{const h=byId(DEMO[v]);if(!h.length)break;ui.wid=h[0].id;ui.tab='today';ui.plan={mode:null,seq:[],ends:[]};ui.last=null;openLoad=false;save();leg=null;fitKey='';render();toast('Demo · '+h[0].name+' · '+LN[v],'user');break}
  case 'signout':ui.wid=null;save();stopNav();render();break;
- case 'reset':if(confirm('Reset the shared sample day for every version?')){C.reset();ui.plan={mode:null,seq:[],ends:[]};ui.last=null;save();leg=null;render();toast('Sample day reset')}break;
+ case 'reset':if(window.CXTT){CXTT.resetAll();break}if(confirm('Reset the shared sample day for every version?')){C.reset();ui.plan={mode:null,seq:[],ends:[]};ui.last=null;ui.scanLog=[];save();leg=null;render();toast('Sample day reset')}break;
+ case 'resetday':if(window.CXTT){CXTT.resetDriverDay();break}break;
  case 'duty':{if(!d.duty&&!elig().ok){toast('Blocked · '+elig().reasons.join(' · '),'lock');break}const was=!!d.duty;C.update(()=>C.ops.duty(w,!was));C.load();const on=!!(D()&&D().duty);if(on===was){render();toast("Couldn't save on this phone (browser storage is full). Settings → Reset sample day, then try again.",'alert');break}if(on){ui.tab='route';ui.planOpen=false;if(window.CXI){startGps();CXI.emit('out_for_delivery',{actor:(D()||d).name,payload:{route:(D()||d).route&&(D()||d).route.id,wid:w},ll:(D()||d).loc});CXI.offerOnDemand(w)}}save();fitKey='';render();toast(on?(special()&&pre()?'On duty · plan your route now':'You are on duty'):'You are off duty',on?'check':'power');break}
  case 'claim':{let ok;C.update(()=>{ok=C.ops.claim(w,v)});toast(ok===false?'Blocked · '+elig().reasons.join(' · '):'Claimed · added to your route',ok===false?'lock':'check');render();break}
  case 'noticeok':C.update(()=>C.ops.noticeSeen(w));render();break;
@@ -441,7 +448,8 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'arrive':{const t=cur();if(!t)break;if(t.stepData.arrive)runNext(t.id);else arrive();break}
  case 'recenter':if(map.m&&map.ready)map.m.easeTo({center:(leg&&leg.pos)||d.loc,zoom:15});break;
  case 'fit':map.fit();break;
- case 'grab':ui.sheet=ui.sheet==='full'?'peek':'full';save();render();break;
+ case 'grab':if(Date.now()-sheetTapped<450)break;toggleSheet();break;
+ case 'torch':if(!camSess||!camSess.setTorch)break;camSess.torchManual=!camSess.torchOn;camSess.setTorch(camSess.torchManual).then(()=>paintTorch({capable:!!camSess.torchCapable,on:!!camSess.torchOn,luma:camSess.luma})).catch(()=>{});break;
  case 'step':closeModal();runNext(v);break;
  case 'dostep':doStep();break;
  case 'sscan':C.update(S=>{const T=C.task(modal.id),p=T.items.find(p=>!p.stopScanned);if(p){p.stopScanned=true;p.events.push({type:'Scanned at stop',at:S.clock,where:'Driver app',actor:d.name})}});haptic();drawModal();break;
@@ -492,7 +500,7 @@ function act(a,v){const d=D(),w=W();switch(a){
  case 'repeat':{let id;C.update(()=>{id=DC().repeat(D(),C.S,v)});const t=id&&C.task(id);toast(t?`Repeat trip added · departs ${fmt(t.x.dep)}`:'Could not add trip',t?'check':'alert');render();break}
  case 'issue':C.update(()=>C.ops.botIssue(w,v,cur()&&cur().id,''));render();toast('Sent to Dispatch','check');break;
  case 'send':{const i=$('#dvmsg'),txt=i&&i.value.trim();if(!txt)break;C.update(()=>C.ops.msgSend(w,'driver',txt,d.name));render();break}
- case 'set':ui.set[v]=!ui.set[v];save();render();break;
+ case 'set':ui.set[v]=!ui.set[v];if(v==='autoLight'&&!ui.set.autoLight&&camSess){camSess.torchManual=null;if(camSess.torchOn&&camSess.setTorch)camSess.setTorch(false).catch(()=>{})}save();render();break;
  case 'autonav':ui.autoNav=!ui.autoNav;save();render();break;
  case 'install':if(window.__bip){__bip.prompt();window.__bip=null}else toast(/iPhone|iPad/.test(navigator.userAgent)?'Tap Share, then Add to Home Screen':'Use the browser menu: Install app / Add to Home Screen','plus');break;
  case 'nact':{if(!window.CXI)break;const [id,act]=(v||'').split('|');const n=CXI.notesFor(W()).find(x=>x.id===id);if(n&&n.kind==='ondemand'){const a=CXI.answerOnDemand(id,act||'accept');toast(a==='accepted'?'Offer accepted':'Offer declined',a==='accepted'?'check':'power')}else CXI.markRead(id);render();break}
@@ -508,7 +516,55 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 C.subscribe(()=>{if(modal||navTimer)return;const ae=document.activeElement;if(ae&&ae.matches&&ae.matches('input.in'))return;render()});
 addEventListener('v5-theme',()=>{if(D())render()});
 let fullT=0;addEventListener('cx-storage-full',()=>{if(Date.now()-fullT<8000)return;fullT=Date.now();toast("This phone's browser storage is full, so changes may not save. Settings → Reset sample day.",'alert')});
-mount();C.init();render();addEventListener('resize',()=>map&&map.resize());
+/* ---------- sheet drag, iOS scroll lock, resume, error recovery ---------- */
+let sheetHold=false,sheetDrag=null,sheetTapped=0;
+function toggleSheet(to){const sh=$('#dvsheet');if(!sh||sh.hidden)return;ui.sheet=to||(ui.sheet==='full'?'peek':'full');sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');sh.style.transform='';sh.classList.remove('drag');save();try{map&&map.resize()}catch(e){}}
+function endSheetPtr(){if(!sheetDrag){sheetHold=false;return}const d=sheetDrag;sheetDrag=null;sheetHold=false;const sh=$('#dvsheet');if(sh){sh.classList.remove('drag');sh.style.transform='';try{if(d.pid!=null)sh.releasePointerCapture(d.pid)}catch(e){}}
+  if(d.pending&&!d.moved)return;
+  if(d.moved&&Math.abs(d.dy)>28)toggleSheet(d.dy<0?'full':'peek');else if(!d.moved){toggleSheet();sheetTapped=Date.now()}else toggleSheet(ui.sheet)}
+function bindSheet(){const host=$('#dv');if(!host||host._cxSheet)return;host._cxSheet=1;
+  const arm=sh=>{sheetHold=true;sh.classList.add('drag');try{if(sheetDrag&&sheetDrag.pid!=null)sh.setPointerCapture(sheetDrag.pid)}catch(x){}};
+  const onDown=e=>{const sh=$('#dvsheet');if(!sh||sh.hidden||!sh.contains(e.target))return;
+    if(e.target.closest('button,a,input,textarea,select,label,canvas,.dv-sig')){
+      const grab=!!e.target.closest('.dv-grab');if(!grab)return}
+    const grab=!!e.target.closest('.dv-grab');const top=sh.getBoundingClientRect().top;const onHead=e.clientY<=top+48&&!e.target.closest('#dvsb button, #dvsb a, #dvsb input');
+    const sb=$('#dvsb');const pullEdge=sb&&sb.contains(e.target)&&sb.scrollTop<=0;
+    if(!grab&&!onHead&&!pullEdge)return;
+    sheetDrag={y:e.clientY,dy:0,moved:false,pid:e.pointerId,grab,pending:!grab&&!onHead};
+    if(!sheetDrag.pending)arm(sh)};
+  const onMove=e=>{if(!sheetDrag)return;const dy=e.clientY-sheetDrag.y;if(Math.abs(dy)>8)sheetDrag.moved=true;sheetDrag.dy=dy;
+    const sh=$('#dvsheet');if(!sh)return;
+    if(sheetDrag.pending){if(Math.abs(dy)<10)return;sheetDrag.pending=false;arm(sh)}
+    const cap=Math.max(-220,Math.min(220,dy));sh.style.transform='translateY('+cap+'px)';e.preventDefault()};
+  const onUp=e=>{if(!sheetDrag)return;endSheetPtr()};
+  host.addEventListener('pointerdown',onDown,{passive:true});
+  host.addEventListener('pointermove',onMove,{passive:false});
+  host.addEventListener('pointerup',onUp,{passive:true});
+  host.addEventListener('pointercancel',onUp,{passive:true});
+  host.addEventListener('lostpointercapture',()=>{if(sheetDrag)endSheetPtr()});
+}
+function recoverUi(err){try{endSheetPtr()}catch(e){}try{sheetHold=false;const sh=$('#dvsheet');if(sh){sh.classList.remove('drag');sh.style.transform=''}}catch(e){}
+  try{if(modal){const m=$('#dvmodal');if(m&&!m.classList.contains('on'))modal=null}}catch(e){}
+  try{map&&map.resize()}catch(e){}
+  try{if(window.V5&&V5.toast&&err)V5.toast('The screen recovered. Try that again.','alert')}catch(e){}}
+function lockIosScroll(){if(document._cxLock)return;document._cxLock=1;
+  document.addEventListener('touchmove',e=>{if(sheetDrag){e.preventDefault();return}
+    if(e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas,canvas.dv-sig,.dv-sig'))return;
+    const sc=e.target.closest&&e.target.closest('.dv-sb,.dv-scr.solid,.dv-mc,.dv-wel,.cx-tt-panel,.cxi-terms-c,.cxi-terms-body,.rx-sheet,.rx-job,textarea,input.in');
+    if(sc){if(sc.scrollHeight>sc.clientHeight+1)return;e.preventDefault();return}
+    if(e.target.closest&&e.target.closest('.dv-sheet,.dv-modal.on,.dv-tabs'))return;
+    e.preventDefault()},{passive:false});
+}
+function onResume(){try{endSheetPtr()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}}
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')onResume()});
+addEventListener('pageshow',onResume);
+addEventListener('orientationchange',()=>setTimeout(onResume,250));
+addEventListener('focus',onResume);
+addEventListener('error',e=>{try{recoverUi(e&&e.error||e)}catch(x){}});
+addEventListener('unhandledrejection',e=>{try{recoverUi(e&&e.reason)}catch(x){}});
+const _act=act;act=function(){try{return _act.apply(this,arguments)}catch(err){console.warn('driver act',err);try{recoverUi(err)}catch(x){}}};
+mount();C.init();bindSheet();lockIosScroll();render();addEventListener('resize',()=>map&&map.resize());
+
 
 function cxEmitScan(T,s,d){if(!window.CXI||!T)return;const type=s.kind==='pod'||s.kind==='sign'?'delivered':s.kind==='scan'&&(s.id==='arrive'||s.effect==='arrive'||/arriv/i.test(s.label||''))?'arrived':s.kind==='scan'?'loaded':s.kind==='photo'?'exception':null;if(!type)return;const ev={type,taskId:T.id,actor:d&&d.name,ll:d&&d.loc,payload:{step:s.kind,label:s.label},idem:'scan:'+T.id+':'+s.kind+':'+((s.label||'')+'')};
   if(typeof navigator!=='undefined'&&navigator.onLine===false){CXI.enqueueScan(ev);if(typeof toast==='function')toast('Saved offline · will sync when you are back online','scan');return}
@@ -533,5 +589,6 @@ if(!window.__cxDrvInteg){window.__cxDrvInteg=1;
   C.init&&null;
   setTimeout(()=>{const d=D();if(d&&d.duty)startGps();if(d&&window.CXI){if(CXI.needsTerms('driver',d.id))CXI.showTermsOverlay('driver',d.id,d.name);CXI.offerOnDemand(d.id);if(navigator.onLine!==false)CXI.flushOutbox()}},400)}
 
-window.__v5drv={act,get ui(){return ui},render,cur,pk,R,D,get modal(){return modal}};
+function resetMem(){try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;openLoad=false;leg=null;fitKey='';try{closeModal()}catch(e){}ui.plan={mode:null,seq:[],ends:[]};ui.last=null;ui.hit=false;ui.planOpen=false;ui.lc=null;ui.self=false;ui.coOpen=null;ui.scanLog=[];try{endSheetPtr()}catch(e){}}
+window.__v5drv={act,toggleSheet,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
 })();
