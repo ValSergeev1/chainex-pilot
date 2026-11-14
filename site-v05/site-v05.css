@@ -701,7 +701,7 @@ html.cx.dark .st-sec.alt .st-card2, html.cx.dark .st-sec.alt .st-card, html.cx.d
   .st-top .tb-right { margin-left: auto; }
 }
 @media (max-width: 1000px) {
-  .st-hero-g, .st-hero-g.ct-g, .ct-g { grid-template-columns: 1fr; gap: 32px; }
+  .st-hero-g, .st-hero-g.noart, .st-hero-g.ct-g, .ct-g { grid-template-columns: 1fr; gap: 32px; }
   .st-cards.c3, .st-cards.c4, .st-flow.n4, .st-flow.n5, .st-flow.n6, .st-dl { grid-template-columns: repeat(2, 1fr); }
   .st-flow.n3 { grid-template-columns: 1fr 1fr; }
   .st-mapbox { grid-template-columns: 1fr; }

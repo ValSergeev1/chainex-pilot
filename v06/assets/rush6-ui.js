@@ -285,6 +285,7 @@ function dset(){
   new MutationObserver(()=>mount()).observe(document.body,{childList:true,subtree:true});setTimeout(mount,400)}
 
 /* =================== DSP / CARRIER (desk, portal, fleet) =================== */
+/* The Rush card goes at the end of the desk: inserting it on top 0.5 s after load pushed the whole desk down (CLS 0.57 on phones). */
 function dsp(){
   const pid=()=>{try{const L=C.S.contractorLogins||[];const lg=(localStorage.getItem('cx.v06.dsp.login')||'DSP-EEX-01').toUpperCase();const a=L.find(l=>l.login===lg)||L[0];return a&&a.partnerId}catch(e){return null}};
   const card=el(`<section class="rx-card" id="rxdsp" style="margin:12px 16px"></section>`);
@@ -297,7 +298,7 @@ function dsp(){
       ${on?`<div class="rx-kv"><div><b>${ds.filter(d=>d.duty&&R.mode(d.id)!=='routes').length}</b><span>Drivers taking Rush now</span></div><div><b>${jobs.filter(o=>['assigned','at_pickup','picked_up','at_dropoff'].includes(o.status)).length}</b><span>Live Rush jobs</span></div><div><b>${money(earned)}</b><span>Rush pay today</span></div></div>
       <table class="rx-tbl" style="margin-top:8px"><thead><tr><th>Driver</th><th>Mode</th><th>Status</th></tr></thead><tbody>${ds.slice(0,8).map(d=>{const j=R.activeJob(d.id);return `<tr><td>${esc(d.name)}</td><td>${esc({routes:'Routes',rush:'Rush',both:'Both'}[R.mode(d.id)])}</td><td class="rx-sm">${j?'On Rush '+esc(j.id):d.duty?'On duty':'Off duty'}</td></tr>`}).join('')}</tbody></table>
       ${jobs.length?`<div class="rx-lab">Recent Rush jobs</div>${jobs.map(o=>`<div class="rx-row rx-sm" style="padding:4px 0;border-bottom:1px solid var(--line)"><span class="rx-mono">${esc(o.id)}</span>${chip(o)}<span class="rx-grow rx-t2">${esc(o.driverName||'Offered')}</span><b class="rx-mono">${money(o.pay||0)}</b></div>`).join('')}`:''}`:''}`}
-  function mount(){const host=document.querySelector('#x-main')||document.querySelector('.x-main')||document.querySelector('main');if(!host)return;if(!host.contains(card)){host.insertBefore(card,host.firstChild)}const h=html();if(card._h!==h){card._h=h;card.innerHTML=h}}
+  function mount(){const host=document.querySelector('#x-main')||document.querySelector('.x-main')||document.querySelector('main');if(!host)return;if(!host.contains(card)||card.nextElementSibling){host.appendChild(card)}const h=html();if(card._h!==h){card._h=h;card.innerHTML=h}}
   card.addEventListener('click',e=>{const t=e.target.closest('[data-rx=dspopt]');if(!t)return;const p=pid();R.dspOpt(p,!R.desk().dspOpt[p]);toast(R.desk().dspOpt[p]?'Opted in to Rush offers':'Opted out of Rush offers','check');mount()});
   painters.push(()=>mount());new MutationObserver(()=>{if(!document.body.contains(card))mount()}).observe(document.body,{childList:true,subtree:true});setTimeout(mount,500)}
 

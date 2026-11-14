@@ -25,7 +25,7 @@ const H={
  table:(cols,rows,empty='Nothing here.')=>rows.length?`<div class="w6-tw"><table class="tbl"><thead><tr>${cols.map(c=>`<th class="${/^(\$|#|Amount|Net|Gross|Total|Value)/.test(c)?'num':''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`:`<div class="w6-empty">${ic('list',22)}${esc(empty)}</div>`,
  empty:(t,icon='check')=>`<div class="w6-empty">${ic(icon,26)}<div>${t}</div></div>`,
  chart:(vals,labels,cur)=>{const mx=Math.max(1,...vals);return `<div class="w6-chart">${vals.map((v,i)=>`<div><i class="${cur===i?'cur':''}" style="height:${Math.max(3,v/mx*100)}%"></i><span>${esc(labels[i]||'')}</span></div>`).join('')}</div>`},
- toggle:(on,act,val)=>`<button class="w6-toggle${on?' on':''}" data-w="${act}" data-v="${esc(String(val))}" role="switch" aria-checked="${!!on}"></button>`,
+ toggle:(on,act,val,label)=>`<button class="w6-toggle${on?' on':''}" data-w="${act}" data-v="${esc(String(val))}" role="switch" aria-checked="${!!on}"${label?` aria-label="${esc(String(label))}"`:''}></button>`,
  field:(label,inner,wide)=>`<label class="${wide?'wide':''}">${esc(label)}${inner}</label>`,
  actor:()=>{const s=window.CXS&&CXS.get&&CXS.get();const st=window.CXS&&CXS.staff&&CXS.staff();return (s&&s.name)||(st&&st.name)||'Staff'},
  dfmt:d=>{if(!d)return '—';const x=new Date(String(d).length<=10?d+'T12:00:00':d);return isNaN(x)?String(d):x.toLocaleDateString('en-US',{month:'short',day:'numeric'})},

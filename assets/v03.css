@@ -14,3 +14,12 @@ html.cx.v03p a{accent-color:var(--v3-pri)}
 html.cx.v03p .kpi,html.cx.v03p .card,html.cx.v03p .sx-card{border-color:var(--v3-line)}
 html.cx.v03p .kpi:hover,html.cx.v03p .card:hover{border-color:color-mix(in srgb,var(--v3-pri) 40%,var(--v3-line))}
 .v3-tryboard{position:fixed;right:14px;bottom:14px;z-index:9998;display:inline-flex;gap:8px;align-items:center;background:var(--v3-pri);color:#fff!important;font:700 13px Inter,system-ui,sans-serif;border-radius:999px;padding:10px 14px;text-decoration:none;box-shadow:0 10px 24px -10px rgba(90,107,224,.9)}
+/* QA 2026-11-13: on laptop/desktop widths the V03 desk top bar (nav + line switch + tools) was ~480px wider than the
+   screen at 1440px, pushing Tick/Tools/Activity off-screen and adding a sideways scroll. Let the line switch and the
+   tool cluster shrink and scroll inside the bar instead. */
+@media (min-width:901px){
+  html.cx header.topbar{min-width:0;max-width:100vw;box-sizing:border-box}
+  html.cx header.topbar .lineswitch{min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
+  html.cx header.topbar .tb-right{min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
+  html.cx header.topbar .lineswitch::-webkit-scrollbar,html.cx header.topbar .tb-right::-webkit-scrollbar{display:none}
+}

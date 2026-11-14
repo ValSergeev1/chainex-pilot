@@ -36,11 +36,11 @@ function allT(){return (window.CXO?CXO.allTasks():C.S.tasks)}function unassigned
 function drvList(){return drivers().filter(d=>qm(d.name+d.route.id)).sort((a,b)=>(b.sos-a.sos)||((b.route.stage==='on_road')-(a.route.stage==='on_road'))||risk(b)-risk(a)||a.name.localeCompare(b.name))}
 /* ---------- render ---------- */
 let map=null,fitted='';
-function itemNeeds(x){const acts={ticket:`<button class="btn sm okb" data-a="tkok" data-v="${x.id}">${ic('check',14)}Approve</button><button class="btn sm ghost" data-a="tkno" data-v="${x.id}">Decline</button><button class="btn sm ghost" data-a="msg" data-v="${x.o.wid}">${ic('chat',14)}</button>`,
+function itemNeeds(x){const acts={ticket:`<button class="btn sm okb" data-a="tkok" data-v="${x.id}">${ic('check',14)}Approve</button><button class="btn sm ghost" data-a="tkno" data-v="${x.id}">Decline</button><button class="btn sm ghost" data-a="msg" data-v="${x.o.wid}" aria-label="Message driver" title="Message driver">${ic('chat',14)}</button>`,
  sos:`<button class="btn sm pri" data-a="msg" data-v="${x.id}">${ic('chat',14)}Message</button><button class="btn sm ghost" data-a="drv" data-v="${x.id}">Locate</button>`,
  edit:`<button class="btn sm pri" data-a="edok" data-v="${x.id}">Keep driver order</button><button class="btn sm ghost" data-a="edno" data-v="${x.id}">Restore plan</button>`,
  blocked:`<button class="btn sm pri" data-a="reroute" data-v="${x.id}">${ic('swap',14)}Move stops</button>`,
- risk:`${scope.reopt?`<button class="btn sm" data-a="reopt" data-v="${x.id}">${ic('bolt',14)}Re-optimize</button>`:''}<button class="btn sm ghost" data-a="reroute" data-v="${x.id}">Reassign</button><button class="btn sm ghost" data-a="msg" data-v="${x.id}">${ic('chat',14)}</button>`,
+ risk:`${scope.reopt?`<button class="btn sm" data-a="reopt" data-v="${x.id}">${ic('bolt',14)}Re-optimize</button>`:''}<button class="btn sm ghost" data-a="reroute" data-v="${x.id}">Reassign</button><button class="btn sm ghost" data-a="msg" data-v="${x.id}" aria-label="Message driver" title="Message driver">${ic('chat',14)}</button>`,
  wh:`<button class="btn sm" data-a="whok" data-v="${x.id}">Resolve</button>`,
  geo:`<button class="btn sm pri" data-a="stop" data-v="${x.id}">Review pin</button>`,
  exc:`<button class="btn sm" data-a="redo" data-v="${x.id}">Retry today</button><button class="btn sm ghost" data-a="assign" data-v="${x.id}">Reassign</button><button class="btn sm ghost" data-a="exok" data-v="${x.id}">Reviewed</button>`}[x.k];
