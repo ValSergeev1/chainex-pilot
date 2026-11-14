@@ -159,13 +159,21 @@
       c.style.width=w+'px'; c.style.height=h+'px';
       ctx.setTransform(dpr,0,0,dpr,0,0);
     }
-    /* On small screens, keep the network's proportions and pin it to the
-       top of the footer (behind the CTA) so it isn't stretched through the
-       links. Desktop layout is unchanged. */
+    /* On small screens, keep the network's proportions and place it behind
+       the ChainEx brand block (not the CTA). Desktop layout is unchanged. */
     function mapBox(){
       if(!window.matchMedia('(max-width:700px)').matches) return {x:0,y:0,w,h};
       const mh=Math.min(280,Math.max(200,Math.round(w*0.68)));
-      return {x:0,y:0,w,h:mh};
+      let y=0;
+      const brand=f.querySelector('.cols > div:first-child');
+      if(brand){
+        const fr=f.getBoundingClientRect();
+        const br=brand.getBoundingClientRect();
+        const mid=(br.top-fr.top)+br.height/2;
+        y=Math.round(mid-mh/2);
+        y=Math.max(0,Math.min(y,Math.max(0,h-mh)));
+      }
+      return {x:0,y,w,h:mh};
     }
     function px(m){
       const b=mapBox();
