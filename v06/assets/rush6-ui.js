@@ -158,7 +158,7 @@ function driver(){
   function keepInputs(){const a=document.getElementById('rxsigner'),b=document.getElementById('rxnote');if(a)jobUi.signer=a.value;if(b)jobUi.note=b.value}
   let jobKey='';
   function paint(tickOnly){const d=D();const w=wid();
-    pill.hidden=!(d&&d.duty);if(d&&d.duty){const m=R.mode(w);pill.querySelector('span').textContent=m==='routes'?'Routes':m==='rush'?'Rush':'Routes + Rush';pill.querySelector('i').style.background=m==='routes'?'var(--t3)':'var(--rx)'}
+    pill.hidden=!(d&&d.duty&&document.body.classList.contains('dv-onmap'));if(d&&d.duty){const m=R.mode(w);pill.querySelector('span').textContent=m==='routes'?'Routes':m==='rush'?'Rush':'Routes + Rush';pill.querySelector('i').style.background=m==='routes'?'var(--t3)':'var(--rx)'}
     const job=w&&R.activeJob(w);
     if(job){offerBox.hidden=true;const k=job.id+job.status+(job.status==='at_pickup'?jobUi.scans.length:'')+(job.status==='at_dropoff'?jobUi.photos.length+jobUi.placement:'');
       if(k!==jobKey){if(document.activeElement&&jobBox.contains(document.activeElement)&&document.activeElement.tagName==='INPUT'&&jobKey.slice(0,job.id.length+job.status.length)===job.id+job.status)return;keepInputs();jobKey=k;jobBox.innerHTML=jobHTML(job);jobBox.hidden=false;bindSig()}return}

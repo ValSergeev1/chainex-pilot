@@ -1,30 +1,35 @@
-/* ChainEx V06 · Driver app (phone-first PWA). Signal tokens from v06.css. */
-html,body{height:100%;height:100dvh;overscroll-behavior:none;overflow:hidden}
-body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;inset:0;width:100%;height:100%;height:100dvh;touch-action:manipulation}
-.dv-stage{height:100%;height:100dvh}
-.dv-stage{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;gap:48px}
+/* ChainEx V06 · Driver app (phone-first PWA). Signal tokens from v06.css.
+   Shell height comes from the visual viewport (--app-h), not 100vh/100dvh.
+   On iPhone Safari/PWA, 100dvh plus env(safe-area-inset-bottom) on the tab bar
+   was leaving a dark empty band below the tabs (the body was shorter than the
+   screen, or the home-indicator inset was applied twice). */
+:root{--app-h:100dvh;--app-top:0px;--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--dv-tabs:calc(62px + var(--sab))}
+html,body{height:100%;overscroll-behavior:none;overflow:hidden}
+html.dv-shell,html.dv-shell body.v5{min-height:0}html.dv-shell body.v5.dv5{height:var(--app-h);min-height:0}
+body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;left:0;right:0;top:var(--app-top);width:100%;height:var(--app-h);max-height:var(--app-h);min-height:0;touch-action:manipulation}
+.dv-stage{position:absolute;inset:0;height:auto;width:auto;display:flex;justify-content:center;align-items:stretch;gap:48px}
 .dv-side{width:300px;display:none;flex-direction:column;gap:14px;color:var(--t2);font-size:13px}
 .dv-side h1{font-size:22px;letter-spacing:-.02em;color:var(--t1);margin:0}
-.dv{position:relative;width:100%;height:100%;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
-@media (min-width:900px){.dv-stage{background:radial-gradient(1200px 600px at 70% -10%,color-mix(in srgb,var(--acc) 12%,transparent),transparent),var(--bg)}
- .dv{width:404px;height:min(860px,calc(100dvh - 40px));border-radius:36px;border:1px solid var(--line-2);box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 8px color-mix(in srgb,var(--s2) 70%,transparent)}.dv-side{display:flex}}
+.dv{position:relative;width:100%;height:100%;min-height:0;flex:1 1 auto;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+@media (min-width:900px){.dv-stage{align-items:center;background:radial-gradient(1200px 600px at 70% -10%,color-mix(in srgb,var(--acc) 12%,transparent),transparent),var(--bg)}
+ .dv{flex:none;width:404px;height:min(860px,calc(var(--app-h) - 40px));border-radius:36px;border:1px solid var(--line-2);box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 8px color-mix(in srgb,var(--s2) 70%,transparent)}.dv-side{display:flex}}
 .dv-map{position:absolute;inset:0;z-index:0}
 .dv-map[hidden]{display:none}
-.dv-top{position:absolute;left:0;right:0;top:0;z-index:20;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 10px) 12px 8px;pointer-events:none}
-.dv-top>*{pointer-events:auto}
+.dv-top{position:absolute;left:0;right:0;top:0;z-index:20;display:none;align-items:center;gap:8px;padding:calc(var(--sat) + 10px) 12px 8px;pointer-events:none}
+.dv-onmap .dv-top{display:flex}.dv-top>*{pointer-events:auto}
 .dv-pill{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:18px;background:var(--glass);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--line);font-size:12.5px;font-weight:550;min-width:0}
 .dv-pill .mono{font-size:11.5px;color:var(--t3)}
 .dv-rb{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);color:var(--t1);cursor:pointer;flex:none}
 .dv-rb.sos{color:#fff;background:#E5484D;border-color:#E5484D;font:700 11px var(--fm);width:auto;padding:0 12px}
-.dv-scr{position:absolute;inset:0;z-index:5;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:calc(env(safe-area-inset-top) + 58px) 16px calc(96px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
-.dv-scr.solid{background:var(--bg)}
-.dv-scr.over{pointer-events:none;overflow:hidden;touch-action:none;padding-bottom:0}.dv-scr.over>*{pointer-events:auto;touch-action:manipulation}
-.dv-tabs{position:absolute;left:0;right:0;bottom:0;z-index:30;display:flex;padding:6px 8px calc(env(safe-area-inset-bottom) + 6px);background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border-top:1px solid var(--line)}
+.dv-scr{position:absolute;inset:0;z-index:5;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:0 16px calc(var(--dv-tabs) + 16px);display:flex;flex-direction:column;gap:14px}
+.dv-scr.solid{background:var(--bg);padding-top:0}.dv-scr.solid::before{content:"";position:sticky;top:0;z-index:8;display:block;flex:none;height:calc(var(--sat) + 8px);margin:0 -16px 8px;background:var(--bg);pointer-events:none}
+.dv-scr.over{pointer-events:none;overflow:hidden;touch-action:none;padding:calc(var(--sat) + 58px) 16px 0}.dv-scr.over>*{pointer-events:auto;touch-action:manipulation}
+.dv-tabs{position:absolute;left:0;right:0;bottom:0;z-index:30;display:flex;padding:6px 8px calc(var(--sab) + 6px);background:color-mix(in srgb,var(--s1) 94%,transparent);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border-top:1px solid var(--line);box-sizing:border-box}
 .dv-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:50px;justify-content:center;background:none;border:0;color:var(--t3);font:550 10.5px var(--f);position:relative;cursor:pointer}
 .dv-tab.on{color:var(--t1)}.dv-tab.on svg{color:var(--acc)}
 .dv-tab .bdg{position:absolute;top:4px;left:calc(50% + 6px);font:600 9.5px/15px var(--fm);min-width:15px;padding:0 4px;border-radius:8px;background:var(--bad);color:#fff}
 /* bottom sheet over the map — sits above the tab bar (incl. iPhone home indicator), not under it */
-.dv-sheet{--dv-tabs:calc(62px + env(safe-area-inset-bottom,0px));position:absolute;left:0;right:0;bottom:var(--dv-tabs);z-index:25;background:var(--s1);border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:calc(100% - var(--dv-tabs) - env(safe-area-inset-top,0px) - 52px);transition:transform .2s cubic-bezier(.2,.8,.2,1);touch-action:none;overscroll-behavior:contain;will-change:transform}
+.dv-sheet{position:absolute;left:0;right:0;bottom:var(--dv-tabs);z-index:25;background:var(--s1);border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:calc(100% - var(--dv-tabs) - env(safe-area-inset-top,0px) - 52px);transition:transform .2s cubic-bezier(.2,.8,.2,1);touch-action:none;overscroll-behavior:contain;will-change:transform}
 .dv-sheet[hidden]{display:none}
 .dv-sheet.drag{transition:none}
 .dv-grab{height:28px;display:grid;place-items:center;cursor:pointer;flex:none;border:0;background:none;width:100%;touch-action:none;-webkit-user-select:none;user-select:none}.dv-grab i{width:40px;height:5px;border-radius:3px;background:var(--line-2);pointer-events:none}
@@ -40,9 +45,9 @@ body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;inset:0;width:10
 .dv-modal.on .dv-mb{transform:none}
 .dv-mh{display:flex;align-items:center;gap:10px;padding:16px 16px 10px}
 .dv-mh h2{font-size:17px;font-weight:620;letter-spacing:-.01em;margin:0;flex:1}
-.dv-mc{padding:4px 16px calc(env(safe-area-inset-bottom,0px) + 16px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:flex;flex-direction:column;gap:12px}
+.dv-mc{padding:4px 16px calc(var(--sab) + 16px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:flex;flex-direction:column;gap:12px}
 .dv-mc>*{flex:none}
-.dv-mf{display:flex;gap:8px;padding:10px 16px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid var(--line)}
+.dv-mf{display:flex;gap:8px;padding:10px 16px calc(var(--sab) + 14px);border-top:1px solid var(--line)}
 .dv-mf .btn{flex:1}
 /* type */
 .dv-eyebrow{font:600 10.5px/1 var(--fm);letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
@@ -52,8 +57,9 @@ body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;inset:0;width:10
 .dv-card{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .dv-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .dv-kv>div{background:var(--s1);padding:10px}.dv-kv b{display:block;font:600 17px var(--fm);letter-spacing:-.02em}.dv-kv span{font-size:11px;color:var(--t3)}
-.dv-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
-.dv-row:last-child{border-bottom:0}.dv-row .grow{flex:1;min-width:0}.dv-row .sub{font-size:12px;color:var(--t3)}
+.dv-row{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:52px;border-bottom:1px solid var(--line);font-size:13.5px}
+.dv-row:last-child{border-bottom:0}.dv-row .grow{flex:1;min-width:0}.dv-row .sub{font-size:12px;color:var(--t3);margin-top:2px;line-height:1.35}
+.dv-row>.chip,.dv-row>[role=switch],#dvscanset .dv-row>.chip,#dvscanset .dv-row>[role=switch]{flex:none;margin-left:auto;min-width:118px;justify-content:center;text-align:center}
 .dv-n{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font:600 11.5px var(--fm);background:var(--s3);color:var(--t2);flex:none}
 .dv-n.done{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.dv-n.fail{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.dv-n.act{background:var(--acc);color:#fff}
 .btn.xl{height:56px;font-size:16px;border-radius:16px;font-weight:600}
@@ -94,11 +100,11 @@ canvas.dv-sig{width:100%;height:130px;border-radius:14px;border:1px solid var(--
 .dv-chat{display:flex;flex-direction:column;gap:8px}
 .dv-bub{max-width:82%;padding:9px 12px;border-radius:16px;font-size:13.5px;line-height:1.35;background:var(--s2);align-self:flex-start}
 .dv-bub.me{align-self:flex-end;background:var(--acc);color:#fff}.dv-bub small{display:block;font-size:10.5px;opacity:.65;margin-bottom:2px}
-.dv-wel{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);gap:16px;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:radial-gradient(500px 400px at 80% 0%,color-mix(in srgb,var(--acc) 22%,transparent),transparent),var(--bg)}
+.dv-wel{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;padding:calc(var(--sat) + 28px) 24px calc(var(--sab) + 24px);gap:16px;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:radial-gradient(500px 400px at 80% 0%,color-mix(in srgb,var(--acc) 22%,transparent),transparent),var(--bg)}
 .dv-wel .mark{width:44px;height:44px;border-radius:13px;background:var(--t1);color:var(--bg);display:grid;place-items:center;font:700 16px var(--f);position:relative}
 .dv-wel .mark:after{content:'';position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
 .dv-feat{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--t2)}.dv-feat svg{color:var(--acc);flex:none;margin-top:1px}
-.dv-toastz .x-toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.dv-toastz .x-toast{bottom:calc(var(--dv-tabs) + 16px)}
 button,.btn,.dv-tab,.dv-slide,.dv-opt,.dv-rb{touch-action:manipulation}
 .dv-map .maplibregl-canvas,.dv-map canvas{touch-action:pan-x pan-y}
 .lo-torch{position:absolute;z-index:3;right:10px;bottom:10px;height:36px;min-width:36px;padding:0 10px;border:0;border-radius:18px;background:rgba(0,0,0,.55);color:#fff;font:650 11px/1 var(--f);letter-spacing:.04em;display:flex;align-items:center;gap:6px;cursor:pointer}
@@ -155,7 +161,6 @@ html.cx-native-scan,html.cx-native-scan body{background:transparent!important}ht
 .dv-chips{display:flex;flex-wrap:wrap;gap:6px}.dv-chips button{height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:var(--s2);color:var(--t1);font:550 13px var(--f);cursor:pointer}.dv-chips button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .dv-lockc{display:flex;gap:10px;align-items:center;padding:12px;border-radius:14px;border:1px dashed var(--line);color:var(--t2);font-size:13px}
 .btn.locked{opacity:.55}
-body:has(#rxpill:not([hidden])) .dv-scr.solid{padding-top:calc(env(safe-area-inset-top) + 102px)}
 /* delivery outcomes (delivery6.js) */
 .dv-instr{border-left:3px solid var(--acc,#3B82F6)}
 .dv-place button.pref{box-shadow:inset 0 0 0 1px var(--acc,#3B82F6)}
@@ -164,3 +169,18 @@ body:has(#rxpill:not([hidden])) .dv-scr.solid{padding-top:calc(env(safe-area-ins
 .dv-geo.bad{background:rgba(248,113,113,.1);color:var(--bad,#F87171)}
 .dv-geo .dv-chk{color:var(--t1,#E5EDF7)}
 .dv-next{border-left:3px solid var(--warn,#F59E0B)}
+
+/* map-only floating chrome */
+body:not(.dv-onmap) #rxpill{display:none!important}
+body.dv-onmap #rxpill{top:calc(var(--sat) + 62px)}
+/* Test FAB sits just above the tab bar, not on top of a card */
+body.dv5 .cx-tt-fab{left:12px;right:auto;bottom:calc(var(--dv-tabs) + 8px)}
+/* Clean driver view: hide every pilot / demo / test control */
+html.cx-clean .cx-tt-fab,html.cx-clean .cx-tt,html.cx-clean #cxtt,html.cx-clean #cxtt-settings,
+html.cx-clean .dv-demo,html.cx-clean .cx-pilot,html.cx-clean [data-a=selfsample],html.cx-clean [data-a=resetday],
+html.cx-clean .lo-e{display:none!important}
+#dvver{text-align:center;font-size:11px;padding:8px 0 4px;color:var(--t3);user-select:none;-webkit-user-select:none}
+.dv-map .maplibregl-ctrl-bottom-left,.dv-map .maplibregl-ctrl-bottom-right,.dv-map .maplibregl-ctrl-attrib{display:none!important}
+
+html:not(.cx-clean) body.dv5 .dv-scr.solid{padding-bottom:calc(var(--dv-tabs) + 60px)}
+html:not(.cx-clean) body.dv5 .dv-sb{padding-bottom:56px}

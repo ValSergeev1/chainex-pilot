@@ -32,7 +32,18 @@ function slot(t){const ds=R().filter(x=>x.kind!=='pickup'),n=ds.length||1,i=Math
  if(!special())return{big:(t.items[0]&&t.items[0].label)||'Load',txt:part};
  const per=Math.max(1,Math.ceil(n/6)),sh=String.fromCharCode(65+Math.min(5,Math.floor(i/per)));return{big:`Shelf ${sh}`,txt:`${part} · ${i%2?'right':'left'} side`}}
 let map=null,meMk=null,fitKey='',leg=null,navTimer=null,openLoad=false,modal=null,cap={photos:{},sig:false};
-function mount(){document.body.classList.add('dv5','dv-toastz');$('#app').innerHTML=`<div class="dv-stage"><aside class="dv-side"><div class="dv-eyebrow">ChainEx · V06</div><h1>Driver</h1><p>Phone-first app. Open this page on your phone and choose <b>Add to Home Screen</b> to install it. Every scan and delivery syncs live to Dispatch and the Dashboard.</p><div class="dv-card" style="font-size:12.5px"><b style="color:var(--t1)">Sample drivers</b><span>Settings → Demo switches between P&amp;D, Bulky, White glove, LTL and Shuttle.</span></div><a class="btn" href="start.html">${ic('home',15)}V06 start page</a></aside>
+function isClean(){try{return document.documentElement.classList.contains('cx-clean')}catch(e){return false}}
+function applyClean(on){try{document.documentElement.classList.toggle('cx-clean',!!on);document.body.classList.toggle('cx-clean',!!on);localStorage.setItem('cx.v06.demoMode',on?'clean':'off')}catch(e){}}
+function fitShell(){try{const root=document.documentElement,vv=window.visualViewport;const h=Math.max(1,Math.round((vv&&vv.height)||window.innerHeight||root.clientHeight));const top=Math.max(0,Math.round((vv&&vv.offsetTop)||0));root.style.setProperty('--app-h',h+'px');root.style.setProperty('--app-top',top+'px');
+  const probe=s=>{const e=document.createElement('div');e.style.cssText='position:fixed;visibility:hidden;padding-'+s+':env(safe-area-inset-'+s+',0px)';document.body.appendChild(e);const n=parseFloat(getComputedStyle(e)['padding'+s[0].toUpperCase()+s.slice(1)])||0;e.remove();return n};
+  let sat=0,sab=0;try{sat=probe('top');sab=probe('bottom')}catch(e){}
+  const standalone=!!((window.navigator&&navigator.standalone)||(window.matchMedia&&matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches));
+  root.classList.toggle('cx-standalone',standalone);
+  /* If the PWA is edge-to-edge but WebKit reports 0 inset, keep content out from under the status bar. */
+  if(standalone&&sat<20)sat=47;if(sat)root.style.setProperty('--sat',sat+'px');else root.style.removeProperty('--sat');
+  if(sab)root.style.setProperty('--sab',sab+'px');else root.style.removeProperty('--sab');
+ }catch(e){}}
+function mount(){document.documentElement.classList.add('dv-shell');document.body.classList.add('dv5','dv-toastz');if(isClean())document.body.classList.add('cx-clean');fitShell();$('#app').innerHTML=`<div class="dv-stage"><aside class="dv-side"><div class="dv-eyebrow">ChainEx · V06</div><h1>Driver</h1><p>Phone-first app. Open this page on your phone and choose <b>Add to Home Screen</b> to install it. Every scan and delivery syncs live to Dispatch and the Dashboard.</p><div class="dv-card" style="font-size:12.5px"><b style="color:var(--t1)">Sample drivers</b><span>Settings → Demo switches between P&amp;D, Bulky, White glove, LTL and Shuttle.</span></div><a class="btn" href="start.html">${ic('home',15)}V06 start page</a></aside>
  <div class="dv" id="dv"><div class="dv-map" id="dvmap"></div><div class="dv-top" id="dvtop"></div><main class="dv-scr" id="dvscr"></main><div class="dv-sheet" id="dvsheet" hidden><button class="dv-grab" data-a="grab" aria-label="Resize"><i></i></button><div class="dv-sb" id="dvsb"></div></div><nav class="dv-tabs" id="dvtabs"></nav><div class="dv-modal" id="dvmodal"><div class="scrim" data-a="mclose"></div><div class="dv-mb" id="dvmb"></div></div></div></div>`;
  map=new V.Map($('#dvmap'),{pad:{top:90,bottom:300,left:40,right:40},zoom:11})}
 function me(ll){if(!map||!map.m||!map.ready||!ll)return;if(!meMk){const e=document.createElement('div');e.className='mk me';meMk=new maplibregl.Marker({element:e}).setLngLat(ll).addTo(map.m)}else meMk.setLngLat(ll)}
@@ -45,7 +56,7 @@ function render(){if(typeof sheetHold!=='undefined'&&sheetHold)return;try{C.load
  if(!d){scr.className='dv-scr';scr.innerHTML=welcome();$('#dvtop').innerHTML='';return}
  const t=ui.tab;if(t==='today')scr.innerHTML=today();else if(t==='inbox'){scr.innerHTML=inbox();if((C.S.msgs||[]).some(m=>m.wid===W()&&!m.readDriver))setTimeout(()=>C.update(()=>C.ops.msgRead&&C.ops.msgRead(W(),'driver')),0);scr.scrollTop=scr.scrollHeight}else if(t==='me')scr.innerHTML=settings();else routeTab();
  if(t!=='route')stopNav();syncCam();try{map&&map.resize()}catch(e){}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
-function mapScreen(on){$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full')}
+function mapScreen(on){document.body.classList.toggle('dv-onmap',!!on);$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');const topEl=$('#dvtop');if(topEl)topEl.hidden=!on;try{const pill=document.getElementById('rxpill');if(pill&&!on){/* visibility handled in CSS; keep hidden flag for duty-only when off-map */} }catch(e){}}
 function routeTab(){const d=D(),scr=$('#dvscr');
  if(!d.duty&&stage()!=='closed'){scr.innerHTML=`<div class="dv-card" style="margin-top:40px;align-items:flex-start"><div class="dv-eyebrow">${esc(d.route.id)}</div><div class="dv-h1">Go on duty to open your route</div><div class="t2" style="font-size:13.5px">${special()?'Your route map opens right away, so you can plan the order before you reach the warehouse.':'Check-in, load and your stops unlock once you are on duty.'}</div><button class="dv-slide" data-a="duty">${ic('power',20)}Go on duty</button></div>`;return}
  if(stage()==='returning')return retScreen();if(stage()==='closed')return closedScreen();
@@ -172,7 +183,7 @@ function scanSettings(){const d=D(),w=W();const p1=CXL.perm(w,'selfBuild'),p2=CX
  <div class="dv-row"><div class="grow">Confirm the load before leaving<div class="sub">Shows % scanned and anything missing</div></div><span class="chip ok">Always on</span></div>
  <div class="dv-row"><div class="grow">Build route by scanning<div class="sub">When no route is assigned · set by ${esc(p1.from)}</div></div><span class="chip ${p1.mode==='off'?'':'ok'}">${p1.mode==='off'?ic('lock',11)+' ':''}${PM[p1.mode]}</span></div>
  <div class="dv-row"><div class="grow">Take ownership<div class="sub">Add a package from another route · set by ${esc(p2.from)}</div></div><span class="chip ${p2.mode==='off'?'':'ok'}">${p2.mode==='off'?ic('lock',11)+' ':''}${PM[p2.mode]}</span></div>
- <div class="dv-row"><div class="grow">Scanner<div class="sub">${esc(ENG[(window.CXScan&&CXScan.engine())||'none'])}</div></div></div></div>`}
+ <div class="dv-row cx-pilot"><div class="grow">Scanner<div class="sub">${esc(ENG[(window.CXScan&&CXScan.engine())||'none'])}</div></div></div></div>`}
 function fb(k){if(window.CXScan)CXScan.feedback(k);else if(k!=='ok')try{ui.set.haptics&&navigator.vibrate&&navigator.vibrate([200,80,200])}catch(e){}else haptic()}
 function openWrong(cls){fb('wrong');modal={type:'wrong',cls};cap={photos:{},sig:false};drawModal();$('#dvmodal').classList.add('on');window.__cxLastWrong=cls}
 function scanCode(code,src,addr){const w=W();if(!w||!window.CXL)return;
@@ -295,9 +306,9 @@ function settings(){const d=D(),e=elig();
  <div class="dv-card" style="padding:4px 14px"><div class="dv-row"><div class="grow">Start navigation to the next stop automatically</div>${sw(ui.autoNav,'autonav')}</div><div class="dv-row"><div class="grow">Voice guidance</div>${sw(ui.set.voice,'set','voice')}</div></div>
  ${scanSettings()}
  <div class="dv-card"><div class="dv-eyebrow">Install</div><div class="t2" style="font-size:12.5px">Add ChainEx Driver to your home screen. It opens full screen and keeps working on weak signal.</div><button class="btn" data-a="install" style="align-self:flex-start">${ic('plus',15)}Install app</button></div>
- <div class="dv-card"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>
+ <div class="dv-card dv-demo cx-pilot"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>
  ${window.CXTT&&CXTT.settingsHtml?CXTT.settingsHtml():''}${integSettings()}
- <button class="btn block" data-a="signout">${ic('logout',15)}Sign out</button><div class="t3" style="text-align:center;font-size:11px">ChainEx Driver · V06</div>`}
+ <button class="btn block" data-a="signout">${ic('logout',15)}Sign out</button><div class="t3" id="dvver">ChainEx Driver · V06</div>`}
 /* ---------- modals ---------- */
 function openModal(type,id){modal={type,id};cap={photos:{},sig:false,reason:null};drawModal();$('#dvmodal').classList.add('on')}
 function closeModal(){modal=null;$('#dvmodal').classList.remove('on');setTimeout(()=>{if(!modal)$('#dvmb').innerHTML=''},260)}
@@ -315,7 +326,7 @@ function instrCard(t,compact){const X=DO();if(!X||!t)return '';const ins=X.instr
  const codes=[a.gate&&['Gate',a.gate],a.door&&['Door',a.door],a.lockbox&&['Lockbox',a.lockbox],a.fob&&['Key fob',a.fob]].filter(Boolean);
  const flags=[ins.age21&&'<span class="chip bad">ID · 21+</span>',ins.pin&&'<span class="chip warn">PIN on delivery</span>',ins.signature&&'<span class="chip warn">Signature</span>',ins.noKnock&&'<span class="chip">No knock / no bell</span>',ins.callAhead&&'<span class="chip">Call on arrival</span>',a.garage&&'<span class="chip acc">In-garage OK</span>'].filter(Boolean).join('');
  const ex=(ins.extras||[]).map(e=>`<span class="chip acc">${esc((X.EXTRAS.find(x=>x.id===e)||{}).label||e)}</span>`).join('');
- return `<div class="dv-card dv-instr" id="dvinstr" style="padding:10px 14px;gap:6px"><div class="dv-eyebrow" style="display:flex;align-items:center;gap:6px">${ic('pin',13)}Before you arrive${ins.sample?' <span class="t3" style="font-weight:500">· sample</span>':''}</div>
+ return `<div class="dv-card dv-instr" id="dvinstr" style="padding:10px 14px;gap:6px"><div class="dv-eyebrow" style="display:flex;align-items:center;gap:6px">${ic('pin',13)}Before you arrive${ins.sample?' <span class="t3 cx-pilot" style="font-weight:500">· sample</span>':''}</div>
  ${pl?`<div style="font-size:14px"><span class="t3">Customer prefers</span> <b id="dvprefer">${esc(pl.label)}</b></div>`:''}${ins.notes?`<div class="t2" style="font-size:13px" id="dvinotes">“${esc(ins.notes)}”</div>`:''}
  ${codes.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" id="dvcodes">${codes.map(c=>`<span class="chip mono">${esc(c[0])} ${show?esc(c[1]):'••••'}</span>`).join('')}<button class="btn sm ghost" data-a="showcodes">${show?'Hide':'Show'} codes</button></div>`:''}
  ${flags||ex?`<div style="display:flex;gap:6px;flex-wrap:wrap">${flags}${ex}</div>`:''}</div>`}
@@ -555,7 +566,7 @@ function lockIosScroll(){if(document._cxLock)return;document._cxLock=1;
     if(e.target.closest&&e.target.closest('.dv-sheet,.dv-modal.on,.dv-tabs'))return;
     e.preventDefault()},{passive:false});
 }
-function onResume(){try{endSheetPtr()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}}
+function onResume(){try{endSheetPtr()}catch(e){}try{fitShell()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}}
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')onResume()});
 addEventListener('pageshow',onResume);
 addEventListener('orientationchange',()=>setTimeout(onResume,250));
@@ -563,7 +574,11 @@ addEventListener('focus',onResume);
 addEventListener('error',e=>{try{recoverUi(e&&e.error||e)}catch(x){}});
 addEventListener('unhandledrejection',e=>{try{recoverUi(e&&e.reason)}catch(x){}});
 const _act=act;act=function(){try{return _act.apply(this,arguments)}catch(err){console.warn('driver act',err);try{recoverUi(err)}catch(x){}}};
-mount();C.init();bindSheet();lockIosScroll();render();addEventListener('resize',()=>map&&map.resize());
+mount();C.init();bindSheet();lockIosScroll();bindCleanExit();fitShell();render();
+const _fit=()=>{fitShell();try{map&&map.resize()}catch(e){}};
+addEventListener('resize',_fit);
+if(window.visualViewport){visualViewport.addEventListener('resize',_fit);visualViewport.addEventListener('scroll',_fit)}
+
 
 
 function cxEmitScan(T,s,d){if(!window.CXI||!T)return;const type=s.kind==='pod'||s.kind==='sign'?'delivered':s.kind==='scan'&&(s.id==='arrive'||s.effect==='arrive'||/arriv/i.test(s.label||''))?'arrived':s.kind==='scan'?'loaded':s.kind==='photo'?'exception':null;if(!type)return;const ev={type,taskId:T.id,actor:d&&d.name,ll:d&&d.loc,payload:{step:s.kind,label:s.label},idem:'scan:'+T.id+':'+s.kind+':'+((s.label||'')+'')};
@@ -589,6 +604,10 @@ if(!window.__cxDrvInteg){window.__cxDrvInteg=1;
   C.init&&null;
   setTimeout(()=>{const d=D();if(d&&d.duty)startGps();if(d&&window.CXI){if(CXI.needsTerms('driver',d.id))CXI.showTermsOverlay('driver',d.id,d.name);CXI.offerOnDemand(d.id);if(navigator.onLine!==false)CXI.flushOutbox()}},400)}
 
+function bindCleanExit(){const host=$('#dv');if(!host||host._cxVer)return;host._cxVer=1;let t=0;
+  const clear=()=>{if(t){clearTimeout(t);t=0}};
+  host.addEventListener('pointerdown',e=>{const v=e.target.closest&&e.target.closest('#dvver');if(!v)return;clear();t=setTimeout(()=>{t=0;if(!isClean())return;applyClean(false);if(window.CXTT&&CXTT.setClean)CXTT.setClean(false);try{render()}catch(x){}toast('Pilot tools are back on')},700)},{passive:true});
+  host.addEventListener('pointerup',clear,{passive:true});host.addEventListener('pointercancel',clear,{passive:true});host.addEventListener('pointerleave',clear,{passive:true})}
 function resetMem(){try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;openLoad=false;leg=null;fitKey='';try{closeModal()}catch(e){}ui.plan={mode:null,seq:[],ends:[]};ui.last=null;ui.hit=false;ui.planOpen=false;ui.lc=null;ui.self=false;ui.coOpen=null;ui.scanLog=[];try{endSheetPtr()}catch(e){}}
-window.__v5drv={act,toggleSheet,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
+window.__v5drv={act,toggleSheet,applyClean,isClean,fitShell,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
 })();

@@ -4,9 +4,30 @@
 (function(){
 const C=window.CX;if(!C)return;
 const LABEL='Pilot test tools — sample data';
-const LS_KEEP=/^cx\.themePref$/;
+const LS_KEEP=/^(cx\.themePref|cx\.v06\.demoMode)$/;
 const LS_PILOT=/^(chainex\.pilot|cx\.v06|cx\.session|cx\.sessions|cx\.scan\.|cx\.bot\.min)/;
 const page=()=>(location.pathname.split('/').pop()||'');
+const CLEAN_KEY='cx.v06.demoMode';
+function readQueryDemo(){try{return new URLSearchParams(location.search).get('demo')}catch(e){return null}}
+function isClean(){try{return document.documentElement.classList.contains('cx-clean')}catch(e){return false}}
+function setClean(on,opts){
+  on=!!on;
+  try{localStorage.setItem(CLEAN_KEY,on?'clean':'off')}catch(e){}
+  document.documentElement.classList.toggle('cx-clean',on);
+  if(document.body)document.body.classList.toggle('cx-clean',on);
+  const fab=$('#cxttfab');if(fab)fab.hidden=on;
+  if(on)try{close()}catch(e){}
+  if(window.__v5drv){try{if(__v5drv.applyClean)__v5drv.applyClean(on);else if(__v5drv.render)__v5drv.render()}catch(e){}}
+  if(!(opts&&opts.silent))toast(on?'Clean driver view · this is what a driver sees':'Pilot tools are back on');
+  paint();
+  return on;
+}
+function bootClean(){
+  const q=readQueryDemo();
+  if(q==='clean')setClean(true,{silent:true});
+  else if(q==='off'||q==='full'||q==='tools')setClean(false,{silent:true});
+  else {let saved=false;try{saved=localStorage.getItem(CLEAN_KEY)==='clean'}catch(e){}setClean(saved,{silent:true})}
+}
 const isDriver=()=>page()==='driver.html';
 const isStaff=()=>page()==='dashboard.html'||page()==='dispatch.html';
 const $=s=>document.querySelector(s);
@@ -247,8 +268,8 @@ function after(){const D=drv();if(D&&D.afterReset)D.afterReset();else if(D&&D.re
 function css(){
   if($('#cxtt-css'))return;
   const s=document.createElement('style');s.id='cxtt-css';s.textContent=`
-  .cx-tt-fab{position:fixed;z-index:80;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));height:36px;padding:0 12px;border:0;border-radius:18px;background:#1B4E9C;color:#fff;font:650 12px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 8px 24px rgba(8,17,28,.35);cursor:pointer}
-  body.dv5 .cx-tt-fab{bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+  .cx-tt-fab{position:fixed;z-index:80;left:12px;right:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));height:36px;padding:0 12px;border:0;border-radius:18px;background:#1B4E9C;color:#fff;font:650 12px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 8px 24px rgba(8,17,28,.35);cursor:pointer}
+  body.dv5 .cx-tt-fab{left:12px;right:auto;bottom:calc(var(--dv-tabs, 62px) + 8px)}
   .cx-tt-fab:hover{filter:brightness(1.08)}
   .cx-tt{position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center}
   .cx-tt.on{display:flex}
@@ -282,7 +303,8 @@ function btnsDriver(compact){
   const mode=(window.CXR&&d&&CXR.mode(w))||'routes';
   const auto=!!(drv()&&drv().ui&&drv().ui.set&&drv().ui.set.autoScan);
   const lines=(C.LINE_ORDER||Object.keys(DEMO)).map(l=>btn('demo:'+l,LN[l],d&&d.line===l?'pri':'')).join('');
-  return `${btn('all','Reset everything','')}
+  return `${isDriver()?btn('clean','Switch to clean driver view','pri'):''}
+    ${btn('all','Reset everything','')}
     ${btn('day','Reset just my driver day','')}
     ${compact?'':`<div class="cx-tt-note">Resets go back to the original sample data. Reset everything also clears this browser's V06 storage and cached files, and resets the Dispatch approval queue.</div>`}
     <div class="k" style="margin-top:4px">Jump to a step</div>
@@ -306,7 +328,7 @@ function panelBody(){
 }
 function mount(){
   css();
-  if(!$('#cxttfab')){const b=document.createElement('button');b.type='button';b.id='cxttfab';b.className='cx-tt-fab';b.setAttribute('data-tt','open');b.setAttribute('aria-label',LABEL);b.textContent='Test';document.body.appendChild(b)}
+  if(!$('#cxttfab')){const b=document.createElement('button');b.type='button';b.id='cxttfab';b.className='cx-tt-fab';b.setAttribute('data-tt','open');b.setAttribute('aria-label',LABEL);b.textContent='Test';b.hidden=isClean();document.body.appendChild(b)}
   if(!$('#cxtt')){const el=document.createElement('div');el.id='cxtt';el.className='cx-tt';el.hidden=true;el.innerHTML=`<div class="cx-tt-scrim" data-tt="close"></div><div class="cx-tt-panel" role="dialog" aria-label="${esc(LABEL)}"></div>`;document.body.appendChild(el)}
   paint();
 }
@@ -319,6 +341,7 @@ function handle(tt){
   if(!tt)return;
   if(tt==='open'){isOpen()?close():open();return}
   if(tt==='close'){close();return}
+  if(tt==='clean'){setClean(true);return}
   if(tt==='all'){resetAll({confirm:true});return}
   if(tt==='day'){resetDriverDay();return}
   if(tt==='off'){duty(false);return}
@@ -340,7 +363,7 @@ function handle(tt){
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tt]');if(!b)return;e.preventDefault();e.stopPropagation();handle(b.getAttribute('data-tt'))},true);
 
-window.CXTT={LABEL,resetAll,resetDriverDay,restartLoadout,undoLastScan,reopenShort,resetStop,resetAllStops,retryAttempt,reopenCloseout,clearSelfRoute,setRushMode,switchDriver,toggleAutoScan,duty,jump,open,close,isOpen,mount,paint,settingsHtml,handle,widOf};
-function boot(){mount();try{const D=drv();if(isDriver()&&D&&D.render)D.render()}catch(e){}}
+window.CXTT={LABEL,resetAll,resetDriverDay,restartLoadout,undoLastScan,reopenShort,resetStop,resetAllStops,retryAttempt,reopenCloseout,clearSelfRoute,setRushMode,switchDriver,toggleAutoScan,duty,jump,open,close,isOpen,mount,paint,settingsHtml,handle,widOf,isClean,setClean};
+function boot(){bootClean();mount();try{const D=drv();if(isDriver()&&D&&D.render)D.render()}catch(e){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
