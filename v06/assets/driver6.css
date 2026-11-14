@@ -59,7 +59,7 @@ body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;left:0;right:0;t
 .dv-kv>div{background:var(--s1);padding:10px}.dv-kv b{display:block;font:600 17px var(--fm);letter-spacing:-.02em}.dv-kv span{font-size:11px;color:var(--t3)}
 .dv-row{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:52px;border-bottom:1px solid var(--line);font-size:13.5px}
 .dv-row:last-child{border-bottom:0}.dv-row .grow{flex:1;min-width:0}.dv-row .sub{font-size:12px;color:var(--t3);margin-top:2px;line-height:1.35}
-.dv-row>.chip,.dv-row>[role=switch],#dvscanset .dv-row>.chip,#dvscanset .dv-row>[role=switch]{flex:none;margin-left:auto;min-width:118px;justify-content:center;text-align:center}
+.dv-row>.chip,#dvscanset .dv-row>.chip{flex:none;margin-left:auto;min-width:118px;justify-content:center;text-align:center}
 .dv-n{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font:600 11.5px var(--fm);background:var(--s3);color:var(--t2);flex:none}
 .dv-n.done{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.dv-n.fail{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.dv-n.act{background:var(--acc);color:#fff}
 .btn.xl{height:56px;font-size:16px;border-radius:16px;font-weight:600}
@@ -184,3 +184,9 @@ html.cx-clean .lo-e{display:none!important}
 
 html:not(.cx-clean) body.dv5 .dv-scr.solid{padding-bottom:calc(var(--dv-tabs) + 60px)}
 html:not(.cx-clean) body.dv5 .dv-sb{padding-bottom:56px}
+
+/* iOS-style switch: 51×31, knob rides fully left/right, never stretched by row alignment */
+.dv-sw{-webkit-appearance:none;appearance:none;flex:none;flex-shrink:0;margin-left:auto;box-sizing:border-box;width:51px;min-width:51px;max-width:51px;height:31px;padding:0;border:0;border-radius:15.5px;background:var(--s3);position:relative;cursor:pointer;transition:background .2s ease;-webkit-tap-highlight-color:transparent}
+.dv-sw[aria-checked="true"]{background:var(--acc)}
+.dv-sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);pointer-events:none;transition:left .2s ease}
+.dv-sw[aria-checked="true"] i{left:22px}
