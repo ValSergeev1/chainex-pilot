@@ -11,7 +11,8 @@ body.v5.dv5{background:var(--bg);overflow:hidden;position:fixed;left:0;right:0;t
 .dv-side{width:300px;display:none;flex-direction:column;gap:14px;color:var(--t2);font-size:13px}
 .dv-side h1{font-size:22px;letter-spacing:-.02em;color:var(--t1);margin:0}
 .dv{position:relative;width:100%;height:100%;min-height:0;flex:1 1 auto;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
-@media (min-width:900px){.dv-stage{align-items:center;background:radial-gradient(1200px 600px at 70% -10%,color-mix(in srgb,var(--acc) 12%,transparent),transparent),var(--bg)}
+/* desktop preview frame only on real desktop windows: a phone in landscape (e.g. 932×430) is wide but short and must stay full screen */
+@media (min-width:900px) and (min-height:600px){.dv-stage{align-items:center;background:radial-gradient(1200px 600px at 70% -10%,color-mix(in srgb,var(--acc) 12%,transparent),transparent),var(--bg)}
  .dv{flex:none;width:404px;height:min(860px,calc(var(--app-h) - 40px));border-radius:36px;border:1px solid var(--line-2);box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 8px color-mix(in srgb,var(--s2) 70%,transparent)}.dv-side{display:flex}}
 .dv-map{position:absolute;inset:0;z-index:0}
 .dv-map[hidden]{display:none}
@@ -272,3 +273,6 @@ body.dv-hasturn .dv-sheet.full{max-height:calc(100% - var(--dv-tabs) - var(--sat
 .dv-simbar>span i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 25%,transparent)}
 .dv-turn .tt b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.22;overflow:hidden}
 #dvnavnote{margin-top:-2px}
+/* viewport: --app-h is set from the layout viewport by fitShell(); before JS runs fall back to dvh, then vh */
+@supports not (height:100dvh){:root{--app-h:100vh}}
+html.dv-shell{background:var(--bg);height:100%;overflow:hidden;overscroll-behavior:none}

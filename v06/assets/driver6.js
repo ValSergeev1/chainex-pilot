@@ -36,7 +36,21 @@ let map=null,meMk=null,fitKey='',leg=null,navS=null,followNav=true,meAnim=0,navL
 const LIVE=!!window.CX_LIVE;
 function isClean(){if(LIVE)return true;try{return document.documentElement.classList.contains('cx-clean')}catch(e){return false}}
 function applyClean(on){try{document.documentElement.classList.toggle('cx-clean',!!on);document.body.classList.toggle('cx-clean',!!on);localStorage.setItem('cx.v06.demoMode',on?'clean':'off')}catch(e){}}
-function fitShell(){try{const root=document.documentElement,vv=window.visualViewport;const h=Math.max(1,Math.round((vv&&vv.height)||window.innerHeight||root.clientHeight));const top=Math.max(0,Math.round((vv&&vv.offsetTop)||0));root.style.setProperty('--app-h',h+'px');root.style.setProperty('--app-top',top+'px');
+/* Shell height. Root cause of the "half screen" on iPhone: the shell used to take its height (and top offset) from
+   visualViewport, which on iOS shrinks to about half while the keyboard is up or the page is pinch-zoomed, and iOS often
+   doesn't send the resize when the keyboard closes or the app comes back from the background / home screen, so the app
+   stayed half height (or shifted down) until something else changed. Now: the layout viewport (innerHeight /
+   clientHeight, follows the Safari toolbar) is the height; the visual viewport is used only while a text field is
+   focused (keyboard up, no zoom); and every viewport event re-checks the size a few times while iOS settles. */
+let lastFit={h:0,top:0},goodH=0;
+function editing(){const a=document.activeElement;if(!a||a===document.body)return false;if(a.isContentEditable)return true;const t=a.tagName;return t==='TEXTAREA'||t==='SELECT'||(t==='INPUT'&&!/^(checkbox|radio|button|submit|reset|range|file|color|image|hidden)$/i.test(a.type||''))}
+function shellSize(){const root=document.documentElement,vv=window.visualViewport,zoom=vv&&vv.scale>1.02;
+  const lay=Math.round(Math.max(zoom?0:(window.innerHeight||0),root.clientHeight||0))||Math.round(window.innerHeight||0)||1;let h=zoom&&goodH?Math.max(goodH,root.clientHeight||0):lay,top=0,kb=false;
+  if(vv&&!zoom&&editing()&&vv.height<lay-80){h=Math.round(vv.height);top=Math.max(0,Math.round(vv.offsetTop||0));kb=true}else if(!zoom)goodH=h;
+  return{h:Math.max(1,h),top,kb}}
+function fitShell(){try{const root=document.documentElement,z=shellSize(),h=z.h,top=z.top;if(h!==lastFit.h||top!==lastFit.top){root.style.setProperty('--app-h',h+'px');root.style.setProperty('--app-top',top+'px');lastFit={h,top}}root.classList.toggle('dv-kb',z.kb);
+  /* iOS can leave the window scrolled after the keyboard closes; with a fixed shell that shows as a blank band */
+  if(!z.kb&&(window.scrollY||root.scrollTop)){try{window.scrollTo(0,0)}catch(e){}}
   const probe=s=>{const e=document.createElement('div');e.style.cssText='position:fixed;visibility:hidden;padding-'+s+':env(safe-area-inset-'+s+',0px)';document.body.appendChild(e);const n=parseFloat(getComputedStyle(e)['padding'+s[0].toUpperCase()+s.slice(1)])||0;e.remove();return n};
   let sat=0,sab=0;try{sat=probe('top');sab=probe('bottom')}catch(e){}
   const standalone=!!((window.navigator&&navigator.standalone)||(window.matchMedia&&matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches));
@@ -736,7 +750,7 @@ function lockIosScroll(){if(document._cxLock)return;document._cxLock=1;
     e.preventDefault()},{passive:false});
   document.addEventListener('touchstart',e=>{if(!document.body.classList.contains('dv-flowon')||document.body.classList.contains('dv-flowmap'))return;if(e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas,.dv-map'))e.preventDefault()},{passive:false});
 }
-function onResume(){try{endSheetPtr()}catch(e){}try{fitShell()}catch(e){}try{map&&map.resize()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}try{if(flow){persistFlow();if(flow.step==='camera'&&!flowCam)startFlowCam();else if(flow.step==='camera'){const v=$('#dvflowcam');v&&v.play&&v.play().catch(()=>{})}flowChrome()}}catch(e){}try{if(!modal&&!flow)restoreFlow()}catch(e){}}
+function onResume(){try{endSheetPtr()}catch(e){}try{_fit()}catch(e){}try{if(camSess&&camEl&&camEl.srcObject)camEl.play().catch(()=>{})}catch(e){}try{if(flow){persistFlow();if(flow.step==='camera'&&!flowCam)startFlowCam();else if(flow.step==='camera'){const v=$('#dvflowcam');v&&v.play&&v.play().catch(()=>{})}flowChrome()}}catch(e){}try{if(!modal&&!flow)restoreFlow()}catch(e){}}
 addEventListener('pagehide',()=>{try{if(flow)persistFlow()}catch(e){}});
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')onResume()});
 addEventListener('pageshow',onResume);
@@ -746,9 +760,19 @@ addEventListener('error',e=>{try{recoverUi(e&&e.error||e)}catch(x){}});
 addEventListener('unhandledrejection',e=>{try{recoverUi(e&&e.reason)}catch(x){}});
 const _act=act;act=function(){try{return _act.apply(this,arguments)}catch(err){console.warn('driver act',err);try{recoverUi(err)}catch(x){}}};
 mount();C.init();bindSheet();lockIosScroll();bindCleanExit();fitShell();render();try{restoreFlow()}catch(e){}
-const _fit=()=>{fitShell();try{map&&map.resize()}catch(e){}};
-addEventListener('resize',_fit);
-if(window.visualViewport){visualViewport.addEventListener('resize',_fit);visualViewport.addEventListener('scroll',_fit)}
+let fitTs=[],fitMapH=0;
+function relayout(){const h0=lastFit.h;fitShell();const sh=$('#dvsheet');if(sh&&!sheetDrag&&!sh.classList.contains('snap')){if(sh.style.transform)sh.style.transform='';if(sh.style.height&&!sh.classList.contains('drag')){sh.style.height='';sh.style.maxHeight=''}}
+  const el=$('#dvmap');const mh=el?el.clientHeight:0;if(map&&(mh!==fitMapH||lastFit.h!==h0)){fitMapH=mh;try{map.resize(true)}catch(e){}}}
+/* iOS reports stale sizes right after rotation, keyboard, toolbar and background changes: check again while it settles */
+function _fit(){relayout();fitTs.forEach(clearTimeout);fitTs=[60,250,600,1200].map(ms=>setTimeout(relayout,ms))}
+addEventListener('resize',_fit);addEventListener('orientationchange',_fit);addEventListener('pageshow',_fit);
+document.addEventListener('focusin',_fit);document.addEventListener('focusout',_fit);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')_fit()});
+if(window.visualViewport){visualViewport.addEventListener('resize',_fit);visualViewport.addEventListener('scroll',relayout)}
+/* safety net for missed events: a cheap size check each second while the app is on screen (reads only; writes only on change) */
+setInterval(()=>{if(document.hidden)return;const z=shellSize();if(z.h!==lastFit.h||z.top!==lastFit.top)_fit()},1000);
+/* app shell: no page pinch-zoom (the map still pinches); a zoomed page is the other way iOS shrinks the visual viewport */
+document.addEventListener('gesturestart',e=>{if(!(e.target&&e.target.closest&&e.target.closest('#dvmap,.maplibregl-canvas')))e.preventDefault()},{passive:false});
 
 
 
