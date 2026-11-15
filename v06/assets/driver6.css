@@ -320,3 +320,18 @@ body.dv-mapfull .dv-mfc{bottom:calc(var(--sab) + 152px)}
 .dv-mapview .seg button{flex:1 1 auto;min-height:36px}
 .dv-mfc .dv-mfsim{font:600 12px/1 ui-monospace,monospace;color:#FCD34D}
 .dv-mfc .dv-mfsim[hidden]{display:none}
+/* large, glanceable controls while driving (full-screen navigation) */
+body.dv-mapfull .dv-turn{padding:14px 16px}
+body.dv-mapfull .dv-turn .ar{width:66px}
+body.dv-mapfull .dv-turn .ar i{font-size:34px}
+body.dv-mapfull .dv-turn .ar .dd{font-size:17px}
+body.dv-mapfull .dv-turn .tt b{font-size:19px;line-height:1.2}
+body.dv-mapfull .dv-turn .tt span{font-size:13.5px}
+body.dv-mapfull .dv-voice{width:48px;height:48px}
+body.dv-mapfull .dv-mfc .dv-rb{width:54px;height:54px;border-radius:27px}
+body.dv-mapfull .dv-mfc .dv-rb svg{width:22px;height:22px}
+body.dv-mapfull .dv-mfc{gap:12px;bottom:calc(var(--sab) + 172px)}
+.dv-nb{padding:14px;gap:12px}
+.dv-nbi .nm{font-size:18px}
+.dv-nbi .ad{font-size:14px}
+.dv-nbgo{height:64px;font-size:20px;border-radius:18px}
