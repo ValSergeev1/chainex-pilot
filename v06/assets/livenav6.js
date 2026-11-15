@@ -51,7 +51,7 @@ function start(o){let L=o.leg;const to=o.to;const S={mode:o.mode==='sim'?'sim':'
   if(/^GPS signal/.test(S.msg)){S.msg='';status()}
   let sp=f.speed;if(!(sp>=0)&&lastFix){const dt=(now-lastFix.t)/1000;if(dt>.2)sp=hav(lastFix.ll,ll)/dt}if(sp>=0&&isFinite(sp))S.speed=S.speed?S.speed*.6+sp*.4:sp;
   const sn=snap(L,ll,S.seg);const thr=Math.max(45,Math.min(90,(S.acc||0)+25));S.offDist=Math.round(sn.d);
-  if(S.fixes===1&&S.mode==='live'){const dStop=hav(ll,to);if(dStop>30000){S.far=true;S.farMsg=S.msg=o.live?`You're ${fmtD(dStop)} from this stop`:`You're ${fmtD(dStop)} from this sample stop · tap Simulate drive to preview`}if(sn.d>60){lastFix={ll,t:now};S.pos=ll;S.offRoute=true;emit();reroute(ll,true);return}}
+  if(S.fixes===1&&S.mode==='live'){const dStop=hav(ll,to);if(dStop>30000){S.far=true;S.farMsg=S.msg=o.live?`You're ${fmtD(dStop)} from this stop`:`You're ${fmtD(dStop)} from this sample stop`}if(sn.d>60){lastFix={ll,t:now};S.pos=ll;S.offRoute=true;emit();reroute(ll,true);return}}
   if(sn.d>thr){if(!offSince)offSince=now;offN++;S.offRoute=true;if(offN>=3&&now-offSince>=4000)reroute(ll,false)}else{offSince=0;offN=0;if(S.offRoute){S.offRoute=false;if(!reBusy&&/off route|keeping/i.test(S.msg)){S.msg='';status()}}}
   const onR=!S.offRoute;if(onR){S.along=sn.along;S.seg=sn.seg;S.pos=sn.pt}else S.pos=ll;
   const gh=f.heading;if(gh!=null&&isFinite(gh)&&S.speed>2)S.heading=gh;else if(onR&&sn.bearing!=null)S.heading=sn.bearing;else if(lastFix&&hav(lastFix.ll,ll)>3)S.heading=brg(lastFix.ll,ll);

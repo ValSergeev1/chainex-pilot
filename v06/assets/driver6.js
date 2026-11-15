@@ -31,6 +31,17 @@ function slot(t){const ds=R().filter(x=>x.kind!=='pickup'),n=ds.length||1,i=Math
  if(D().line==='bulky')return{big:`Floor · ${i<n/3?'rear':i<2*n/3?'middle':'front'}`,txt:part};
  if(!special())return{big:(t.items[0]&&t.items[0].label)||'Load',txt:part};
  const per=Math.max(1,Math.ceil(n/6)),sh=String.fromCharCode(65+Math.min(5,Math.floor(i/per)));return{big:`Shelf ${sh}`,txt:`${part} · ${i%2?'right':'left'} side`}}
+/* the phone's real location: shown as the dot and used as the start of every route, sample mode included */
+let devLoc=null,locW=null,locDenied=false;
+function locStart(){if(locW!=null||navS||locDenied||!navigator.geolocation)return;try{locW=navigator.geolocation.watchPosition(p=>{const c=p.coords;if(!c||!(c.accuracy<=5000))return;const first=!devLoc;devLoc={ll:[+c.longitude.toFixed(6),+c.latitude.toFixed(6)],acc:c.accuracy,at:Date.now()};onDevLoc(first)},e=>{if(e&&e.code===1){locDenied=true;locStop();scheduleRender()}},{enableHighAccuracy:true,maximumAge:15000,timeout:25000})}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)locStop();else if(!navS&&document.body.classList.contains('dv-onmap'))locStart()});
+function locStop(){if(locW!=null){try{navigator.geolocation.clearWatch(locW)}catch(e){}locW=null}}
+function here(){return devLoc&&Date.now()-devLoc.at<15*60e3?devLoc.ll:D().loc}
+function onDevLoc(first){if(navS)return;if(document.body.classList.contains('dv-onmap'))me(devLoc.ll);
+ /* the planned route started somewhere else (sample start, or an older fix): plan again from here */
+ if(leg&&leg.from&&C.dist(leg.from,devLoc.ll)>0.15){leg=null;fitKey='';scheduleRender()}else if(first){fitKey='';scheduleRender()}}
+const MFX='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+let mapFull=false;
 let map=null,meMk=null,fitKey='',leg=null,navS=null,followNav=true,meAnim=0,navLineSeg=-1,openLoad=false,modal=null,cap={photos:{},sig:false};
 /* live build (served by the ChainEx platform with the live API): no sample data, demo switches, test tools, resets or simulated drives */
 const LIVE=!!window.CX_LIVE;
@@ -64,8 +75,9 @@ function setH(el,h){if(!el)return;if(el.__h===h&&el.firstChild&&el.firstChild===
 let rq=0,rqT=0,renderPending=false;
 function scheduleRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;clearTimeout(rqT);render()});rqT=setTimeout(()=>{if(rq){cancelAnimationFrame(rq);rq=0;render()}},150)}
 function mount(){document.documentElement.classList.add('dv-shell');if(LIVE)document.documentElement.classList.add('cx-clean','cx-livebuild');document.body.classList.add('dv5','dv-toastz');if(isClean())document.body.classList.add('cx-clean');fitShell();$('#app').innerHTML=`<div class="dv-stage"><aside class="dv-side"><div class="dv-eyebrow">${LIVE?'ChainEx':'ChainEx · V06'}</div><h1>Driver</h1><p>Phone-first app. Open this page on your phone and choose <b>Add to Home Screen</b> to install it. Every scan and delivery syncs live to Dispatch and the Dashboard.</p>${LIVE?'':`<div class="dv-card" style="font-size:12.5px"><b style="color:var(--t1)">Sample drivers</b><span>Settings → Demo switches between P&amp;D, Bulky, White glove, LTL and Shuttle.</span></div><a class="btn" href="start.html">${ic('home',15)}V06 start page</a>`}</aside>
- <div class="dv" id="dv"><div class="dv-map" id="dvmap"></div><div class="dv-top" id="dvtop"></div><main class="dv-scr" id="dvscr"></main><div class="dv-sheet" id="dvsheet" hidden><button class="dv-grab" data-a="grab" aria-label="Resize"><i></i></button><div class="dv-sb" id="dvsb"></div></div><nav class="dv-tabs" id="dvtabs"></nav><div class="dv-modal" id="dvmodal"><div class="scrim" data-a="mclose"></div><div class="dv-mb" id="dvmb"></div></div></div></div>`;
- map=new V.Map($('#dvmap'),{pad:{top:90,bottom:300,left:40,right:40},zoom:11})}
+ <div class="dv" id="dv"><div class="dv-map" id="dvmap"></div><div class="dv-top" id="dvtop"></div><main class="dv-scr" id="dvscr"></main><div class="dv-sheet" id="dvsheet" hidden><button class="dv-grab" data-a="grab" aria-label="Resize"><i></i></button><div class="dv-sb" id="dvsb"></div></div><nav class="dv-tabs" id="dvtabs"></nav><div class="dv-mfc" id="dvmfc" aria-hidden="true"><button class="dv-rb dv-mfsim" data-a="navspeed" aria-label="Simulation speed" hidden></button><button class="dv-rb" data-a="recenter" aria-label="Recenter on me">${ic('nav',16)}</button><button class="dv-rb" data-a="mapfullx" aria-label="Overview: show the stop details"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button></div><div class="dv-nb" id="dvnb" aria-hidden="true"></div><div class="dv-modal" id="dvmodal"><div class="scrim" data-a="mclose"></div><div class="dv-mb" id="dvmb"></div></div></div></div>`;
+ map=new V.Map($('#dvmap'),{pad:{top:90,bottom:300,left:40,right:40},zoom:11});try{window.CXMapView&&CXMapView.attach(map)}catch(e){}
+ addEventListener('cx-mapview-applied',()=>{if(navS&&navS.state&&followNav)navCam(navS.state,300);else if(devLoc&&!navS)me(devLoc.ll)})}
 /* live nav puck: glides between GPS fixes (rAF), points the way you are heading */
 function meTo(ll,dur,hd){if(!map||!map.m||!map.ready||!ll)return;if(!meMk){me(ll)}if(!meMk)return;const e=meMk.getElement();if(!e.classList.contains('nav')){e.classList.add('nav');if(!e.firstChild)e.innerHTML='<i class="hd"></i>';try{meMk.setRotationAlignment('map');meMk.setPitchAlignment('viewport')}catch(x){}}
  if(hd!=null&&isFinite(hd))try{meMk.setRotation(hd)}catch(x){}const f=meMk.getLngLat(),a=[f.lng,f.lat],t0=performance.now();cancelAnimationFrame(meAnim);if(!(dur>0)){meMk.setLngLat(ll);return}
@@ -81,7 +93,15 @@ function render(){if(rq){cancelAnimationFrame(rq);rq=0;clearTimeout(rqT)}if(type
  if(!d){scr.className='dv-scr';scr.innerHTML=welcome();setH($('#dvtop'),'');return}
  const t=ui.tab;if(t==='today')scr.innerHTML=today();else if(t==='inbox'){scr.innerHTML=inbox();if((C.S.msgs||[]).some(m=>m.wid===W()&&!m.readDriver))setTimeout(()=>C.update(()=>C.ops.msgRead&&C.ops.msgRead(W(),'driver')),0);scr.scrollTop=scr.scrollHeight}else if(t==='me')scr.innerHTML=settings();else routeTab();
  if(t!=='route'){stopNav();mapScreen(false)}syncCam();if(modal&&flow){flowChrome();if(flow.step==='map'){const sh=$('#dvsheet');if(sh)sh.hidden=true}}else if(!modal){document.body.classList.remove('dv-flowon','dv-flowmap')}}catch(err){console.warn('driver render',err);try{recoverUi(err)}catch(e){}}}
-function mapScreen(on){document.body.classList.toggle('dv-onmap',!!on);$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');const topEl=$('#dvtop');if(topEl)topEl.hidden=!on;try{const pill=document.getElementById('rxpill');if(pill&&!on){/* visibility handled in CSS; keep hidden flag for duty-only when off-map */} }catch(e){}}
+/* full-screen map: only the map (+ turn banner while navigating, recenter, exit). Transform/opacity only, nothing reflows. */
+function canMapFull(){const b=document.body,m=$('#dvmodal');return !!navS&&!navBlocked()&&b.classList.contains('dv-onmap')&&!b.classList.contains('dv-flowon')&&!modal&&!flow&&!(m&&m.classList.contains('on'))&&!!$('#dvsheet')&&!$('#dvsheet').hidden}
+function navBlocked(){const st=navS&&navS.state;return !!(st&&(st.status==='denied'||st.status==='unavailable'))}
+function setMapFull(on){on=!!on&&canMapFull();if(on===mapFull)return;mapFull=on;const b=document.body;b.classList.add('dv-mfanim');clearTimeout(b._mfa);b._mfa=setTimeout(()=>b.classList.remove('dv-mfanim'),420);b.classList.toggle('dv-mapfull',on);const c=$('#dvmfc'),e=$('#dvmfedge');if(c)c.setAttribute('aria-hidden',on?'false':'true');if(e)e.setAttribute('aria-hidden',on?'false':'true');
+  if(on){const sh=$('#dvsheet');if(sh){clearTimeout(sh._st);sh.classList.remove('snap','drag');sh.style.height='';sh.style.maxHeight='';sh.style.transform=''}}
+  if(on)paintNavBar();haptic();if(navS&&navS.state&&followNav)setTimeout(()=>navCam(navS.state,320),30)}
+/* re-renders may switch screens off and back on inside one task: decide on the settled state */
+let mfChk=0;function mfCheck(){if(!mapFull||mfChk)return;mfChk=requestAnimationFrame(()=>{mfChk=0;if(mapFull&&!canMapFull())setMapFull(false)});Promise.resolve().then(()=>{if(mapFull&&!canMapFull()){cancelAnimationFrame(mfChk);mfChk=0;setMapFull(false)}})}
+function mapScreen(on){if(!on&&mapFull)mfCheck();if(on)locStart();document.body.classList.toggle('dv-onmap',!!on);$('#dvscr').className='dv-scr '+(on?'over':'solid');const sh=$('#dvsheet');sh.hidden=!on;sh.classList.toggle('full',ui.sheet==='full');sh.classList.toggle('peek',ui.sheet!=='full');const topEl=$('#dvtop');if(topEl)topEl.hidden=!on;try{const pill=document.getElementById('rxpill');if(pill&&!on){/* visibility handled in CSS; keep hidden flag for duty-only when off-map */} }catch(e){}}
 function routeTab(){const d=D(),scr=$('#dvscr');
  if(!d.duty&&stage()!=='closed'){scr.innerHTML=`<div class="dv-card" style="margin-top:40px;align-items:flex-start"><div class="dv-eyebrow">${esc(d.route.id)}</div><div class="dv-h1">Go on duty to open your route</div><div class="t2" style="font-size:13.5px">${special()?'Your route map opens right away, so you can plan the order before you reach the warehouse.':'Check-in, load and your stops unlock once you are on duty.'}</div><button class="dv-slide" data-a="duty">${ic('power',20)}Go on duty</button></div>`;return}
  if(stage()==='returning')return retScreen();if(stage()==='closed')return closedScreen();
@@ -144,7 +164,7 @@ function drawPlanMap(){const d=D(),p=ui.plan,ids=planOrder(),a=asg();
  const pins=a.map(t=>{let label=String(no(t)),color='var(--acc)',cls='';if(p.mode==='manual'){const i=p.seq.indexOf(t.id);label=i<0?(t.id===nxt?String(placed.length+1):''):String(i+1);color=i<0?(t.id===nxt?'var(--acc)':'#64748B'):'var(--acc)';cls='big '+(i<0?(t.id===nxt?'nxt':'u2'):'on'+(t.id===lastId?' last':''))}else if(p.mode==='ends'){const i=p.ends.indexOf(t.id);label=i===0?'A':i===1?'B':'';color=i===0?'var(--acc)':i===1?'var(--vio)':'#64748B';cls='big '+(i<0?'u2':'on')}return{ll:t.ll,label,color,cls,id:t.id,title:t.name,onClick:x=>act('ppin',x.id)}});
  R().filter(t=>t.state!=='assigned').forEach(t=>pins.push({ll:t.ll,label:'',color:t.state==='completed'?'var(--ok)':'var(--bad)',cls:'u dim'}));
  const line=(p.mode==='manual'?p.seq:ids).map(id=>C.task(id)).filter(Boolean).map(t=>t.ll);
- map.set({pins,lines:line.length?[{coords:[d.loc,...line],color:'#3B82F6',width:3}]:[]},fitKey!=='plan');if(fitKey!=='plan'){fitKey='plan';setTimeout(()=>map.resize(),60)}me(d.loc)}
+ map.set({pins,lines:line.length?[{coords:[here(),...line],color:'#3B82F6',width:3}]:[]},fitKey!=='plan');if(fitKey!=='plan'){fitKey='plan';setTimeout(()=>map.resize(),60)}me(here())}
 /* ---------- load-out scan ---------- */
 function pk(){return R().filter(t=>t.kind!=='pickup'&&C.OPEN(t)).sort((a,b)=>b.seq-a.seq).flatMap(t=>t.items.map(p=>({p,t})))}
 /* ---------- load-out scanning (all lines; P&D and Bulky share every option) ---------- */
@@ -238,7 +258,7 @@ function startOfDay(){mapScreen(false);const d=D(),ck=d.route.checkin,e=elig(),s
  <div class="dv-card" style="padding:4px 14px"><div class="dv-eyebrow" style="padding-top:10px">Today's ${esc(K().stopWord||'stops')}</div>${R().map(stopRow).join('')}</div>`}
 /* ---------- drive: one screen (P&D + Bulky) ---------- */
 function driveScreen(){mapScreen(true);const t=cur();if(!t)return finishScreen();const s=nextStep(t),et=(C.etas(W())||{})[t.id];
- setH($('#dvscr'),`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:22px"><button class="dv-rb" data-a="fit" aria-label="Overview">${ic('target',17)}</button><button class="dv-rb${navS&&!followNav?' dv-rb-hot':''}" data-a="recenter" aria-label="Follow">${ic('nav',17)}</button></div>`);
+ setH($('#dvscr'),`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:22px">${navS?`<button class="dv-rb dv-mfgo" data-a="mapfull" aria-label="Full-screen map">${MFX}</button>`:''}<button class="dv-rb" data-a="fit" aria-label="Overview">${ic('target',17)}</button><button class="dv-rb${navS&&!followNav?' dv-rb-hot':''}" data-a="recenter" aria-label="Follow">${ic('nav',17)}</button></div>`);
  const nav=navS&&navS.state,arrived=!!t.stepData.arrive;
  setH($('#dvsb'),`<div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div class="dv-eyebrow">${esc(word())}</div><div class="dv-big" style="font-size:38px">${no(t)}<small> of ${tot()}</small></div></div><div style="text-align:right"><div class="mono" id="dvdist" style="font-size:20px;font-weight:600">${leg&&leg.total?CXNav.fmtD(Math.max(0,leg.total-(leg.cum[leg.i]||0))):'—'}</div><div class="t3" style="font-size:11.5px" id="dveta">${navS&&navS.state?navEtaTx(navS.state):(et?'ETA '+fmt(et.eta):'')}${!navS&&et&&et.risk?' · <span class="warn">late</span>':''}</div></div></div>
  ${nav&&!arrived?navNote(nav):''}<div><b style="font-size:16px">${esc(t.name)}</b><div class="t2" style="font-size:13px">${esc(t.address)}</div></div>
@@ -249,25 +269,29 @@ function driveScreen(){mapScreen(true);const t=cur();if(!t)return finishScreen()
  ${(()=>{const up=openT().slice(1);return up.length?`<div class="dv-eyebrow">Up next · ${up.length}</div><div class="dv-upnext">${up.map(stopRow).join('')}</div>`:''})()}`);
  drawDriveMap(t);if(!leg||leg.tid!==t.id)planLeg(t)}
 function drawDriveMap(t){const d=D(),pins=[];R().forEach(x=>{if(x.state==='completed'||x.state==='failed')pins.push({ll:x.ll,color:x.state==='completed'?'var(--ok)':'var(--bad)',cls:'u dim',title:x.name});else pins.push({ll:x.ll,label:String(no(x)),color:x.id===t.id?'var(--acc)':'#4E6280',cls:x.id===t.id?'nx':'',id:x.id,title:x.name,onClick:p=>act('stop',p.id)})});
- const lines=[{coords:openT().map(x=>x.ll),color:'#8495AD',width:1.5,opacity:.5}];lines.push(leg&&leg.path?{coords:navS&&leg.i>0?[leg.pos||leg.path[leg.i]].concat(leg.path.slice(leg.i+1)):leg.path,color:'#3B82F6',width:navS?7:5}:{coords:[d.loc,t.ll],color:'#3B82F6',width:4});
- const k='drive:'+t.id;map.set({pins,lines},false);if(fitKey!==k){fitKey=k;if(!navS)setTimeout(()=>{map.resize();map.fit([d.loc,t.ll])},60)}if(!navS)me(leg&&leg.pos||d.loc)}
+ const lines=[{coords:openT().map(x=>x.ll),color:'#8495AD',width:1.5,opacity:.5}];lines.push(leg&&leg.path?{coords:navS&&leg.i>0?[leg.pos||leg.path[leg.i]].concat(leg.path.slice(leg.i+1)):leg.path,color:'#3B82F6',width:navS?7:5}:{coords:[here(),t.ll],color:'#3B82F6',width:4});
+ const k='drive:'+t.id;map.set({pins,lines},false);if(fitKey!==k){fitKey=k;if(!navS)setTimeout(()=>{map.resize();map.fit([here(),t.ll])},60)}if(!navS)me(devLoc?devLoc.ll:(leg&&leg.pos||d.loc))}
 /* ---------- live turn-by-turn navigation (engine: livenav6.js) ---------- */
 const SPK_ON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
  SPK_OFF='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6M21 9l-5 6"/></svg>';
 function navVoiceOn(){return !!(ui.set&&ui.set.voice!==false)}
 function navEtaTx(st){if(st.arrived)return 'Arrived';const clk=C.S&&C.S.clock;return `${st.etaMin} min`+(clk!=null?` · ETA ${fmt(clk+st.etaMin)}`:'')}
-async function planLeg(t){const d=D(),L={tid:t.id,i:0};leg=L;let rt=null;try{rt=window.CXNavLive?await CXNavLive.route(d.loc,t.ll):null}catch(e){}if(leg!==L)return;if(!rt)rt=CXNavLive.straight(d.loc,t.ll);
- Object.assign(L,CXNavLive.prep(rt),{tid:t.id,i:0});
+async function planLeg(t){const from=here().slice(),L={tid:t.id,i:0,from,gps:!!devLoc};leg=L;let rt=null;try{rt=window.CXNavLive?await CXNavLive.route(from,t.ll):null}catch(e){}if(leg!==L)return;if(!rt)rt=CXNavLive.straight(from,t.ll);
+ Object.assign(L,CXNavLive.prep(rt),{tid:t.id,i:0,from,gps:L.gps});
  if(ui.tab==='route'&&special()&&stage()==='on_road'&&cur()&&cur().id===t.id){drawDriveMap(t);paintTurn();const el=$('#dvdist');if(el)el.textContent=CXNav.fmtD(L.total);if(ui.autoGo){const m=ui.autoGo;ui.autoGo=false;navGo(m)}}}
 function paintTurn(){const el=$('#dvturn');if(!el)return;const t=cur(),ad=t?esc(t.address.split(',')[0]):'Route';
  if(!leg||!leg.rt){setH(el,`<span class="ar"><i>↑</i></span><div class="tt"><b>${ad}</b><span>Finding the best way…</span></div>`);return}
  const st=navS&&navS.state,a=CXNavLive.at(leg,st?st.along:0),step=a.step||{},here=!!(st&&st.arrived);
  const sub=st&&(st.status==='denied'||st.status==='unavailable')?`<span class="msg">Location is off</span>`:st&&st.msg?`<span class="msg">${esc(st.msg)}</span>`:st&&(st.status==='locating'||st.status==='nofix')?`<span>Finding your location…</span>`:a.next&&!here?`<span>Then ${esc(a.next.arrow)} ${esc(a.next.text)}</span>`:`<span>${ad}</span>`;
+ const etaB=navS&&st&&!here&&st.etaMin!=null&&!(st.status==='denied'||st.status==='unavailable')?`<span class="eta" id="dvteta">${esc(navEtaTx(st))} · ${esc(CXNav.fmtD(st.rem))}</span>`:'';
  const von=navVoiceOn(),vb=navS?`<button class="dv-voice${von?'':' off'}" data-a="navvoice" aria-label="${von?'Mute voice directions':'Turn on voice directions'}" aria-pressed="${von}">${von?SPK_ON:SPK_OFF}</button>`:'';
- setH(el,`<span class="ar"><i>${esc(here?'⚑':step.arrow||'↑')}</i><em class="dd">${here?'Here':CXNav.fmtD(a.toMan)}</em></span><div class="tt"><b>${esc(here?'You have arrived':step.text||'Continue')}</b>${sub}</div>${vb}`);
+ setH(el,`<span class="ar"><i>${esc(here?'⚑':step.arrow||'↑')}</i><em class="dd">${here?'Here':CXNav.fmtD(a.toMan)}</em></span><div class="tt"><b>${esc(here?'You have arrived':step.text||'Continue')}</b>${sub}${etaB}</div>${vb}`);
  el.classList.toggle('live',!!navS);el.classList.toggle('warn',!!(st&&(st.offRoute||st.status==='denied'||st.status==='unavailable'||(st.msg&&/offline|couldn|lost/i.test(st.msg)))));el.dataset.toman=Math.round(a.toMan);el.dataset.step=a.k}
+function paintNavBar(){const el=$('#dvnb');if(!el)return;const t=cur(),st=navS&&navS.state;{const sb=$('#dvmfc .dv-mfsim');if(sb){const on=!LIVE&&!!(st&&st.mode==='sim');sb.hidden=!on;const tx=on?CXNavLive.simSpeed+'×':'';if(sb.textContent!==tx)sb.textContent=tx}}if(!t||!navS){setH(el,'');return}
+ const here=!!(st&&st.arrived)||(st&&st.pos&&C.dist(st.pos,t.ll)<0.03);el.classList.toggle('here',here);el.setAttribute('aria-hidden',mapFull?'false':'true');
+ setH(el,`<div class="dv-nbi"><div class="nm">${esc(t.name)}</div><div class="ad">${esc(t.address)}</div></div><button class="dv-nbgo${here?' here':''}" data-a="arrive" aria-label="Arrived at ${esc(t.name)}">${ic('check',20)}${here?'Arrived · start delivery':'Arrived'}</button>`)}
 function navBlock(t,nav){const L=CXNavLive.mapsLinks(t.ll),sim=nav&&nav.mode==='sim';
- const ext=`<div class="dv-ext"><a href="${L.google}" target="_blank" rel="noopener" data-ext="google">${ic('nav',14)}Google Maps</a><a href="${L.apple}" target="_blank" rel="noopener" data-ext="apple">${ic('pin',14)}Apple Maps</a>${sim||LIVE?'':`<button data-a="navsim">${ic('target',14)}Simulate drive</button>`}</div>`;
+ const ext=`<div class="dv-ext"><a href="${L.google}" target="_blank" rel="noopener" data-ext="google">${ic('nav',14)}Google Maps</a><a href="${L.apple}" target="_blank" rel="noopener" data-ext="apple">${ic('pin',14)}Apple Maps</a></div>`;
  const run=`<div style="display:flex;gap:8px"><button class="btn xl" style="flex:1" data-a="navpause">Stop nav</button><button class="btn xl pri" style="flex:1.4" data-a="arrive">${ic('pin',18)}I've arrived</button></div>`;
  if(!nav)return `<div style="display:flex;gap:8px"><button class="btn xl pri" style="flex:1.4" data-a="navgo">${ic('nav',18)}Start navigation</button><button class="btn xl" style="flex:1" data-a="arrive">Arrived</button></div>${ext}`;
  if(sim)return `<div class="dv-simbar" id="dvsimbar"><span><i></i>Simulated drive</span><button class="btn sm" data-a="navspeed" aria-label="Simulation speed">${CXNavLive.simSpeed}× speed</button><button class="btn sm" data-a="navlive">Use my location</button></div>`+run+ext;
@@ -277,33 +301,33 @@ function navNote(nav){
  const simB=LIVE?'':`<button class="btn pri" style="flex:1.3" data-a="navsim">${ic('target',16)}Simulate drive</button>`,again=`<button class="btn" style="flex:1" data-a="navlive">Try again</button>`;
  if(nav.status==='denied')return note('Location is off for ChainEx','For live directions, turn on Location: iPhone Settings → Privacy &amp; Security → Location Services → Safari Websites → While Using. Then tap Try again.',simB+again)+'';
  if(nav.status==='unavailable')return note('Location isn\'t available on this device',LIVE?'Live directions need the phone\'s location. Open the stop in Google Maps or Apple Maps below.':'Live directions need GPS and a secure (https) page. You can still simulate the drive or open the stop in your maps app.',simB+again)+'';
- if(nav.status==='nofix')return note('Waiting for a GPS fix…',LIVE?'No location yet. Step outside or near a window; directions start as soon as the phone finds you.':'No location yet. Step outside or near a window, or simulate the drive.',simB)+'';
+ if(nav.status==='nofix')return note('Waiting for a GPS fix…','No location yet. Step outside or near a window; directions start as soon as the phone finds you.','')+'';
  return ''}
-function navPad(){const H=(map&&map.el&&map.el.clientHeight)||innerHeight,mt=map&&map.el?map.el.getBoundingClientRect().top:0,tb=$('#dvturn'),sh=$('#dvsheet');const top=tb?tb.getBoundingClientRect().bottom-mt:90;const bot=sh&&!sh.hidden?Math.max(0,H+mt-sh.getBoundingClientRect().top):120;const vis=Math.max(60,H-top-bot);return{top:Math.round(Math.max(0,top+vis*.42)),bottom:Math.round(bot),left:24,right:24}}
-function navCam(st,dur){if(!followNav||!st||!st.pos||!map||!map.m||!map.ready)return;const sp=st.speed||0,z=sp>18?15.7:sp>11?16.3:16.8;try{map.m.easeTo({center:st.pos,zoom:z,bearing:st.heading!=null?st.heading:map.m.getBearing(),pitch:50,padding:navPad(),duration:dur,easing:x=>x,essential:true})}catch(e){}}
+function navPad(){const H=(map&&map.el&&map.el.clientHeight)||innerHeight,mt=map&&map.el?map.el.getBoundingClientRect().top:0,tb=$('#dvturn'),sh=$('#dvsheet');const top=tb?tb.getBoundingClientRect().bottom-mt:90;const bot=mapFull?(()=>{const nb=$('#dvnb');return nb?Math.max(60,H+mt-nb.getBoundingClientRect().top+8):60})():sh&&!sh.hidden?Math.max(0,H+mt-sh.getBoundingClientRect().top):120;const vis=Math.max(60,H-top-bot);return{top:Math.round(Math.max(0,top+vis*.42)),bottom:Math.round(bot),left:24,right:24}}
+function navCam(st,dur){if(!followNav||!st||!st.pos||!map||!map.m||!map.ready)return;const sp=st.speed||0,z=sp>18?15.7:sp>11?16.3:16.8;try{map.m.easeTo({center:st.pos,zoom:z,bearing:window.CXMapView?CXMapView.bearing(st.heading,map.m.getBearing()):(st.heading!=null?st.heading:map.m.getBearing()),pitch:window.CXMapView?CXMapView.pitch():50,padding:navPad(),duration:dur,easing:x=>x,essential:true})}catch(e){}}
 let navFixT=0;
 function navFix(st){if(!navS)return;leg=navS.leg;leg.pos=st.pos;leg.i=st.seg;leg.along=st.along;const now=performance.now(),dur=navFixT?Math.max(250,Math.min(1200,now-navFixT)):400;navFixT=now;
- meTo(st.pos,dur,st.heading);navCam(st,dur);paintTurn();
+ meTo(st.pos,dur,st.heading);navCam(st,dur);paintTurn();if(mapFull)paintNavBar();
  const el=$('#dvdist');if(el){const tx=CXNav.fmtD(st.rem);if(el.textContent!==tx)el.textContent=tx}const e2=$('#dveta');if(e2){const tx=navEtaTx(st);if(e2.textContent!==tx)e2.textContent=tx}
  if(st.seg-navLineSeg>=3||st.seg<navLineSeg||st.offRoute){navLineSeg=st.seg;const t=cur();if(t&&t.id===leg.tid)drawDriveMap(t)}
  if(st.mode==='live'&&window.CXI&&W()&&(!navFix.g||Date.now()-navFix.g>10000)){navFix.g=Date.now();try{CXI.setGps(W(),{ll:st.pos,acc:st.acc,at:new Date().toISOString(),source:'live'})}catch(e){}}}
-function navStatus(){if(!navS)return;paintTurn();scheduleRender()}
+function navStatus(){if(!navS)return;paintTurn();paintNavBar();/* no location: show the sheet with Simulate drive / Try again */if(mapFull&&navBlocked())setMapFull(false);scheduleRender()}
 function navGo(mode){const t=cur();if(!t)return;const s=nextStep(t);if(s&&s.kind==='confirm'&&s.effect==='active')C.update(()=>{C.ops.completeStep(t.id,s,{},D().name);C.ops.tick(1)});
  if(!leg||!leg.path||leg.tid!==t.id){ui.autoGo=mode||'live';if(!leg||leg.tid!==t.id)planLeg(t);return}
- stopNav(true);followNav=true;navLineSeg=-1;navFixT=0;ui.navMode=mode==='sim'?'sim':'live';
+ stopNav(true);locStop();followNav=true;navLineSeg=-1;navFixT=0;ui.navMode=mode==='sim'?'sim':'live';
  if(map&&map.m&&!map._navHook){map._navHook=1;const off=e=>{if(e&&e.originalEvent&&navS&&followNav){followNav=false;scheduleRender()}};map.m.on('dragstart',off);map.m.on('zoomstart',off)}
- navS=CXNavLive.start({leg,to:t.ll,live:LIVE,mode:mode==='sim'?'sim':'live',voice:navVoiceOn,onFix:navFix,onStatus:navStatus,
-  onReroute:N=>{leg=N;navLineSeg=-1;const tt=cur();if(tt&&tt.id===N.tid)drawDriveMap(tt);paintTurn()},onArrive:()=>{stopNav();arrive()}});
+ document.body.classList.add('dv-navon');navS=CXNavLive.start({leg,to:t.ll,live:LIVE,mode:mode==='sim'?'sim':'live',voice:navVoiceOn,onFix:navFix,onStatus:navStatus,
+  onReroute:N=>{leg=N;navLineSeg=-1;const tt=cur();if(tt&&tt.id===N.tid)drawDriveMap(tt);paintTurn()},onArrive:()=>{haptic();paintTurn();paintNavBar()}});
  if(navS.state.pos){meTo(navS.state.pos,0,null);navCam(navS.state,600)}
- haptic();render()}
-function stopNav(keepCam){if(!navS)return;try{navS.stop()}catch(e){}navS=null;navFixT=0;meReset();if(!keepCam&&map&&map.m&&map.ready)try{map.m.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:450})}catch(e){}}
+ haptic();render();setMapFull(true);paintNavBar()}
+function stopNav(keepCam){document.body.classList.remove('dv-navon');if(!navS)return;{const st=navS.state;if(st&&st.mode==='live'&&st.pos)devLoc={ll:st.pos.slice(),acc:st.acc||20,at:Date.now()}}try{navS.stop()}catch(e){}navS=null;if(mapFull)setMapFull(false);setTimeout(()=>{if(!navS&&document.body.classList.contains('dv-onmap'))locStart()},0);navFixT=0;meReset();if(!keepCam&&map&&map.m&&map.ready)try{map.m.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:450})}catch(e){}}
 function arrive(){const t=cur();if(!t)return;stopNav();C.update(()=>{const d=C.driver(W());d.loc=t.ll.slice();for(let s=nextStep(C.task(t.id));s&&s.kind==='confirm';s=nextStep(C.task(t.id))){C.ops.completeStep(t.id,s,{},d.name);C.ops.tick(1)}});haptic();
  /* Don't hijack a sheet the driver already has open (e.g. a Can't deliver flow started en route): record the arrival, keep their flow. */
  if(modal){render();return}runNext(t.id)}
 function runNext(id){const t=C.task(id);if(!t)return;if(!C.OPEN(t)||!nextStep(t)){afterStop(id);return}const s=nextStep(t);
  if(s.kind==='confirm'){C.update(()=>{C.ops.completeStep(id,s,{},D().name);C.ops.tick(s.effect==='active'?3:2)});toast(s.effect==='active'?`Dispatch notified · ${s.label}`:`✓ ${s.label}`,'check');if(special()&&stage()==='on_road')return runNext(id);render();return}
  openModal('step',id)}
-function afterStop(id,failed){const t=C.task(id);closeModal();leg=null;fitKey='';if(special()&&stage()==='on_road'){const n=cur();toast(failed?(C.OPEN(t)?'Logged · moved to the end of your route':'Logged · Dispatch notified'):`${K().completeText?K().completeText(t):'Done'} ✓${n?` · next: ${word()} ${no(n)}`:''}`,failed?'alert':'check');if(n&&ui.autoNav)ui.autoGo=ui.navMode||'live'}else toast(t.state==='completed'?`${K().completeText?K().completeText(t):'Completed'} ✓ · synced to Dispatch`:'Logged · Dispatch notified',t.state==='completed'?'check':'alert');render()}
+function afterStop(id,failed){const t=C.task(id);closeModal();leg=null;fitKey='';if(special()&&stage()==='on_road'){const n=cur();toast(failed?(C.OPEN(t)?'Logged · moved to the end of your route':'Logged · Dispatch notified'):`${K().completeText?K().completeText(t):'Done'} ✓${n?` · next: ${word()} ${no(n)}`:''}`,failed?'alert':'check');if(n&&(ui.autoNav||ui.navMode))ui.autoGo=ui.navMode||'live'}else toast(t.state==='completed'?`${K().completeText?K().completeText(t):'Completed'} ✓ · synced to Dispatch`:'Logged · Dispatch notified',t.state==='completed'?'check':'alert');render()}
 function finishScreen(){mapScreen(true);const a=R(),done=a.filter(t=>t.state==='completed').length,fail=a.filter(t=>t.state==='failed').length;$('#dvscr').innerHTML='';
  $('#dvsb').innerHTML=`<div class="dv-eyebrow">All ${esc(K().stopWord||'stops')} attempted</div><div class="dv-big" style="font-size:38px">${done}<small> delivered${fail?` · ${fail} not`:''}</small></div><button class="dv-slide" data-a="returnhub">${ic('warehouse',20)}${esc(DC().returnTitle||'Return to hub')}</button>`;
  map.set({pins:a.map(t=>({ll:t.ll,color:t.state==='completed'?'var(--ok)':'var(--bad)',cls:'u'})),lines:[]},fitKey!=='fin');fitKey='fin';me(D().loc)}
@@ -317,7 +341,7 @@ function routeList(){mapScreen(true);const t=cur(),d=D();$('#dvscr').innerHTML=`
  +(lanes.length?`<div class="dv-card" style="padding:10px 12px"><div class="dv-eyebrow">Repeat a trip</div>${lanes.map(l=>`<div class="dv-row" style="padding:6px 0"><div class="grow">${esc(l.name)}</div><button class="btn sm" data-a="repeat" data-v="${l.id}">Add trip</button></div>`).join('')}</div>`:'')
  +`<div class="dv-eyebrow" style="margin-top:4px">${esc(DC().manifestLabel?DC().manifestLabel.replace(/^\W+/,''):'Manifest')}</div><div>${R().map(stopRow).join('')}</div>`;
  const pins=R().map(x=>({ll:x.ll,label:String(no(x)),color:x.state==='completed'?'var(--ok)':x.state==='failed'?'var(--bad)':t&&x.id===t.id?'var(--acc)':'#4E6280',cls:t&&x.id===t.id?'nx':'',id:x.id,onClick:p=>act('stop',p.id)}));
- map.set({pins,lines:[{coords:[d.loc,...openT().map(x=>x.ll)],color:'#3B82F6',width:3}]},fitKey!=='list');if(fitKey!=='list'){fitKey='list';setTimeout(()=>map.resize(),60)}me(d.loc)}
+ map.set({pins,lines:[{coords:[here(),...openT().map(x=>x.ll)],color:'#3B82F6',width:3}]},fitKey!=='list');if(fitKey!=='list'){fitKey='list';setTimeout(()=>map.resize(),60)}me(here())}
 /* ---------- return + close ---------- */
 function retItems(){return R().filter(t=>t.state!=='completed'&&t.kind!=='pickup').flatMap(t=>t.items.map(p=>({p,t})))}
 /* close-out: every leftover is scanned (or marked missing) and gets an outcome; non-P&D lines also need a photo or note */
@@ -363,11 +387,21 @@ function inbox(){const th=(C.S.msgs||[]).filter(m=>m.wid===W()).slice(-60),tk=(C
  <div style="display:flex;gap:8px;position:sticky;bottom:-96px;padding:8px 0 4px;background:var(--bg)"><input class="in" id="dvmsg" placeholder="Message Dispatch…" style="height:44px;border-radius:22px;flex:1"><button class="btn pri" data-a="send" style="height:44px;border-radius:22px">${ic('chat',16)}Send</button></div>`}
 /* ---------- settings (demo line switch lives here) ---------- */
 function sw(on,a,v){return `<button type="button" class="dv-sw" data-a="${a}"${v?` data-v="${v}"`:''} role="switch" aria-checked="${on?'true':'false'}"><i></i></button>`}
+function mapViewCard(){const voice=`<div class="dv-row" style="padding:0"><div class="grow">Voice guidance</div>${sw(ui.set.voice,'set','voice')}</div>`;if(!window.CXMapView)return `<div class="dv-card" style="padding:4px 14px">${voice}</div>`;
+ const o=CXMapView.get(),L=CXMapView.labels();const seg=(k,lab,arr)=>`<div class="dv-mvl">${lab}</div><div class="seg dv-mvseg" data-k="${k}">${arr.map(([v,t])=>`<button class="${o[k]===v?'on':''}" data-a="mapv" data-v="${k}:${v}" aria-pressed="${o[k]===v}">${t}</button>`).join('')}</div>`;
+ return `<div class="dv-card dv-mapview" id="dvmapview"><div class="dv-eyebrow">Map view</div>
+ ${seg('style','Map style',[['chainex',L.chainex],['google',L.google],['apple',L.apple],['satellite',L.satellite]])}
+ ${o.style==='satellite'?'':seg('theme','Day / night',[['app','Match app'],['auto','Auto'],['day','Day'],['night','Night']])}
+ ${seg('tilt','While driving',[['3d','3D tilt'],['2d','2D flat']])}
+ ${seg('orient','Map turns',[['heading','Heading up'],['north','North up']])}
+ ${seg('text','Map text',[['s','Small'],['m','Normal'],['l','Large']])}
+ ${voice}</div>`}
 function settings(){const d=D(),e=elig();
  return `<div><div class="dv-eyebrow">Settings</div><h1 class="dv-h1" style="margin-top:8px">${esc(d.name)}</h1><div class="t3 mono" style="font-size:12px;margin-top:4px">${esc(d.driverId||'')} · ${esc(LN[d.line])} · ${esc(d.vehicle||'')}</div></div>
  <div class="dv-card"><div class="dv-eyebrow">Clearance</div>${e.ok?`<span class="chip ok" style="align-self:flex-start">${ic('check',12)} Cleared to drive</span>`:`<span class="chip bad" style="align-self:flex-start">${esc(e.reasons.join(' · '))}</span>`}${(e.warnings||[]).map(w=>`<div class="t3" style="font-size:12px">${esc(w)}</div>`).join('')}<a class="btn sm" href="portal-driver.html" style="align-self:flex-start">Documents &amp; pay · driver portal</a></div>
  <div class="dv-card"><div class="dv-eyebrow">Appearance</div>${V.themeSeg()}</div>
- <div class="dv-card" style="padding:4px 14px"><div class="dv-row"><div class="grow">Start navigation to the next stop automatically</div>${sw(ui.autoNav,'autonav')}</div><div class="dv-row"><div class="grow">Voice guidance</div>${sw(ui.set.voice,'set','voice')}</div></div>
+ <div class="dv-card" style="padding:4px 14px"><div class="dv-row"><div class="grow">Start navigation to the next stop automatically</div>${sw(ui.autoNav,'autonav')}</div></div>
+ ${mapViewCard()}
  ${scanSettings()}
  <div class="dv-card"><div class="dv-eyebrow">Install</div><div class="t2" style="font-size:12.5px">Add ChainEx Driver to your home screen. It opens full screen and keeps working on weak signal.</div><button class="btn" data-a="install" style="align-self:flex-start">${ic('plus',15)}Install app</button></div>
  ${LIVE?'':`<div class="dv-card dv-demo cx-pilot"><div class="dv-eyebrow">Demo · service line</div><div class="t3" style="font-size:12px">Signs in as the sample driver for that line. Pilot only.</div><div class="seg" style="flex-wrap:wrap;height:auto">${C.LINE_ORDER.map(l=>`<button class="${d.line===l?'on':''}" data-a="demo" data-v="${l}">${LN[l]}</button>`).join('')}</div><button class="btn sm ghost" data-a="reset" style="align-self:flex-start">Reset sample day</button></div>`}
@@ -599,14 +633,16 @@ function act(a,v){if(LIVE&&PILOT_ONLY[a])return;const d=D(),w=W();switch(a){
  case 'lunflag':C.update(()=>{const x=pk().find(y=>y.p.id===v);if(x){delete x.p.loadFlag;C.ops.loadScan(w,v)}});render();toast('Found · loaded','check');break;
  case 'start':{if(d.route.checkin!=='arrived'){toast('Check in at the hub first','alert');break}if(!DC().skipLoad&&!CXL.confirmed(w)){stopCam();ui.lc='confirm';save();render();break}{const cs=CXL.canStart(w);if(!cs.ok){toast(cs.why,'lock');render();break}}ui.lc=null;stopCam();
   C.update(()=>{if(DC().skipLoad)C.routeAll(w).forEach(t=>t.items.forEach(p=>p.loaded=true));C.ops.startRoute(w)});ui.planOpen=false;openLoad=false;leg=null;fitKey='';if(special()&&ui.autoNav)ui.autoGo=ui.navMode||'live';save();render();toast(d.line==='shuttle'?'Shift started · next trip ready':'Route started · drive safe','nav');break}
+ case 'mapfull':setMapFull(true);break;
+ case 'mapfullx':setMapFull(false);break;
  case 'navgo':navGo('live');break;
- case 'navsim':ui.navMode='sim';if(navS){navS.toSim();followNav=true}else navGo('sim');break;
+ case 'navsim':ui.navMode='sim';if(navS){navS.toSim();followNav=true;render();setMapFull(true)}else navGo('sim');break;
  case 'navlive':ui.navMode='live';if(navS){navS.toLive();followNav=true}else navGo('live');break;
  case 'navvoice':{const on=!navVoiceOn();ui.set.voice=on;save();if(!on)try{speechSynthesis.cancel()}catch(e){}paintTurn();toast(on?'Voice directions on':'Voice directions muted');break}
- case 'navspeed':{const sp=[1,4,10],i=(sp.indexOf(CXNavLive.simSpeed)+1)%sp.length;CXNavLive.simSpeed=sp[i];render();break}
- case 'navpause':stopNav();render();break;
+ case 'navspeed':{const sp=[1,4,10],i=(sp.indexOf(CXNavLive.simSpeed)+1)%sp.length;CXNavLive.simSpeed=sp[i];render();paintNavBar();break}
+ case 'navpause':ui.navMode=null;stopNav();render();break;
  case 'arrive':{const t=cur();if(!t)break;if(t.stepData.arrive)runNext(t.id);else arrive();break}
- case 'recenter':if(navS&&navS.state){followNav=true;navCam(navS.state,500);render()}else if(map.m&&map.ready)map.m.easeTo({center:(leg&&leg.pos)||d.loc,zoom:15});break;
+ case 'recenter':if(navS&&navS.state){followNav=true;navCam(navS.state,500);render()}else if(map.m&&map.ready)map.m.easeTo({center:devLoc?devLoc.ll:((leg&&leg.pos)||d.loc),zoom:15});break;
  case 'fit':if(navS){followNav=false;try{map.m&&map.m.setPadding({top:0,bottom:0,left:0,right:0});map.m&&map.m.easeTo({pitch:0,bearing:0,duration:0})}catch(e){}render()}map.fit();break;
  case 'grab':if(Date.now()-sheetTapped<450)break;toggleSheet();break;
  case 'torch':if(!camSess||!camSess.setTorch)break;camSess.torchManual=!camSess.torchOn;camSess.setTorch(camSess.torchManual).then(()=>paintTorch({capable:!!camSess.torchCapable,on:!!camSess.torchOn,luma:camSess.luma})).catch(()=>{});break;
@@ -671,13 +707,20 @@ function act(a,v){if(LIVE&&PILOT_ONLY[a])return;const d=D(),w=W();switch(a){
  case 'issue':C.update(()=>C.ops.botIssue(w,v,cur()&&cur().id,''));render();toast('Sent to Dispatch','check');break;
  case 'send':{const i=$('#dvmsg'),txt=i&&i.value.trim();if(!txt)break;C.update(()=>C.ops.msgSend(w,'driver',txt,d.name));render();break}
  case 'set':ui.set[v]=!ui.set[v];if(v==='autoLight'&&!ui.set.autoLight&&camSess){camSess.torchManual=null;if(camSess.torchOn&&camSess.setTorch)camSess.setTorch(false).catch(()=>{})}save();render();break;
+ case 'mapv':{const i=String(v||'').indexOf(':');if(i>0&&window.CXMapView){CXMapView.set(v.slice(0,i),v.slice(i+1));if(navS&&navS.state&&followNav)navCam(navS.state,450)}render();break}
  case 'autonav':ui.autoNav=!ui.autoNav;save();render();break;
  case 'install':if(window.__bip){__bip.prompt();window.__bip=null}else toast(/iPhone|iPad/.test(navigator.userAgent)?'Tap Share, then Add to Home Screen':'Use the browser menu: Install app / Add to Home Screen','plus');break;
  case 'nact':{if(!window.CXI)break;const [id,act]=(v||'').split('|');const n=CXI.notesFor(W()).find(x=>x.id===id);if(n&&n.kind==='ondemand'){const a=CXI.answerOnDemand(id,act||'accept');toast(a==='accepted'?'Offer accepted':'Offer declined',a==='accepted'?'check':'power')}else CXI.markRead(id);render();break}
  case 'pushask':if(window.CXI)CXI.requestPush().then(s=>toast(s==='granted'?'Notifications allowed':'Notifications '+s,'bell')).then(()=>render());break
  case 'flushout':if(window.CXI){const r=CXI.flushOutbox(),n=r&&r.flushed;toast(n?'Synced '+n+' scan'+(n>1?'s':''):'No pending scans','check');render()}break
 }}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled||b.tagName==='A')return;e.preventDefault();act(b.dataset.a,b.dataset.v)});
+/* map buttons are re-rendered on every GPS fix while navigating; a tap whose press and release land on two copies of the
+   same button never gets a click, so fire on release when both ends are the same action */
+let rbDown=null,rbFired=0;
+document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('.dv-scr.over .dv-rb[data-a]');rbDown=b&&e.isPrimary!==false?{a:b.dataset.a,v:b.dataset.v,x:e.clientX,y:e.clientY}:null},true);
+document.addEventListener('pointerup',e=>{const d=rbDown;rbDown=null;if(!d)return;const b=e.target.closest&&e.target.closest('.dv-scr.over .dv-rb[data-a]');if(!b||b.disabled||b.dataset.a!==d.a||Math.hypot(e.clientX-d.x,e.clientY-d.y)>14)return;rbFired=Date.now();act(d.a,d.v)},true);
+document.addEventListener('pointercancel',()=>{rbDown=null},true);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled||b.tagName==='A')return;e.preventDefault();if(Date.now()-rbFired<600&&b.closest('.dv-scr.over .dv-rb'))return;act(b.dataset.a,b.dataset.v)});
 let coT=null;document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||t.dataset.cono==null)return;const k=t.dataset.cono,val=t.value.slice(0,280);clearTimeout(coT);coT=setTimeout(()=>{if(k==='veh')C.update(()=>{const dd=C.driver(W());dd.route.coVeh=Object.assign({},dd.route.coVeh||{},{note:val})});else{const [tid,pid]=k.split('|');coSet([[tid,pid]],{note:val})}coRefresh()},350)});
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset.cohand==null)return;const [tid,pid]=t.dataset.cohand.split('|');coSet([[tid,pid]],{to:t.value});if(t.value&&ui.coOpen===pid)ui.coOpen=null;render()});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='dvcobc'){act('coscan','typed');return}if(e.target.id==='dvmsg')act('send');else if(e.target.id==='dvlbc')act('lscan','typed');else if(e.target.id==='dvaa')act('addrgo');else if(e.target.id==='dvid')act('signin')});
@@ -702,6 +745,8 @@ function endSheetPtr(){if(!sheetDrag){sheetHold=false;return}const d=sheetDrag;s
   if(!sh||(d.pending&&!d.moved)){flush();return}
   if(!d.moved){sh.classList.remove('drag');sh.style.height='';sh.style.maxHeight='';sh.style.transform='';toggleSheet();sheetTapped=Date.now();flush();return}
   const S=d.samples,now=S[S.length-1];let i=S.length-1;while(i>0&&now.t-S[i-1].t<90)i--;const dt=now.t-S[i].t,v=dt>0?(now.y-S[i].y)/dt:0;
+  /* pulled down past the peek height: hide the sheet and show only the map */
+  if(ui.sheet==='peek'&&d.dy>0&&((d.ty||0)>=34||(v>0.6&&d.dy>40))&&canMapFull()){setMapFull(true);flush();return}
   let to;if(Math.abs(v)>0.35)to=v<0?'full':'peek';else if(Math.abs(d.dy)<=28)to=ui.sheet;else to=(d.vh!=null?d.vh:d.h0)>(d.hp+d.hf)/2?'full':'peek';
   sheetVisH=d.vh!=null?d.vh:d.h0;toggleSheet(to,d.ty||0);flush()}
 function bindSheet(){const host=$('#dv');if(!host||host._cxSheet)return;host._cxSheet=1;
@@ -759,7 +804,7 @@ addEventListener('focus',onResume);
 addEventListener('error',e=>{try{recoverUi(e&&e.error||e)}catch(x){}});
 addEventListener('unhandledrejection',e=>{try{recoverUi(e&&e.reason)}catch(x){}});
 const _act=act;act=function(){try{return _act.apply(this,arguments)}catch(err){console.warn('driver act',err);try{recoverUi(err)}catch(x){}}};
-mount();C.init();bindSheet();lockIosScroll();bindCleanExit();fitShell();render();try{restoreFlow()}catch(e){}
+mount();C.init();bindSheet();lockIosScroll();bindCleanExit();bindMapFull();fitShell();render();try{restoreFlow()}catch(e){}
 let fitTs=[],fitMapH=0;
 function relayout(){const h0=lastFit.h;fitShell();const sh=$('#dvsheet');if(sh&&!sheetDrag&&!sh.classList.contains('snap')){if(sh.style.transform)sh.style.transform='';if(sh.style.height&&!sh.classList.contains('drag')){sh.style.height='';sh.style.maxHeight=''}}
   const el=$('#dvmap');const mh=el?el.clientHeight:0;if(map&&(mh!==fitMapH||lastFit.h!==h0)){fitMapH=mh;try{map.resize(true)}catch(e){}}}
@@ -799,10 +844,19 @@ if(!window.__cxDrvInteg){window.__cxDrvInteg=1;
   C.init&&null;
   setTimeout(()=>{const d=D();if(d&&d.duty)startGps();if(d&&window.CXI){if(CXI.needsTerms('driver',d.id))CXI.showTermsOverlay('driver',d.id,d.name);CXI.offerOnDemand(d.id);if(navigator.onLine!==false)CXI.flushOutbox()}},400)}
 
+function bindMapFull(){const b=document.body;if(b._cxMf)return;b._cxMf=1;
+  /* never full-screen under a scan / delivery step or popup, or off the map screens */
+  const chk=mfCheck;try{const mo=new MutationObserver(chk);mo.observe(b,{attributes:true,attributeFilter:['class']});const m=$('#dvmodal');if(m)mo.observe(m,{attributes:true,attributeFilter:['class']})}catch(e){}
+  /* swipe up from the bottom edge restores the layout */
+  const e=$('#dvmfedge');if(!e)return;let y0=null,pid=null;
+  e.addEventListener('pointerdown',ev=>{if(!mapFull)return;y0=ev.clientY;pid=ev.pointerId;try{e.setPointerCapture(pid)}catch(x){}},{passive:true});
+  e.addEventListener('pointermove',ev=>{if(y0==null||ev.pointerId!==pid)return;if(y0-ev.clientY>36){y0=null;setMapFull(false)}},{passive:true});
+  const end=()=>{y0=null};e.addEventListener('pointerup',end,{passive:true});e.addEventListener('pointercancel',end,{passive:true});
+  addEventListener('keydown',ev=>{if(ev.key==='Escape'&&mapFull)setMapFull(false)})}
 function bindCleanExit(){if(LIVE)return;const host=$('#dv');if(!host||host._cxVer)return;host._cxVer=1;let t=0;
   const clear=()=>{if(t){clearTimeout(t);t=0}};
   host.addEventListener('pointerdown',e=>{const v=e.target.closest&&e.target.closest('#dvver');if(!v)return;clear();t=setTimeout(()=>{t=0;if(!isClean())return;applyClean(false);if(window.CXTT&&CXTT.setClean)CXTT.setClean(false);try{render()}catch(x){}toast('Pilot tools are back on')},700)},{passive:true});
   host.addEventListener('pointerup',clear,{passive:true});host.addEventListener('pointercancel',clear,{passive:true});host.addEventListener('pointerleave',clear,{passive:true})}
 function resetMem(){try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;openLoad=false;leg=null;fitKey='';try{closeModal()}catch(e){}ui.plan={mode:null,seq:[],ends:[]};ui.last=null;ui.hit=false;ui.planOpen=false;ui.lc=null;ui.self=false;ui.coOpen=null;ui.scanLog=[];try{endSheetPtr()}catch(e){}}
-window.__v5drv={nav:{get s(){return navS},get state(){return navS&&navS.state},get leg(){return leg},get follow(){return followNav}},act,toggleSheet,applyClean,isClean,fitShell,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},get flow(){return flow},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
+window.__v5drv={get mapFull(){return mapFull},get map(){return map},runNext:id=>runNext(id),get devLoc(){return devLoc},here:()=>here(),setMapFull,nav:{get s(){return navS},get state(){return navS&&navS.state},get leg(){return leg},get follow(){return followNav}},act,toggleSheet,applyClean,isClean,fitShell,get sheetHold(){return sheetHold},get ui(){return ui},render,cur,pk,R,D,get modal(){return modal},get flow(){return flow},resetMem,closeUi:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;try{closeModal()}catch(e){}leg=null;fitKey='';try{endSheetPtr()}catch(e){}},setOpenLoad:v=>{openLoad=!!v},afterReset:()=>{try{stopCam()}catch(e){}try{stopNav()}catch(e){}camWant=false;leg=null;fitKey='';try{closeModal()}catch(e){}try{endSheetPtr()}catch(e){}render();if(window.CXTT)CXTT.paint()}};
 })();

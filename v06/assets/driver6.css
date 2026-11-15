@@ -276,3 +276,47 @@ body.dv-hasturn .dv-sheet.full{max-height:calc(100% - var(--dv-tabs) - var(--sat
 /* viewport: --app-h is set from the layout viewport by fitShell(); before JS runs fall back to dvh, then vh */
 @supports not (height:100dvh){:root{--app-h:100vh}}
 html.dv-shell{background:var(--bg);height:100%;overflow:hidden;overscroll-behavior:none}
+/* full-screen map (expand button, or pull the sheet down past peek): only the map shows; turn banner stays while
+   navigating; small recenter + exit. Transform/opacity only (no layout change, the map never resizes). */
+body.dv-mfanim #dvsheet,body.dv-mfanim .dv-tabs,body.dv-mfanim .dv-scr.over,body.dv-mfanim .dv-top>*,body.dv-mfanim #rxpill,body.dv-mfanim .cx-tt-fab{transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .22s ease!important}
+body.dv-mapfull #dvsheet{transform:translate3d(0,calc(100% + var(--dv-tabs) + 30px),0)!important;opacity:0;pointer-events:none!important}
+body.dv-mapfull .dv-tabs{transform:translate3d(0,calc(100% + 8px),0);opacity:0;pointer-events:none!important}
+body.dv-mapfull .dv-scr.over{opacity:0;pointer-events:none!important}
+body.dv-mapfull .dv-scr.over *{pointer-events:none!important}
+body.dv-mapfull .dv-top>*:not(#dvturn){opacity:0;transform:translate3d(0,-10px,0);pointer-events:none!important}
+body.dv-mapfull:not(.dv-navon) .dv-top>#dvturn{opacity:0;transform:translate3d(0,-14px,0);pointer-events:none!important}
+body.dv-mapfull #rxpill,body.dv-mapfull .cx-tt-fab,body.dv-mapfull #cxtt{opacity:0!important;pointer-events:none!important}
+.dv-mfc{position:absolute;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(var(--sab) + 26px);z-index:40;display:flex;flex-direction:column;gap:10px;opacity:0;transform:translate3d(0,14px,0);pointer-events:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .22s ease}
+.dv-mfc .dv-rb{width:44px;height:44px;border-radius:22px}
+body.dv-mapfull .dv-mfc{opacity:1;transform:none;pointer-events:auto}
+
+@media (prefers-reduced-motion:reduce){body.dv-mfanim #dvsheet,body.dv-mfanim .dv-tabs,body.dv-mfanim .dv-scr.over,body.dv-mfanim .dv-top>*,.dv-mfc,.dv-nb{transition:none!important}}
+/* keep the map buttons (expand / overview / recenter) clear of the turn banner */
+body.dv-onmap.dv-hasturn .dv-scr.over{padding-top:calc(var(--sat,0px) + 92px)}
+
+/* navigating to a stop: full-screen map + bottom strip (stop name / address + one big Arrived button) */
+.dv-nb{position:absolute;left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(var(--sab) + 10px);z-index:41;
+ display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:20px;background:color-mix(in srgb,var(--bg) 92%,transparent);border:1px solid var(--line,rgba(255,255,255,.08));
+ box-shadow:0 10px 30px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+ opacity:0;transform:translate3d(0,calc(100% + 24px),0);pointer-events:none;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .22s ease}
+body.dv-mapfull .dv-nb{opacity:1;transform:none;pointer-events:auto}
+.dv-nb:empty{display:none}
+.dv-nbi{min-width:0;padding:0 4px}
+.dv-nbi .nm{font-weight:650;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t1)}
+.dv-nbi .ad{font-size:13px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-nbgo{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;border-radius:16px;border:0;font:inherit;font-size:18px;font-weight:700;
+ background:var(--acc,#3B82F6);color:#fff;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.dv-nbgo:active{transform:scale(.985)}
+.dv-nbgo.here{background:#16A34A;box-shadow:0 0 0 0 rgba(22,163,74,.6);animation:dvnbpulse 1.6s ease-out infinite}
+@keyframes dvnbpulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.55)}100%{box-shadow:0 0 0 14px rgba(22,163,74,0)}}
+@media (prefers-reduced-motion:reduce){.dv-nbgo.here{animation:none}}
+/* recenter / overview sit above the strip */
+body.dv-mapfull .dv-mfc{bottom:calc(var(--sab) + 152px)}
+/* banner ETA */
+.dv-turn .tt .eta{color:#A7F3D0;font-weight:600;font-variant-numeric:tabular-nums}
+/* settings · map view */
+.dv-mapview .dv-mvl{font-size:12px;color:var(--t3);margin-top:4px}
+.dv-mapview .seg{flex-wrap:wrap;height:auto}
+.dv-mapview .seg button{flex:1 1 auto;min-height:36px}
+.dv-mfc .dv-mfsim{font:600 12px/1 ui-monospace,monospace;color:#FCD34D}
+.dv-mfc .dv-mfsim[hidden]{display:none}
