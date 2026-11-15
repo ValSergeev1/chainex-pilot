@@ -248,3 +248,27 @@ body.dv-onmap.dv-hasturn #rxpill{top:calc(var(--sat,0px) + 92px)}
 @media (prefers-reduced-motion:reduce){.dv-scr.solid>*,.dv .mk.big.nxt::before,.dv-scan i{animation:none!important}.dv-sheet.snap{transition:none}}
 /* Turn banner stays visible at every sheet height: the full sheet stops 10px under it (banner = --sat + 10px pad + 70px card). The drag ceiling in driver6.js matches it. */
 body.dv-hasturn .dv-sheet.full{max-height:calc(100% - var(--dv-tabs) - var(--sat,0px) - 90px)}
+/* live turn-by-turn navigation (livenav6.js) */
+.dv-turn .ar{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:58px;flex:none}
+.dv-turn .ar i{font:600 28px/1 var(--f);font-style:normal}
+.dv-turn .ar .dd{font:700 14.5px/1 var(--fm);font-style:normal;color:#fff;white-space:nowrap;letter-spacing:-.02em}
+.dv-turn .tt{min-width:0;flex:1}
+.dv-turn .tt span{display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-turn .tt .msg{color:#FCD34D}
+.dv-turn.live{background:#0B3B2C;border-color:rgba(52,211,153,.28)}
+.dv-turn.warn{background:#3A2A08;border-color:rgba(252,211,77,.45)}
+.dv-voice{flex:none;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dv-voice.off{background:rgba(255,255,255,.06);color:rgba(255,255,255,.65)}
+.mk.me.nav{width:30px;height:30px;transition:none;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 28%,transparent),0 4px 12px rgba(0,0,0,.45)}
+.mk.me.nav .hd{position:absolute;left:50%;top:50%;margin:-8px 0 0 -6.5px;width:0;height:0;border-left:6.5px solid transparent;border-right:6.5px solid transparent;border-bottom:13px solid #fff;pointer-events:none}
+.dv-rb.dv-rb-hot{background:var(--acc);color:#fff}
+.dv-ext{display:flex;gap:6px}
+.dv-ext a,.dv-ext button{flex:1;min-width:0;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;border-radius:12px;border:1px solid var(--line);background:none;color:var(--t2);font:600 12.5px/1.1 var(--f);text-decoration:none;white-space:nowrap;cursor:pointer}
+.dv-ext a:active,.dv-ext button:active{background:var(--s2)}
+.dv-navnote{border-radius:14px;padding:12px 13px;font-size:13px;line-height:1.4;color:var(--t2);background:color-mix(in srgb,var(--warn) 12%,transparent);border:1px solid color-mix(in srgb,var(--warn) 38%,transparent)}
+.dv-navnote b{display:block;color:var(--t1);font-size:14.5px;margin-bottom:3px}
+.dv-simbar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2)}
+.dv-simbar>span{flex:1;display:flex;align-items:center;gap:7px;font-weight:600;color:var(--t1);min-width:0;white-space:nowrap}
+.dv-simbar>span i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 25%,transparent)}
+.dv-turn .tt b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.22;overflow:hidden}
+#dvnavnote{margin-top:-2px}
